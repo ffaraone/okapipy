@@ -1,0 +1,36 @@
+openapi: 3.0.0
+info:
+  title: Paginated API
+  version: 1.0.0
+paths:
+  /orders:
+    get:
+      summary: List orders
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderEnvelope'
+components:
+  schemas:
+    Order:
+      type: object
+      properties:
+        id:
+          type: string
+    OrderEnvelope:
+      type: object
+      properties:
+        data:
+          type: object
+          title: Order
+          properties:
+            id:
+              type: string
+        meta:
+          type: object
+          properties:
+            total:
+              type: integer

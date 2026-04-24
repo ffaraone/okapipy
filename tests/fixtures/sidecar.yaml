@@ -1,0 +1,9 @@
+x-okapipy-ns:
+  - commerce
+  - settings
+paths:
+  /commerce/orders/{id}/submit:
+    post:
+      x-okapipy: action
+  /commerce/staff:
+    x-okapipy: collection
