@@ -340,7 +340,7 @@ def _install_operations(
         operation = _build_operation(
             method=method,
             op_data=op_data,
-            paginated=op_paginated,
+            pagination_supported=op_paginated,
         )
         _route(
             cursor=cursor,
@@ -455,7 +455,7 @@ def _build_operation(
     *,
     method: str,
     op_data: dict[str, Any],
-    paginated: bool,
+    pagination_supported: bool,
 ) -> Operation:
     """Build an Operation from one method entry, reading schema names from `$ref`s."""
     summary = op_data.get("summary")
@@ -471,7 +471,7 @@ def _build_operation(
         response_content_type=response_content_type,
         response_model=response_model,
         response_headers=response_headers,
-        paginated=paginated,
+        pagination_supported=pagination_supported,
     )
 
 

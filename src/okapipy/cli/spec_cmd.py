@@ -14,6 +14,8 @@ from rich.syntax import Syntax
 from rich.table import Table
 
 from okapipy.cli.console import is_piped, print_error, stderr, stdout, write_stream
+from okapipy.generator import GenerationError, generate
+from okapipy.generator.vfs import write_to_disk
 from okapipy.parser.builder import build
 from okapipy.parser.disambiguation import load_sidecar
 from okapipy.parser.dump import to_json, write
@@ -176,3 +178,118 @@ def _verbose_from(ctx: typer.Context) -> int:
     obj = ctx.obj if isinstance(ctx.obj, dict) else {}
     value = obj.get("verbose", 0)
     return int(value) if isinstance(value, int) else 0
+
+
+@app.command("generate")
+def generate_command(
+    ctx: typer.Context,
+    source: str = typer.Argument(..., help="Path or http(s) URL of the OpenAPI document."),
+    output: Path = typer.Option(
+        ...,
+        "--output",
+        "-o",
+        help="Directory to write the generated client project into.",
+    ),
+    package: str = typer.Option(
+        ...,
+        "--package",
+        help="Dotted Python package path for the generated client (e.g. 'acme.commerce').",
+    ),
+    client_class: str = typer.Option(
+        ...,
+        "--client-class",
+        help="PascalCase class name for the sync client; async sibling is 'Async<name>'.",
+    ),
+    project_name: str | None = typer.Option(
+        None,
+        "--project-name",
+        help="PEP 503 distribution name; defaults to the last segment of --package.",
+    ),
+    project_version: str = typer.Option(
+        "0.1.0",
+        "--project-version",
+        help="Initial version string emitted into pyproject.toml.",
+    ),
+    python_version: str = typer.Option(
+        "3.13",
+        "--python-version",
+        help="Pinned Python version for the generated project.",
+    ),
+    license_id: str = typer.Option(
+        "Proprietary",
+        "--license",
+        help="SPDX license identifier; drives the LICENSE placeholder.",
+    ),
+    base_url_default: str | None = typer.Option(
+        None,
+        "--base-url",
+        help="Default base URL baked into the generated client.",
+    ),
+    sidecar: Path | None = typer.Option(
+        None,
+        "--sidecar",
+        help="Local path to a JSON/YAML disambiguation sidecar.",
+    ),
+    lang: str = typer.Option("en", "--lang", help="ISO language code for NLP."),
+    strip_prefix: str | None = typer.Option(
+        None,
+        "--strip-prefix",
+        help="Path prefix to strip from every path before classification.",
+    ),
+    nlp_cache_dir: Path = typer.Option(
+        DEFAULT_CACHE_DIR,
+        "--nlp-cache-dir",
+        help="Directory in which spaCy models are stored and looked up.",
+    ),
+    templates_dir: Path | None = typer.Option(
+        None,
+        "--templates-dir",
+        help="Directory of user Jinja templates that override the packaged defaults.",
+    ),
+    model_templates_dir: Path | None = typer.Option(
+        None,
+        "--model-templates-dir",
+        help="Directory of datamodel-code-generator templates for models.py.",
+    ),
+) -> None:
+    """Generate a Python client project from an OpenAPI document."""
+    verbose = _verbose_from(ctx)
+    try:
+        api = _run_pipeline(
+            source=source,
+            sidecar=sidecar,
+            lang=lang,
+            cache_dir=nlp_cache_dir,
+            strip_prefix=strip_prefix,
+        )
+    except ParserError as exc:
+        print_error(exc, debug=verbose >= 2)
+        raise typer.Exit(code=1) from exc
+    try:
+        with _phase("Generating client project"):
+            vfs = generate(
+                api,
+                source,
+                output_dir=output,
+                package=package,
+                client_class=client_class,
+                project_name=project_name,
+                project_version=project_version,
+                python_version=python_version,
+                license=license_id,
+                base_url_default=base_url_default,
+                templates_dir=templates_dir,
+                model_templates_dir=model_templates_dir,
+            )
+        with _phase(f"Writing {len(vfs)} files to {output}"):
+            write_to_disk(vfs, output)
+    except GenerationError as exc:
+        print_error(exc, debug=verbose >= 2)
+        raise typer.Exit(code=1) from exc
+    stderr.print(
+        Panel(
+            f"Wrote {len(vfs)} files to {output}",
+            border_style="green",
+            title_align="left",
+        )
+    )

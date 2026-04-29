@@ -1,4 +1,5 @@
-"""Tests for the `paginated` flag, response_headers capture, and envelope semantics."""
+"""Tests for the pagination/filter/sort capability flags, response_headers capture,
+and envelope semantics."""
 
 from __future__ import annotations
 
@@ -11,7 +12,7 @@ from okapipy.parser.disambiguation import Sidecar, load_sidecar
 
 
 def test_collection_fetch_is_paginated_by_default(english_nlp: Language) -> None:
-    """A bare collection fetch with no extension defaults to `paginated=True`."""
+    """A bare collection fetch with no extension defaults to `pagination_supported=True`."""
     spec = {
         "paths": {
             "/orders": {
@@ -24,7 +25,30 @@ def test_collection_fetch_is_paginated_by_default(english_nlp: Language) -> None
 
     orders = api.collections[0]
     assert orders.fetch is not None
-    assert orders.fetch.paginated is True
+    assert orders.fetch.pagination_supported is True
+
+
+def test_filter_and_sort_default_to_unsupported(english_nlp: Language) -> None:
+    """`filter_supported` and `sort_supported` default to False on every operation.
+
+    Future `x-okapipy-filter` and `x-okapipy-sort` extensions will flip them on,
+    but with no extension present the parser must report the capability as absent
+    so the generator omits the corresponding fluent methods.
+    """
+    spec = {
+        "paths": {
+            "/orders": {
+                "get": {"responses": {"200": {"description": "OK"}}},
+            }
+        }
+    }
+
+    api = build(spec, Sidecar(), english_nlp)
+
+    fetch = api.collections[0].fetch
+    assert fetch is not None
+    assert fetch.filter_supported is False
+    assert fetch.sort_supported is False
 
 
 def test_path_item_extension_disables_pagination(english_nlp: Language) -> None:
@@ -42,7 +66,7 @@ def test_path_item_extension_disables_pagination(english_nlp: Language) -> None:
 
     orders = api.collections[0]
     assert orders.fetch is not None
-    assert orders.fetch.paginated is False
+    assert orders.fetch.pagination_supported is False
 
 
 def test_operation_extension_overrides_path_item(english_nlp: Language) -> None:
@@ -63,7 +87,7 @@ def test_operation_extension_overrides_path_item(english_nlp: Language) -> None:
 
     orders = api.collections[0]
     assert orders.fetch is not None
-    assert orders.fetch.paginated is True
+    assert orders.fetch.pagination_supported is True
 
 
 def test_sidecar_paginated_wins_over_spec(
@@ -89,7 +113,7 @@ def test_sidecar_paginated_wins_over_spec(
 
     orders = api.collections[0]
     assert orders.fetch is not None
-    assert orders.fetch.paginated is False
+    assert orders.fetch.pagination_supported is False
 
 
 def test_sidecar_per_method_paginated_overrides_path_item(
@@ -116,7 +140,7 @@ def test_sidecar_per_method_paginated_overrides_path_item(
 
     orders = api.collections[0]
     assert orders.fetch is not None
-    assert orders.fetch.paginated is True
+    assert orders.fetch.pagination_supported is True
 
 
 def test_response_headers_are_captured(english_nlp: Language) -> None:
@@ -210,4 +234,4 @@ def test_paginated_flag_is_true_even_for_resource_get(english_nlp: Language) -> 
     resource = api.collections[0].resource
     assert resource is not None
     assert resource.retrieve is not None
-    assert resource.retrieve.paginated is True
+    assert resource.retrieve.pagination_supported is True

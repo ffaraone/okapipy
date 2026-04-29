@@ -17,8 +17,11 @@ class Operation(BaseModel):
     the response wraps a list, or the resource itself for single-item responses).
     The parser does not dive into list envelopes — that is the generator's job.
 
-    `paginated` defaults to `True` and is only meaningful on collection-fetch
-    operations; the generator decides what to do with it on other operations.
+    `pagination_supported` defaults to `True` and is only meaningful on
+    collection-fetch operations; the generator decides what to do with it on other
+    operations. `filter_supported` and `sort_supported` default to `False` and will
+    be flipped on by future `x-okapipy-filter` / `x-okapipy-sort` extensions; they
+    drive whether the generator emits `filter()` / `order_by()` on the collection.
     `response_headers` lists the names of headers declared on the chosen 2xx
     response, useful to the generator for detecting `Link`, `X-Total-Count`, etc.
     """
@@ -31,7 +34,9 @@ class Operation(BaseModel):
     response_content_type: str | None = None
     response_model: str | None = None
     response_headers: list[str] = Field(default_factory=list)
-    paginated: bool = True
+    pagination_supported: bool = True
+    filter_supported: bool = False
+    sort_supported: bool = False
 
 
 class Action(BaseModel):

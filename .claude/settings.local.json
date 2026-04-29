@@ -7,7 +7,13 @@
       "Bash(xargs sed *)",
       "Bash(sed -i 's/build\\(spec Sidecar/build\\(spec, Sidecar/g; /raw = load_raw_spec/d' /app/tests/parser/test_builder.py)",
       "Bash(sed -i 's|build\\({\"paths\": {}}, {\"paths\": {}}, Sidecar|build\\({\"paths\": {}}, Sidecar|g' /app/tests/parser/test_builder.py)",
-      "Bash(echo \"EXIT=$?\")"
+      "Bash(echo \"EXIT=$?\")",
+      "Bash(rm -rf /tmp/gen-smoke)",
+      "Bash(mkdir -p /tmp/gen-smoke)",
+      "Read(//tmp/**)",
+      "Read(//tmp/gen-smoke/**)",
+      "Bash(mkdir -p tests)",
+      "Bash(rm -rf /tmp/gen-nested)"
     ]
   }
 }
