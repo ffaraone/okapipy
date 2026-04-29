@@ -58,16 +58,17 @@ type ContainerNode = APIModel | Namespace | Collection | Resource | Action
 
 def build(
     spec: dict[str, Any],
-    raw_spec: dict[str, Any],
     sidecar: Sidecar,
     nlp: Language,
 ) -> APIModel:
-    """Construct an APIModel from a resolved OpenAPI document.
+    """Construct an APIModel from an OpenAPI document.
+
+    `$ref` pointers in the spec are left intact: schema names for `request_model` and
+    `response_model` are recovered from the trailing segment of each `$ref`, falling
+    back to inline schema `title` when no ref is present.
 
     Args:
-        spec: The fully-resolved OpenAPI document (refs inlined).
-        raw_spec: The same document **without** ref resolution; used to recover the
-            original schema names for `request_model` / `response_model`.
+        spec: The OpenAPI document, with `$ref`s preserved as in the source.
         sidecar: A loaded disambiguation sidecar (possibly empty).
         nlp: A loaded spaCy pipeline used by the classifier and naming engine.
 
@@ -80,7 +81,6 @@ def build(
         return api
     base = detect_base_path(spec)
     paths = strip_base_path(paths_obj, base)
-    raw_paths = strip_base_path(raw_spec.get("paths") or {}, base)
     ns_registry = root_namespaces(spec) | extra_namespaces(sidecar)
     log.debug(
         "builder starting: %d paths, %d namespace hints, base=%r",
@@ -94,17 +94,18 @@ def build(
             log.info("excluding path %s (x-okapipy-exclude='*')", path)
             continue
         excluded_methods: set[str] = exclusion if isinstance(exclusion, set) else set()
-        raw_item = raw_paths.get(path, {})
-        _walk_path(
-            api=api,
-            path=path,
-            path_item=path_item,
-            raw_path_item=raw_item,
-            sidecar=sidecar,
-            nlp=nlp,
-            ns_registry=ns_registry,
-            excluded_methods=excluded_methods,
-        )
+        try:
+            _walk_path(
+                api=api,
+                path=path,
+                path_item=path_item,
+                sidecar=sidecar,
+                nlp=nlp,
+                ns_registry=ns_registry,
+                excluded_methods=excluded_methods,
+            )
+        except InvalidStructureError as exc:
+            log.warning("skipping path %s: %s", path, exc)
     return api
 
 
@@ -182,7 +183,6 @@ def _walk_path(
     api: APIModel,
     path: str,
     path_item: dict[str, Any],
-    raw_path_item: dict[str, Any],
     sidecar: Sidecar,
     nlp: Language,
     ns_registry: set[str],
@@ -233,7 +233,6 @@ def _walk_path(
         cursor=cursor,
         terminal_kind=terminal_kind,
         path_item=path_item,
-        raw_path_item=raw_path_item,
         sidecar=sidecar,
         path=path,
         action_path=last_path,
@@ -306,7 +305,6 @@ def _install_operations(
     cursor: ContainerNode,
     terminal_kind: SegmentKind,
     path_item: dict[str, Any],
-    raw_path_item: dict[str, Any],
     sidecar: Sidecar,
     path: str,
     action_path: str,
@@ -324,7 +322,6 @@ def _install_operations(
         if method.upper() in excluded_methods:
             log.info("excluding %s %s (x-okapipy-exclude)", method.upper(), action_path)
             continue
-        raw_op = raw_path_item.get(method) if isinstance(raw_path_item, dict) else None
         method_hint = _merge_hint(
             operation_hint(sidecar, path, method),
             operation_extension(op_data),
@@ -338,7 +335,6 @@ def _install_operations(
         operation = _build_operation(
             method=method,
             op_data=op_data,
-            raw_op=raw_op if isinstance(raw_op, dict) else {},
             paginated=op_paginated,
         )
         _route(
@@ -454,14 +450,13 @@ def _build_operation(
     *,
     method: str,
     op_data: dict[str, Any],
-    raw_op: dict[str, Any],
     paginated: bool,
 ) -> Operation:
-    """Build an Operation from one method entry, recovering ref names from `raw_op`."""
+    """Build an Operation from one method entry, reading schema names from `$ref`s."""
     summary = op_data.get("summary")
     description = op_data.get("description")
-    request_content_type, request_model = _request_info(op_data, raw_op)
-    response_content_type, response_model, response_headers = _response_info(op_data, raw_op)
+    request_content_type, request_model = _request_info(op_data)
+    response_content_type, response_model, response_headers = _response_info(op_data)
     return Operation(
         method=method.upper(),
         summary=summary if isinstance(summary, str) else None,
@@ -475,9 +470,7 @@ def _build_operation(
     )
 
 
-def _request_info(
-    op_data: dict[str, Any], raw_op: dict[str, Any]
-) -> tuple[str | None, str | None]:
+def _request_info(op_data: dict[str, Any]) -> tuple[str | None, str | None]:
     """Return `(content_type, schema_name)` for the operation's request body, if any."""
     body = op_data.get("requestBody")
     if not isinstance(body, dict):
@@ -486,25 +479,13 @@ def _request_info(
     if not isinstance(content, dict) or not content:
         return None, None
     content_type = next(iter(content))
-    raw_body_obj = raw_op.get("requestBody")
-    raw_body: dict[str, Any] = raw_body_obj if isinstance(raw_body_obj, dict) else {}
-    raw_content_obj = raw_body.get("content")
-    raw_content: dict[str, Any] = raw_content_obj if isinstance(raw_content_obj, dict) else {}
-    raw_entry = raw_content.get(content_type)
-    raw_schema = raw_entry.get("schema") if isinstance(raw_entry, dict) else None
-    schema_name = _schema_name(raw_schema) if isinstance(raw_schema, dict) else None
-    if schema_name is None:
-        resolved_entry = content.get(content_type)
-        resolved_schema = resolved_entry.get("schema") if isinstance(resolved_entry, dict) else None
-        if isinstance(resolved_schema, dict):
-            title = resolved_schema.get("title")
-            schema_name = title if isinstance(title, str) else None
-    return content_type, schema_name
+    entry = content.get(content_type)
+    schema = entry.get("schema") if isinstance(entry, dict) else None
+    return content_type, _name_from_schema(schema)
 
 
 def _response_info(
     op_data: dict[str, Any],
-    raw_op: dict[str, Any],
 ) -> tuple[str | None, str | None, list[str]]:
     """Return `(content_type, schema_name, header_names)` for the chosen 2xx response.
 
@@ -528,22 +509,18 @@ def _response_info(
     content_type = next(iter(content))
     entry = content.get(content_type)
     schema = entry.get("schema") if isinstance(entry, dict) else None
-    raw_responses_obj = raw_op.get("responses")
-    raw_responses = raw_responses_obj if isinstance(raw_responses_obj, dict) else {}
-    raw_response = raw_responses.get(status)
-    raw_content = (
-        raw_response.get("content") if isinstance(raw_response, dict) else None
-    )
-    raw_schema = (
-        raw_content.get(content_type, {}).get("schema")
-        if isinstance(raw_content, dict)
-        else None
-    )
-    schema_name = _schema_name(raw_schema) if isinstance(raw_schema, dict) else None
-    if schema_name is None and isinstance(schema, dict):
-        title = schema.get("title")
-        schema_name = title if isinstance(title, str) else None
-    return content_type, schema_name, headers
+    return content_type, _name_from_schema(schema), headers
+
+
+def _name_from_schema(schema: Any) -> str | None:
+    """Return a schema name, preferring the `$ref`'s trailing segment over `title`."""
+    if not isinstance(schema, dict):
+        return None
+    name = _schema_name(schema)
+    if name is not None:
+        return name
+    title = schema.get("title")
+    return title if isinstance(title, str) else None
 
 
 def _response_header_names(response: dict[str, Any]) -> list[str]:

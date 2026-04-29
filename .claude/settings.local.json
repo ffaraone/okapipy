@@ -3,7 +3,11 @@
     "allow": [
       "Bash(uv sync *)",
       "Bash(uv python *)",
-      "Bash(uv run *)"
+      "Bash(uv run *)",
+      "Bash(xargs sed *)",
+      "Bash(sed -i 's/build\\(spec Sidecar/build\\(spec, Sidecar/g; /raw = load_raw_spec/d' /app/tests/parser/test_builder.py)",
+      "Bash(sed -i 's|build\\({\"paths\": {}}, {\"paths\": {}}, Sidecar|build\\({\"paths\": {}}, Sidecar|g' /app/tests/parser/test_builder.py)",
+      "Bash(echo \"EXIT=$?\")"
     ]
   }
 }

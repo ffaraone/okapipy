@@ -29,7 +29,7 @@ def test_spec_exclude_star_drops_whole_path(
     }
 
     with caplog.at_level("INFO"):
-        api = build(spec, spec, Sidecar(), english_nlp)
+        api = build(spec, Sidecar(), english_nlp)
 
     assert [c.name for c in api.collections] == ["Orders"]
     assert "/healthz" in caplog.text
@@ -52,7 +52,7 @@ def test_spec_exclude_method_list_drops_only_those_methods(
         }
     }
 
-    api = build(spec, spec, Sidecar(), english_nlp)
+    api = build(spec, Sidecar(), english_nlp)
 
     users = api.collections[0]
     assert users.resource is not None
@@ -75,7 +75,7 @@ def test_spec_exclude_method_list_is_case_insensitive(english_nlp: Language) -> 
         }
     }
 
-    api = build(spec, spec, Sidecar(), english_nlp)
+    api = build(spec, Sidecar(), english_nlp)
 
     users = api.collections[0]
     assert users.resource is not None
@@ -99,7 +99,7 @@ def test_sidecar_exclude_star_drops_whole_path(
         }
     }
 
-    api = build(spec, spec, load_sidecar(sidecar_file), english_nlp)
+    api = build(spec, load_sidecar(sidecar_file), english_nlp)
 
     assert [c.name for c in api.collections] == ["Orders"]
 
@@ -126,7 +126,7 @@ def test_sidecar_exclude_method_list_filters_methods(
         }
     }
 
-    api = build(spec, spec, load_sidecar(sidecar_file), english_nlp)
+    api = build(spec, load_sidecar(sidecar_file), english_nlp)
 
     users = api.collections[0]
     assert users.resource is not None
@@ -157,7 +157,7 @@ def test_sidecar_exclude_overrides_spec_exclude(
         }
     }
 
-    api = build(spec, spec, load_sidecar(sidecar_file), english_nlp)
+    api = build(spec, load_sidecar(sidecar_file), english_nlp)
 
     assert api.collections == []
 

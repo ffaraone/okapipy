@@ -20,7 +20,7 @@ def test_collection_fetch_is_paginated_by_default(english_nlp: Language) -> None
         }
     }
 
-    api = build(spec, spec, Sidecar(), english_nlp)
+    api = build(spec, Sidecar(), english_nlp)
 
     orders = api.collections[0]
     assert orders.fetch is not None
@@ -38,7 +38,7 @@ def test_path_item_extension_disables_pagination(english_nlp: Language) -> None:
         }
     }
 
-    api = build(spec, spec, Sidecar(), english_nlp)
+    api = build(spec, Sidecar(), english_nlp)
 
     orders = api.collections[0]
     assert orders.fetch is not None
@@ -59,7 +59,7 @@ def test_operation_extension_overrides_path_item(english_nlp: Language) -> None:
         }
     }
 
-    api = build(spec, spec, Sidecar(), english_nlp)
+    api = build(spec, Sidecar(), english_nlp)
 
     orders = api.collections[0]
     assert orders.fetch is not None
@@ -85,7 +85,7 @@ def test_sidecar_paginated_wins_over_spec(
         }
     }
 
-    api = build(spec, spec, load_sidecar(sidecar_file), english_nlp)
+    api = build(spec, load_sidecar(sidecar_file), english_nlp)
 
     orders = api.collections[0]
     assert orders.fetch is not None
@@ -112,7 +112,7 @@ def test_sidecar_per_method_paginated_overrides_path_item(
         }
     }
 
-    api = build(spec, spec, load_sidecar(sidecar_file), english_nlp)
+    api = build(spec, load_sidecar(sidecar_file), english_nlp)
 
     orders = api.collections[0]
     assert orders.fetch is not None
@@ -139,7 +139,7 @@ def test_response_headers_are_captured(english_nlp: Language) -> None:
         }
     }
 
-    api = build(spec, spec, Sidecar(), english_nlp)
+    api = build(spec, Sidecar(), english_nlp)
 
     orders = api.collections[0]
     assert orders.fetch is not None
@@ -182,7 +182,7 @@ def test_response_model_names_the_envelope_not_the_item(english_nlp: Language) -
         },
     }
 
-    api = build(spec, spec, Sidecar(), english_nlp)
+    api = build(spec, Sidecar(), english_nlp)
 
     orders = api.collections[0]
     assert orders.fetch is not None
@@ -205,7 +205,7 @@ def test_paginated_flag_is_true_even_for_resource_get(english_nlp: Language) -> 
         }
     }
 
-    api = build(spec, spec, Sidecar(), english_nlp)
+    api = build(spec, Sidecar(), english_nlp)
 
     resource = api.collections[0].resource
     assert resource is not None

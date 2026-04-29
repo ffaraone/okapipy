@@ -10,14 +10,13 @@ from okapipy.parser.errors import SpecLoadError
 from okapipy.parser.loader import detect_base_path, load_spec, strip_base_path
 
 
-def test_load_spec_yaml_file_resolves_internal_refs(simple_spec_path: Path) -> None:
-    """A YAML file with internal $refs is loaded and the refs are inlined."""
+def test_load_spec_preserves_internal_refs(simple_spec_path: Path) -> None:
+    """A YAML file with internal $refs is loaded and the refs are kept intact."""
     spec = load_spec(simple_spec_path)
 
     list_op = spec["paths"]["/orders"]["get"]
     schema = list_op["responses"]["200"]["content"]["application/json"]["schema"]
-    assert "$ref" not in schema
-    assert schema["properties"]["items"]["items"]["properties"]["id"]["type"] == "string"
+    assert schema == {"$ref": "#/components/schemas/OrderList"}
 
 
 def test_load_spec_json_file_is_autodetected(simple_spec_json_path: Path) -> None:
@@ -28,15 +27,14 @@ def test_load_spec_json_file_is_autodetected(simple_spec_json_path: Path) -> Non
     assert "/orders" in spec["paths"]
 
 
-def test_load_spec_resolves_external_refs(external_ref_spec_path: Path) -> None:
-    """Refs pointing at sibling files (relative paths) are followed and inlined."""
+def test_load_spec_preserves_external_refs(external_ref_spec_path: Path) -> None:
+    """Refs pointing at sibling files are kept verbatim — resolution is deferred."""
     spec = load_spec(external_ref_spec_path)
 
     schema = spec["paths"]["/items"]["get"]["responses"]["200"]["content"][
         "application/json"
     ]["schema"]
-    assert "$ref" not in schema
-    assert schema["properties"]["name"]["type"] == "string"
+    assert "$ref" in schema
 
 
 def test_load_spec_accepts_url_source(served_fixtures: object) -> None:
@@ -113,27 +111,6 @@ def test_strip_base_path_preserves_paths_outside_prefix() -> None:
     paths = {"/api/v1/orders": {"x": 1}, "/healthz": {"y": 2}}
 
     assert strip_base_path(paths, "/api/v1") == {"/orders": {"x": 1}, "/healthz": {"y": 2}}
-
-
-def test_load_raw_spec_preserves_refs(simple_spec_path: Path) -> None:
-    """`load_raw_spec` returns a dict whose `$ref` pointers are still intact."""
-    from okapipy.parser.loader import load_raw_spec
-
-    raw = load_raw_spec(simple_spec_path)
-
-    schema = raw["paths"]["/orders"]["get"]["responses"]["200"]["content"][
-        "application/json"
-    ]["schema"]
-    assert schema == {"$ref": "#/components/schemas/OrderList"}
-
-
-def test_load_raw_spec_missing_file_raises(tmp_path: Path) -> None:
-    """A non-existent path is wrapped as a SpecLoadError, same as `load_spec`."""
-    from okapipy.parser.errors import SpecLoadError
-    from okapipy.parser.loader import load_raw_spec
-
-    with pytest.raises(SpecLoadError):
-        load_raw_spec(tmp_path / "missing.yaml")
 
 
 def test_detect_base_path_returns_empty_when_servers_not_a_list() -> None:

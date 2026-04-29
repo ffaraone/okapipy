@@ -18,7 +18,7 @@ from okapipy.parser.builder import build
 from okapipy.parser.disambiguation import load_sidecar
 from okapipy.parser.dump import to_json, write
 from okapipy.parser.errors import ParserError
-from okapipy.parser.loader import load_raw_spec, load_spec
+from okapipy.parser.loader import load_spec
 from okapipy.parser.model import APIModel, Collection, Namespace, Resource
 from okapipy.parser.nlp import DEFAULT_CACHE_DIR, load_pipeline
 
@@ -75,14 +75,12 @@ def _run_pipeline(
     """Run the full parser pipeline with a spinner for each phase."""
     with _phase("Loading OpenAPI spec"):
         spec = load_spec(source)
-    with _phase("Loading raw spec (refs preserved)"):
-        raw_spec = load_raw_spec(source)
     with _phase("Loading disambiguation sidecar"):
         side = load_sidecar(sidecar)
     with _phase(f"Loading spaCy pipeline ({lang})"):
         nlp = load_pipeline(lang, cache_dir=cache_dir)
     with _phase("Building structural tree"):
-        return build(spec, raw_spec, side, nlp)
+        return build(spec, side, nlp)
 
 
 @contextmanager

@@ -1,19 +1,23 @@
-"""Phase 1 of the parser pipeline: load + ref-resolve an OpenAPI document.
+"""Phase 1 of the parser pipeline: load an OpenAPI document.
 
 A single public entry point, `load_spec`, accepts either a local filesystem path or an
-http(s) URL, in JSON or YAML, and returns the fully-resolved document with both
-internal and external `$ref` pointers inlined.
+http(s) URL, in JSON or YAML, and returns the parsed document with `$ref` pointers
+left intact. Resolution and validation are intentionally skipped: the structural
+parser recovers schema names from the original `$ref` strings, and the cost of full
+spec resolution (deeply self-referential schemas, unreachable external files) is
+both unnecessary and prohibitive on real-world specs.
 """
 
 from __future__ import annotations
 
+import json
 import logging
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
+from urllib.request import urlopen
 
-from prance import BaseParser, ResolvingParser, ValidationError
-from prance.util.url import ResolutionError
+import yaml
 
 from okapipy.parser.errors import SpecLoadError
 
@@ -21,65 +25,26 @@ log = logging.getLogger(__name__)
 
 
 def load_spec(source: str | Path) -> dict[str, Any]:
-    """Load and ref-resolve an OpenAPI 3.x document.
+    """Load an OpenAPI 3.x document, preserving `$ref` pointers as-is.
 
     The source may be a local filesystem path or an http(s) URL. Format (JSON or YAML)
-    is auto-detected from the file content. Both internal `#/components/...` references
-    and external (relative-file or URL) references are resolved inline before the
-    document is returned.
+    is auto-detected from the file content.
 
     Args:
         source: Path or URL pointing to the spec.
 
     Returns:
-        The resolved spec as a plain dict.
+        The parsed spec as a plain dict, with `$ref`s left intact.
 
     Raises:
-        SpecLoadError: When the document cannot be located, parsed, or validated, or
-            when one of its references cannot be resolved.
+        SpecLoadError: When the document cannot be located, read, or parsed.
     """
-    location = _to_prance_url(source)
-    log.debug("resolving OpenAPI spec from %s", location)
-    try:
-        parser = ResolvingParser(
-            url=location,
-            backend="openapi-spec-validator",
-            strict=False,
-            lazy=False,
-        )
-    except (ValidationError, ResolutionError, FileNotFoundError, OSError) as exc:
-        raise SpecLoadError(f"failed to load spec from {source!r}: {exc}") from exc
-    spec = parser.specification
+    log.debug("loading OpenAPI spec from %s", source)
+    text = _read(source)
+    spec = _parse(text, source)
     if not isinstance(spec, dict):
-        raise SpecLoadError(f"resolved spec from {source!r} is not a JSON object")
-    log.debug("resolved spec contains %d paths", len(spec.get("paths") or {}))
-    return spec
-
-
-def load_raw_spec(source: str | Path) -> dict[str, Any]:
-    """Load an OpenAPI document **without** resolving its `$ref` pointers.
-
-    The resulting dict preserves the original references, which lets downstream code
-    recover schema names that would otherwise be lost when prance inlines refs.
-
-    Args:
-        source: Path or URL pointing to the spec; same flexibility as `load_spec`.
-
-    Returns:
-        The raw spec as a plain dict, refs intact.
-
-    Raises:
-        SpecLoadError: When the document cannot be located or parsed.
-    """
-    location = _to_prance_url(source)
-    log.debug("loading raw (unresolved) OpenAPI spec from %s", location)
-    try:
-        parser = BaseParser(url=location, strict=False, lazy=False)
-    except (ValidationError, ResolutionError, FileNotFoundError, OSError) as exc:
-        raise SpecLoadError(f"failed to load raw spec from {source!r}: {exc}") from exc
-    spec = parser.specification
-    if not isinstance(spec, dict):
-        raise SpecLoadError(f"raw spec from {source!r} is not a JSON object")
+        raise SpecLoadError(f"spec from {source!r} is not a JSON object")
+    log.debug("loaded spec contains %d paths", len(spec.get("paths") or {}))
     return spec
 
 
@@ -133,10 +98,33 @@ def strip_base_path(
     return stripped
 
 
-def _to_prance_url(source: str | Path) -> str:
-    """Normalize a path-or-URL source into the URL form prance accepts."""
+def _read(source: str | Path) -> str:
+    """Read the spec text from a local path or an http(s) URL."""
     text = str(source)
     parsed = urlparse(text)
-    if parsed.scheme in {"http", "https", "file"}:
-        return text
-    return Path(text).expanduser().resolve().as_uri()
+    if parsed.scheme in {"http", "https"}:
+        try:
+            with urlopen(text) as response:  # noqa: S310 — http(s) is the documented surface
+                body: bytes = response.read()
+        except OSError as exc:
+            raise SpecLoadError(f"failed to load spec from {source!r}: {exc}") from exc
+        return body.decode("utf-8")
+    path = Path(text).expanduser()
+    try:
+        return path.read_text(encoding="utf-8")
+    except OSError as exc:
+        raise SpecLoadError(f"failed to load spec from {source!r}: {exc}") from exc
+
+
+def _parse(text: str, source: str | Path) -> Any:
+    """Parse spec text as JSON first, then fall back to YAML; surface friendly errors."""
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        pass
+    try:
+        return yaml.safe_load(text)
+    except yaml.YAMLError as exc:
+        raise SpecLoadError(
+            f"spec from {source!r} is not valid JSON or YAML: {exc}"
+        ) from exc

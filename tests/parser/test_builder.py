@@ -13,8 +13,7 @@ from okapipy.parser.builder import (
     singularize,
 )
 from okapipy.parser.disambiguation import Sidecar, load_sidecar
-from okapipy.parser.errors import InvalidStructureError
-from okapipy.parser.loader import load_raw_spec, load_spec
+from okapipy.parser.loader import load_spec
 from okapipy.parser.model import APIModel, Collection, Namespace
 
 
@@ -81,7 +80,7 @@ def test_build_treats_force_reimport_as_resource_action(english_nlp: Language) -
         }
     }
 
-    api = build(spec, spec, Sidecar(), english_nlp)
+    api = build(spec, Sidecar(), english_nlp)
 
     organizations = api.collections[0]
     assert organizations.name == "Organizations"
@@ -121,7 +120,7 @@ def test_build_drops_post_on_resource_path_when_not_marked_as_action(
     }
 
     with caplog.at_level("WARNING"):
-        api = build(spec, spec, Sidecar(), english_nlp)
+        api = build(spec, Sidecar(), english_nlp)
 
     auth = next(ns for ns in api.namespaces if ns.name == "auth")
     collection = auth.collections[0]
@@ -147,7 +146,7 @@ def test_build_resource_name_for_compound_collection(english_nlp: Language) -> N
         }
     }
 
-    api = build(spec, spec, Sidecar(), english_nlp)
+    api = build(spec, Sidecar(), english_nlp)
 
     collection = api.collections[0]
     assert collection.name == "PasswordRecoveryRequests"
@@ -157,7 +156,7 @@ def test_build_resource_name_for_compound_collection(english_nlp: Language) -> N
 
 def test_build_handles_empty_paths_object(english_nlp: Language) -> None:
     """A spec with no paths yields an empty APIModel without error."""
-    api = build({"paths": {}}, {"paths": {}}, Sidecar(), english_nlp)
+    api = build({"paths": {}}, Sidecar(), english_nlp)
 
     assert api == APIModel()
 
@@ -167,9 +166,8 @@ def test_build_creates_top_level_collection_for_simple_spec(
 ) -> None:
     """A spec with `/orders` and `/orders/{id}` yields one root collection with a resource."""
     spec = load_spec(simple_spec_path)
-    raw = load_raw_spec(simple_spec_path)
 
-    api = build(spec, raw, Sidecar(), english_nlp)
+    api = build(spec, Sidecar(), english_nlp)
 
     assert len(api.collections) == 1
     orders = api.collections[0]
@@ -187,9 +185,8 @@ def test_build_uses_contextual_name_for_subcollection(
 ) -> None:
     """A `/orders/{id}/lines` subcollection is named `OrderLines` via the breadcrumb."""
     spec = load_spec(nested_spec_path)
-    raw = load_raw_spec(nested_spec_path)
 
-    api = build(spec, raw, Sidecar(), english_nlp)
+    api = build(spec, Sidecar(), english_nlp)
 
     commerce = _find_namespace(api, "commerce")
     orders = next(c for c in commerce.collections if c.name == "Orders")
@@ -206,9 +203,8 @@ def test_build_attaches_action_under_resource_when_extension_set(
 ) -> None:
     """`/orders/{id}/submit` with `x-okapipy: action` becomes a Resource-level action."""
     spec = load_spec(nested_spec_path)
-    raw = load_raw_spec(nested_spec_path)
 
-    api = build(spec, raw, Sidecar(), english_nlp)
+    api = build(spec, Sidecar(), english_nlp)
 
     commerce = _find_namespace(api, "commerce")
     orders = next(c for c in commerce.collections if c.name == "Orders")
@@ -226,9 +222,8 @@ def test_build_routes_methods_to_canonical_resource_slots(
 ) -> None:
     """GET and DELETE on `/orders/{id}` land on `retrieve` and `delete` respectively."""
     spec = load_spec(nested_spec_path)
-    raw = load_raw_spec(nested_spec_path)
 
-    api = build(spec, raw, Sidecar(), english_nlp)
+    api = build(spec, Sidecar(), english_nlp)
 
     commerce = _find_namespace(api, "commerce")
     orders = next(c for c in commerce.collections if c.name == "Orders")
@@ -243,9 +238,8 @@ def test_build_recovers_request_and_response_model_names(
 ) -> None:
     """The original `$ref` schema names are recovered for request and response models."""
     spec = load_spec(nested_spec_path)
-    raw = load_raw_spec(nested_spec_path)
 
-    api = build(spec, raw, Sidecar(), english_nlp)
+    api = build(spec, Sidecar(), english_nlp)
 
     commerce = _find_namespace(api, "commerce")
     orders = next(c for c in commerce.collections if c.name == "Orders")
@@ -264,10 +258,8 @@ def test_build_uses_sidecar_namespace_registry(
     spec = load_spec(nested_spec_path)
     # remove the in-spec registry so only the sidecar contributes
     spec.pop("x-okapipy-ns", None)
-    raw = load_raw_spec(nested_spec_path)
-    raw.pop("x-okapipy-ns", None)
 
-    api = build(spec, raw, load_sidecar(sidecar_yaml), english_nlp)
+    api = build(spec, load_sidecar(sidecar_yaml), english_nlp)
 
     assert _find_namespace(api, "commerce").name == "commerce"
 
@@ -283,13 +275,19 @@ def test_build_strips_server_base_path(english_nlp: Language) -> None:
         },
     }
 
-    api = build(spec, spec, Sidecar(), english_nlp)
+    api = build(spec, Sidecar(), english_nlp)
 
     assert [c.path for c in api.collections] == ["/orders"]
 
 
-def test_build_rejects_namespace_level_action(english_nlp: Language) -> None:
-    """A path whose terminal segment is forced to action under a namespace is rejected."""
+def test_build_rejects_namespace_level_action(
+    english_nlp: Language, caplog: pytest.LogCaptureFixture
+) -> None:
+    """A path whose terminal segment is forced to action under a namespace is skipped.
+
+    The parser logs a warning and continues — one malformed path should not abort
+    the whole build.
+    """
     spec = {
         "x-okapipy-ns": ["commerce"],
         "paths": {
@@ -302,8 +300,12 @@ def test_build_rejects_namespace_level_action(english_nlp: Language) -> None:
         },
     }
 
-    with pytest.raises(InvalidStructureError, match="namespace"):
-        build(spec, spec, Sidecar(), english_nlp)
+    with caplog.at_level("WARNING"):
+        api = build(spec, Sidecar(), english_nlp)
+
+    commerce = next(ns for ns in api.namespaces if ns.name == "commerce")
+    assert commerce.collections == []
+    assert "namespace-level actions are not allowed" in caplog.text
 
 
 def test_build_skips_non_canonical_collection_method_with_warning(
@@ -323,7 +325,7 @@ def test_build_skips_non_canonical_collection_method_with_warning(
     }
 
     with caplog.at_level("WARNING"):
-        api = build(spec, spec, Sidecar(), english_nlp)
+        api = build(spec, Sidecar(), english_nlp)
 
     orders = api.collections[0]
     assert orders.fetch is None
@@ -352,7 +354,7 @@ def test_build_skips_non_canonical_resource_method_with_warning(
     }
 
     with caplog.at_level("WARNING"):
-        api = build(spec, spec, Sidecar(), english_nlp)
+        api = build(spec, Sidecar(), english_nlp)
 
     orders = api.collections[0]
     assert orders.resource is not None
@@ -380,7 +382,7 @@ def test_build_groups_methods_on_action_path(english_nlp: Language) -> None:
         }
     }
 
-    api = build(spec, spec, Sidecar(), english_nlp)
+    api = build(spec, Sidecar(), english_nlp)
 
     orders = api.collections[0]
     assert orders.resource is not None
@@ -407,7 +409,7 @@ def test_build_handles_request_body_without_ref(english_nlp: Language) -> None:
         }
     }
 
-    api = build(spec, spec, Sidecar(), english_nlp)
+    api = build(spec, Sidecar(), english_nlp)
 
     orders = api.collections[0]
     assert orders.create is not None
@@ -428,7 +430,7 @@ def test_build_routes_resource_put_to_update_slot(english_nlp: Language) -> None
         }
     }
 
-    api = build(spec, spec, Sidecar(), english_nlp)
+    api = build(spec, Sidecar(), english_nlp)
 
     orders = api.collections[0]
     assert orders.resource is not None
@@ -451,7 +453,7 @@ def test_build_routes_collection_method_with_action_hint_to_synthetic_action(
         }
     }
 
-    api = build(spec, spec, Sidecar(), english_nlp)
+    api = build(spec, Sidecar(), english_nlp)
 
     orders = api.collections[0]
     assert orders.fetch is None
@@ -476,7 +478,7 @@ def test_build_routes_resource_method_with_action_hint_to_synthetic_action(
         }
     }
 
-    api = build(spec, spec, Sidecar(), english_nlp)
+    api = build(spec, Sidecar(), english_nlp)
 
     orders = api.collections[0]
     assert orders.resource is not None
@@ -486,8 +488,11 @@ def test_build_routes_resource_method_with_action_hint_to_synthetic_action(
 
 def test_build_skips_paths_with_only_a_root_segment(english_nlp: Language) -> None:
     """A spec that only declares the root path `/` is parsed without errors and yields nothing."""
-    api = build({"paths": {"/": {"get": {"responses": {"200": {"description": "OK"}}}}}},
-                {"paths": {"/": {"get": {}}}}, Sidecar(), english_nlp)
+    api = build(
+        {"paths": {"/": {"get": {"responses": {"200": {"description": "OK"}}}}}},
+        Sidecar(),
+        english_nlp,
+    )
 
     assert api.namespaces == []
     assert api.collections == []

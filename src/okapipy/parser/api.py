@@ -6,7 +6,7 @@ from pathlib import Path
 
 from okapipy.parser.builder import build
 from okapipy.parser.disambiguation import load_sidecar
-from okapipy.parser.loader import load_raw_spec, load_spec
+from okapipy.parser.loader import load_spec
 from okapipy.parser.model import APIModel
 from okapipy.parser.nlp import DEFAULT_CACHE_DIR, load_pipeline
 
@@ -36,7 +36,6 @@ def parse(
         The fully-built APIModel rooted at the namespaces it discovered.
     """
     spec = load_spec(source)
-    raw_spec = load_raw_spec(source)
     side = load_sidecar(sidecar)
     nlp = load_pipeline(lang, cache_dir=nlp_cache_dir)
-    return build(spec, raw_spec, side, nlp)
+    return build(spec, side, nlp)
