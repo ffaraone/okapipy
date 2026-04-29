@@ -8,6 +8,7 @@ from contextlib import contextmanager
 from pathlib import Path
 
 import typer
+from rich import box
 from rich.panel import Panel
 from rich.syntax import Syntax
 from rich.table import Table
@@ -52,7 +53,7 @@ def parse_command(
     except ParserError as exc:
         print_error(exc, debug=verbose >= 2)
         raise typer.Exit(code=1) from exc
-    _emit_summary(api)
+    _emit_summary(api, source=source)
     if output is not None:
         try:
             write(api, output)
@@ -91,12 +92,23 @@ def _phase(label: str) -> Iterator[None]:
         yield
 
 
-def _emit_summary(api: APIModel) -> None:
+def _emit_summary(api: APIModel, *, source: str) -> None:
     """Print a counts table for the parsed APIModel on stderr."""
     counts = _count_nodes(api)
-    table = Table(title="Parsed structural tree", title_style="bold", show_header=False)
-    table.add_column("kind", style="cyan")
-    table.add_column("count", justify="right", style="bold")
+    stderr.print(
+        Panel(
+            f"{source} parsing result",
+            border_style="cyan",
+            title_align="left",
+        )
+    )
+    table = Table(
+        box=box.ROUNDED,
+        header_style="bold cyan",
+        expand=True,
+    )
+    table.add_column("Node kind", style="cyan", no_wrap=True)
+    table.add_column("Count", justify="right", style="bold")
     table.add_row("Namespaces", str(counts["namespaces"]))
     table.add_row("Collections", str(counts["collections"]))
     table.add_row("Resources", str(counts["resources"]))
