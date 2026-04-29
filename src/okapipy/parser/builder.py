@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import logging
 import re
-from collections.abc import Callable
 from typing import Any
 
 from spacy.language import Language
@@ -19,7 +18,9 @@ from okapipy.parser.disambiguation import (
     Sidecar,
     extra_namespaces,
     operation_hint,
+    operation_paginated,
     path_item_hint,
+    path_item_paginated,
 )
 from okapipy.parser.disambiguation import (
     path_exclusion as sidecar_path_exclusion,
@@ -27,7 +28,9 @@ from okapipy.parser.disambiguation import (
 from okapipy.parser.errors import InvalidStructureError
 from okapipy.parser.extension import (
     operation_extension,
+    operation_paginated_extension,
     path_item_extension,
+    path_item_paginated_extension,
     root_namespaces,
 )
 from okapipy.parser.extension import (
@@ -46,8 +49,6 @@ from okapipy.parser.nlp import analyze_segment, lemma_in_context
 
 log = logging.getLogger(__name__)
 
-type ListResponseResolver = Callable[[dict[str, Any]], dict[str, Any]]
-
 HTTP_METHODS = ("get", "post", "put", "patch", "delete")
 
 EXCLUDE_ALL = "*"
@@ -60,7 +61,6 @@ def build(
     raw_spec: dict[str, Any],
     sidecar: Sidecar,
     nlp: Language,
-    list_response_resolver: ListResponseResolver | None = None,
 ) -> APIModel:
     """Construct an APIModel from a resolved OpenAPI document.
 
@@ -70,8 +70,6 @@ def build(
             original schema names for `request_model` / `response_model`.
         sidecar: A loaded disambiguation sidecar (possibly empty).
         nlp: A loaded spaCy pipeline used by the classifier and naming engine.
-        list_response_resolver: Optional callback that picks the item-schema out of a
-            collection list response.
 
     Returns:
         A populated APIModel.
@@ -105,7 +103,6 @@ def build(
             sidecar=sidecar,
             nlp=nlp,
             ns_registry=ns_registry,
-            list_response_resolver=list_response_resolver,
             excluded_methods=excluded_methods,
         )
     return api
@@ -180,29 +177,6 @@ def singularize(token: str, nlp: Language) -> str:
     return "".join(rebuilt)
 
 
-def default_list_response_resolver(schema: dict[str, Any]) -> dict[str, Any]:
-    """Return the inner item-schema of a list-style response, or the input unchanged.
-
-    The heuristic looks for exactly one array property in `schema.properties`. When
-    found, the array's `items` schema is returned; otherwise the original schema is
-    returned untouched.
-    """
-    if not isinstance(schema, dict):
-        return schema
-    properties = schema.get("properties")
-    if not isinstance(properties, dict):
-        return schema
-    arrays = [
-        value
-        for value in properties.values()
-        if isinstance(value, dict) and value.get("type") == "array" and "items" in value
-    ]
-    if len(arrays) != 1:
-        return schema
-    items = arrays[0].get("items")
-    return items if isinstance(items, dict) else schema
-
-
 def _walk_path(
     *,
     api: APIModel,
@@ -212,7 +186,6 @@ def _walk_path(
     sidecar: Sidecar,
     nlp: Language,
     ns_registry: set[str],
-    list_response_resolver: ListResponseResolver | None,
     excluded_methods: set[str],
 ) -> None:
     """Walk a single OpenAPI path and attach its operations to the tree."""
@@ -264,7 +237,6 @@ def _walk_path(
         sidecar=sidecar,
         path=path,
         action_path=last_path,
-        list_response_resolver=list_response_resolver,
         excluded_methods=excluded_methods,
     )
 
@@ -338,10 +310,13 @@ def _install_operations(
     sidecar: Sidecar,
     path: str,
     action_path: str,
-    list_response_resolver: ListResponseResolver | None,
     excluded_methods: set[str],
 ) -> None:
     """Attach Operation entries onto the terminal node according to its kind."""
+    item_paginated = _resolve_paginated(
+        sidecar_value=path_item_paginated(sidecar, path),
+        spec_value=path_item_paginated_extension(path_item),
+    )
     for method in HTTP_METHODS:
         op_data = path_item.get(method)
         if not isinstance(op_data, dict):
@@ -355,14 +330,16 @@ def _install_operations(
             operation_extension(op_data),
         )
         is_action_method = method_hint == SegmentKind.ACTION.value
+        op_paginated = _resolve_paginated(
+            sidecar_value=operation_paginated(sidecar, path, method),
+            spec_value=operation_paginated_extension(op_data),
+            fallback=item_paginated,
+        )
         operation = _build_operation(
             method=method,
             op_data=op_data,
             raw_op=raw_op if isinstance(raw_op, dict) else {},
-            apply_list_resolver=(
-                terminal_kind is SegmentKind.COLLECTION and method == "get"
-            ),
-            list_response_resolver=list_response_resolver,
+            paginated=op_paginated,
         )
         _route(
             cursor=cursor,
@@ -372,6 +349,20 @@ def _install_operations(
             action_path=action_path,
             is_action_method=is_action_method,
         )
+
+
+def _resolve_paginated(
+    *,
+    sidecar_value: bool | None,
+    spec_value: bool | None,
+    fallback: bool = True,
+) -> bool:
+    """Merge a paginated flag with sidecar precedence; fall back to `fallback` if unset."""
+    if sidecar_value is not None:
+        return sidecar_value
+    if spec_value is not None:
+        return spec_value
+    return fallback
 
 
 def _route(
@@ -464,19 +455,13 @@ def _build_operation(
     method: str,
     op_data: dict[str, Any],
     raw_op: dict[str, Any],
-    apply_list_resolver: bool,
-    list_response_resolver: ListResponseResolver | None,
+    paginated: bool,
 ) -> Operation:
     """Build an Operation from one method entry, recovering ref names from `raw_op`."""
     summary = op_data.get("summary")
     description = op_data.get("description")
     request_content_type, request_model = _request_info(op_data, raw_op)
-    response_content_type, response_model = _response_info(
-        op_data,
-        raw_op,
-        apply_list_resolver=apply_list_resolver,
-        list_response_resolver=list_response_resolver,
-    )
+    response_content_type, response_model, response_headers = _response_info(op_data, raw_op)
     return Operation(
         method=method.upper(),
         summary=summary if isinstance(summary, str) else None,
@@ -485,6 +470,8 @@ def _build_operation(
         request_model=request_model,
         response_content_type=response_content_type,
         response_model=response_model,
+        response_headers=response_headers,
+        paginated=paginated,
     )
 
 
@@ -518,23 +505,26 @@ def _request_info(
 def _response_info(
     op_data: dict[str, Any],
     raw_op: dict[str, Any],
-    *,
-    apply_list_resolver: bool,
-    list_response_resolver: ListResponseResolver | None,
-) -> tuple[str | None, str | None]:
-    """Return `(content_type, schema_name)` for the chosen 2xx response, if any."""
+) -> tuple[str | None, str | None, list[str]]:
+    """Return `(content_type, schema_name, header_names)` for the chosen 2xx response.
+
+    `schema_name` always names the literal response body schema as declared (the
+    envelope, when one wraps a list). The parser does not unpack list envelopes —
+    that is the generator's responsibility.
+    """
     responses = op_data.get("responses")
     if not isinstance(responses, dict):
-        return None, None
+        return None, None, []
     status = _pick_success_status(responses)
     if status is None:
-        return None, None
+        return None, None, []
     response = responses[status]
     if not isinstance(response, dict):
-        return None, None
+        return None, None, []
+    headers = _response_header_names(response)
     content = response.get("content")
     if not isinstance(content, dict) or not content:
-        return None, None
+        return None, None, headers
     content_type = next(iter(content))
     entry = content.get(content_type)
     schema = entry.get("schema") if isinstance(entry, dict) else None
@@ -549,31 +539,19 @@ def _response_info(
         if isinstance(raw_content, dict)
         else None
     )
-    if apply_list_resolver and isinstance(schema, dict):
-        schema = _apply_list_resolver(schema, list_response_resolver)
-        # for list responses the ref-based name no longer reflects the item type, so
-        # prefer the resolved schema's `title` when present.
-        title = schema.get("title") if isinstance(schema, dict) else None
-        if isinstance(title, str):
-            return content_type, title
-        return content_type, None
     schema_name = _schema_name(raw_schema) if isinstance(raw_schema, dict) else None
     if schema_name is None and isinstance(schema, dict):
         title = schema.get("title")
         schema_name = title if isinstance(title, str) else None
-    return content_type, schema_name
+    return content_type, schema_name, headers
 
 
-def _apply_list_resolver(
-    schema: dict[str, Any],
-    list_response_resolver: ListResponseResolver | None,
-) -> dict[str, Any]:
-    """Run the user resolver first; fall through to the default heuristic."""
-    if list_response_resolver is not None:
-        candidate = list_response_resolver(schema)
-        if isinstance(candidate, dict) and candidate is not schema:
-            return candidate
-    return default_list_response_resolver(schema)
+def _response_header_names(response: dict[str, Any]) -> list[str]:
+    """Return the names of headers declared on a 2xx response, preserving order."""
+    headers = response.get("headers")
+    if not isinstance(headers, dict):
+        return []
+    return [name for name in headers if isinstance(name, str)]
 
 
 def _pick_success_status(responses: dict[str, Any]) -> str | None:

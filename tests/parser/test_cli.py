@@ -189,22 +189,22 @@ def test_setup_logging_replaces_handlers_each_call() -> None:
     setup_logging(2)
     logger = logging.getLogger(LOGGER_NAME)
     assert len(logger.handlers) == 1
-    assert logger.level == logging.DEBUG
+    assert logger.handlers[0].level == logging.DEBUG
 
 
-def test_top_level_verbose_flag_sets_logger_level(
+def test_top_level_verbose_flag_sets_handler_level(
     mocker: MockerFixture, simple_spec_path: Path
 ) -> None:
-    """`-v` raises the okapipy logger to INFO; `-vv` raises it to DEBUG."""
+    """`-v` raises the rich handler to INFO; `-vv` raises it to DEBUG."""
     from okapipy.parser.model import APIModel
 
     mocker.patch("okapipy.cli.spec_cmd._run_pipeline", return_value=APIModel())
 
     runner.invoke(app, ["-v", "spec", "parse", str(simple_spec_path)])
-    assert logging.getLogger(LOGGER_NAME).level == logging.INFO
+    assert logging.getLogger(LOGGER_NAME).handlers[0].level == logging.INFO
 
     runner.invoke(app, ["-vv", "spec", "parse", str(simple_spec_path)])
-    assert logging.getLogger(LOGGER_NAME).level == logging.DEBUG
+    assert logging.getLogger(LOGGER_NAME).handlers[0].level == logging.DEBUG
 
 
 def test_default_verbosity_silences_info_logs(

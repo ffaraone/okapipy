@@ -10,7 +10,6 @@ from spacy.language import Language
 from okapipy.parser.builder import (
     build,
     contextual_name,
-    default_list_response_resolver,
     singularize,
 )
 from okapipy.parser.disambiguation import Sidecar, load_sidecar
@@ -154,30 +153,6 @@ def test_build_resource_name_for_compound_collection(english_nlp: Language) -> N
     assert collection.name == "PasswordRecoveryRequests"
     assert collection.resource is not None
     assert collection.resource.name == "PasswordRecoveryRequest"
-
-
-def test_default_list_response_resolver_picks_single_array_property() -> None:
-    """An envelope with one array property is reduced to the array's items schema."""
-    schema = {
-        "properties": {
-            "items": {"type": "array", "items": {"$ref": "Order"}},
-            "total": {"type": "integer"},
-        }
-    }
-
-    assert default_list_response_resolver(schema) == {"$ref": "Order"}
-
-
-def test_default_list_response_resolver_returns_input_when_ambiguous() -> None:
-    """Two array properties leave the schema unchanged — the heuristic refuses to guess."""
-    schema = {
-        "properties": {
-            "items": {"type": "array", "items": {}},
-            "ids": {"type": "array", "items": {}},
-        }
-    }
-
-    assert default_list_response_resolver(schema) is schema
 
 
 def test_build_handles_empty_paths_object(english_nlp: Language) -> None:

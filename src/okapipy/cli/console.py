@@ -46,12 +46,12 @@ def setup_logging(verbosity: int, *, stderr_console: Console | None = None) -> N
         markup=False,
         log_time_format="[%X]",
     )
+    handler.setLevel(level)
     logger = logging.getLogger(LOGGER_NAME)
     for existing in list(logger.handlers):
         logger.removeHandler(existing)
     logger.addHandler(handler)
-    logger.setLevel(level)
-    logger.propagate = False
+    logger.setLevel(logging.DEBUG)
 
 
 def print_error(

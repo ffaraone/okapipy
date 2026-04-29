@@ -11,7 +11,17 @@ from pydantic import BaseModel, Field
 
 
 class Operation(BaseModel):
-    """A single HTTP operation declared on a path."""
+    """A single HTTP operation declared on a path.
+
+    `response_model` names the literal 2xx response body schema (the envelope when
+    the response wraps a list, or the resource itself for single-item responses).
+    The parser does not dive into list envelopes — that is the generator's job.
+
+    `paginated` defaults to `True` and is only meaningful on collection-fetch
+    operations; the generator decides what to do with it on other operations.
+    `response_headers` lists the names of headers declared on the chosen 2xx
+    response, useful to the generator for detecting `Link`, `X-Total-Count`, etc.
+    """
 
     method: str
     summary: str | None = None
@@ -20,6 +30,8 @@ class Operation(BaseModel):
     request_model: str | None = None
     response_content_type: str | None = None
     response_model: str | None = None
+    response_headers: list[str] = Field(default_factory=list)
+    paginated: bool = True
 
 
 class Action(BaseModel):

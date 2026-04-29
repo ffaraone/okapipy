@@ -28,6 +28,9 @@ class SidecarOperation(BaseModel):
     model_config = ConfigDict(populate_by_name=True, extra="ignore")
 
     x_okapipy: str | None = Field(default=None, alias="x-okapipy")
+    x_okapipy_paginated: bool | None = Field(
+        default=None, alias="x-okapipy-paginated"
+    )
 
 
 class SidecarPathItem(BaseModel):
@@ -38,6 +41,9 @@ class SidecarPathItem(BaseModel):
     x_okapipy: str | None = Field(default=None, alias="x-okapipy")
     x_okapipy_exclude: str | list[str] | None = Field(
         default=None, alias="x-okapipy-exclude"
+    )
+    x_okapipy_paginated: bool | None = Field(
+        default=None, alias="x-okapipy-paginated"
     )
     get: SidecarOperation | None = None
     post: SidecarOperation | None = None
@@ -113,6 +119,30 @@ def path_item_hint(sidecar: Sidecar, path: str) -> str | None:
     """Return the path-item-level `x-okapipy`, ignoring per-method overrides."""
     item = sidecar.paths.get(path)
     return item.x_okapipy if item is not None else None
+
+
+def path_item_paginated(sidecar: Sidecar, path: str) -> bool | None:
+    """Return the sidecar's path-item-level `x-okapipy-paginated`, if set."""
+    item = sidecar.paths.get(path)
+    return item.x_okapipy_paginated if item is not None else None
+
+
+def operation_paginated(sidecar: Sidecar, path: str, method: str) -> bool | None:
+    """Return the sidecar's per-method `x-okapipy-paginated` for `method`, if set.
+
+    Falls back to the path-item-level value when the per-method entry is silent;
+    returns `None` when neither is declared.
+    """
+    item = sidecar.paths.get(path)
+    if item is None:
+        return None
+    op_attr = method.lower()
+    op: SidecarOperation | None = None
+    if op_attr in {"get", "post", "put", "patch", "delete"}:
+        op = getattr(item, op_attr)
+    if op is not None and op.x_okapipy_paginated is not None:
+        return op.x_okapipy_paginated
+    return item.x_okapipy_paginated
 
 
 def extra_namespaces(sidecar: Sidecar) -> set[str]:

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from okapipy.parser.builder import ListResponseResolver, build
+from okapipy.parser.builder import build
 from okapipy.parser.disambiguation import load_sidecar
 from okapipy.parser.loader import load_raw_spec, load_spec
 from okapipy.parser.model import APIModel
@@ -18,7 +18,6 @@ def parse(
     sidecar: str | Path | None = None,
     lang: str = "en",
     *,
-    list_response_resolver: ListResponseResolver | None = None,
     nlp_cache_dir: Path = DEFAULT_NLP_CACHE_DIR,
 ) -> APIModel:
     """Parse an OpenAPI 3.x document into an APIModel tree.
@@ -30,9 +29,6 @@ def parse(
             the OpenAPI extension shape (root `x-okapipy-ns` and per-operation
             `x-okapipy`). URLs are not accepted.
         lang: ISO language code controlling which spaCy model is loaded.
-        list_response_resolver: Optional callback that picks the item-schema out of a
-            collection list response. When the callback returns the input unchanged
-            or a non-dict, the built-in heuristic is applied.
         nlp_cache_dir: Directory under which spaCy models are stored and looked up.
             On a cache miss the model is downloaded into this directory.
 
@@ -43,4 +39,4 @@ def parse(
     raw_spec = load_raw_spec(source)
     side = load_sidecar(sidecar)
     nlp = load_pipeline(lang, cache_dir=nlp_cache_dir)
-    return build(spec, raw_spec, side, nlp, list_response_resolver)
+    return build(spec, raw_spec, side, nlp)

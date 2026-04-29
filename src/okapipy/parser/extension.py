@@ -11,6 +11,7 @@ from typing import Any
 OKAPIPY_EXT = "x-okapipy"
 OKAPIPY_NS_EXT = "x-okapipy-ns"
 OKAPIPY_EXCLUDE_EXT = "x-okapipy-exclude"
+OKAPIPY_PAGINATED_EXT = "x-okapipy-paginated"
 
 
 def root_namespaces(spec: dict[str, Any]) -> set[str]:
@@ -31,6 +32,26 @@ def path_item_extension(path_item: dict[str, Any]) -> str | None:
     """Return the `x-okapipy` value declared at the path-item level, if any."""
     value = path_item.get(OKAPIPY_EXT)
     return value if isinstance(value, str) else None
+
+
+def operation_paginated_extension(operation: dict[str, Any]) -> bool | None:
+    """Return the `x-okapipy-paginated` value declared on a single operation.
+
+    Returns `True`/`False` when explicitly set, or `None` when the extension is
+    absent or has an unsupported shape.
+    """
+    value = operation.get(OKAPIPY_PAGINATED_EXT)
+    return value if isinstance(value, bool) else None
+
+
+def path_item_paginated_extension(path_item: dict[str, Any]) -> bool | None:
+    """Return the `x-okapipy-paginated` value declared at the path-item level.
+
+    Returns `True`/`False` when explicitly set, or `None` when the extension is
+    absent or has an unsupported shape.
+    """
+    value = path_item.get(OKAPIPY_PAGINATED_EXT)
+    return value if isinstance(value, bool) else None
 
 
 def path_item_exclusion(path_item: dict[str, Any]) -> str | list[str] | None:
