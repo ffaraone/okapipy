@@ -10,6 +10,7 @@ from typing import Any
 
 OKAPIPY_EXT = "x-okapipy"
 OKAPIPY_NS_EXT = "x-okapipy-ns"
+OKAPIPY_EXCLUDE_EXT = "x-okapipy-exclude"
 
 
 def root_namespaces(spec: dict[str, Any]) -> set[str]:
@@ -30,3 +31,19 @@ def path_item_extension(path_item: dict[str, Any]) -> str | None:
     """Return the `x-okapipy` value declared at the path-item level, if any."""
     value = path_item.get(OKAPIPY_EXT)
     return value if isinstance(value, str) else None
+
+
+def path_item_exclusion(path_item: dict[str, Any]) -> str | list[str] | None:
+    """Return the raw `x-okapipy-exclude` value declared at the path-item level.
+
+    The return type is one of:
+        - `"*"` to drop every method on this path,
+        - a list of HTTP method names (case unspecified) for partial exclusion,
+        - `None` when the extension is absent or has an unsupported shape.
+    """
+    value = path_item.get(OKAPIPY_EXCLUDE_EXT)
+    if value == "*":
+        return "*"
+    if isinstance(value, list):
+        return [item for item in value if isinstance(item, str)]
+    return None

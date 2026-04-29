@@ -19,6 +19,7 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from okapipy.parser.errors import SidecarFormatError
 
 ALLOWED_HINTS = {"namespace", "collection", "action", "resource"}
+EXCLUDABLE_METHODS = {"GET", "POST", "PUT", "PATCH", "DELETE"}
 
 
 class SidecarOperation(BaseModel):
@@ -35,6 +36,9 @@ class SidecarPathItem(BaseModel):
     model_config = ConfigDict(populate_by_name=True, extra="ignore")
 
     x_okapipy: str | None = Field(default=None, alias="x-okapipy")
+    x_okapipy_exclude: str | list[str] | None = Field(
+        default=None, alias="x-okapipy-exclude"
+    )
     get: SidecarOperation | None = None
     post: SidecarOperation | None = None
     put: SidecarOperation | None = None
@@ -75,6 +79,16 @@ def load_sidecar(source: str | Path | None) -> Sidecar:
         raise SidecarFormatError(f"invalid sidecar at {source!r}: {exc}") from exc
     _validate_hints(sidecar)
     return sidecar
+
+
+def path_exclusion(sidecar: Sidecar, path: str) -> str | list[str] | None:
+    """Return the raw `x-okapipy-exclude` value declared in the sidecar for `path`.
+
+    The shape mirrors the spec extension: `"*"` for whole-path exclusion, a list of
+    HTTP method names for partial exclusion, or `None` when nothing is declared.
+    """
+    item = sidecar.paths.get(path)
+    return item.x_okapipy_exclude if item is not None else None
 
 
 def operation_hint(sidecar: Sidecar, path: str, method: str) -> str | None:
@@ -121,12 +135,17 @@ def _parse_text(text: str, path: Path) -> dict[str, Any]:
 
 
 def _validate_hints(sidecar: Sidecar) -> None:
-    """Reject any `x-okapipy` value outside the four legal kinds."""
+    """Reject any `x-okapipy` value outside the four legal kinds.
+
+    Also validates `x-okapipy-exclude` entries: each must be either the literal `"*"`
+    or a list of HTTP method names (case-insensitive) drawn from the supported set.
+    """
     for path, item in sidecar.paths.items():
         if item.x_okapipy is not None and item.x_okapipy not in ALLOWED_HINTS:
             raise SidecarFormatError(
                 f"sidecar path {path!r}: unknown x-okapipy value {item.x_okapipy!r}"
             )
+        _validate_exclusion(path, item.x_okapipy_exclude)
         for method in ("get", "post", "put", "patch", "delete"):
             op: SidecarOperation | None = getattr(item, method)
             if op is not None and op.x_okapipy is not None and op.x_okapipy not in ALLOWED_HINTS:
@@ -134,3 +153,25 @@ def _validate_hints(sidecar: Sidecar) -> None:
                     f"sidecar path {path!r} method {method!r}: "
                     f"unknown x-okapipy value {op.x_okapipy!r}"
                 )
+
+
+def _validate_exclusion(path: str, value: str | list[str] | None) -> None:
+    """Ensure `value` is None, the literal `"*"`, or a list of valid HTTP methods."""
+    if value is None or value == "*":
+        return
+    if not isinstance(value, list):
+        raise SidecarFormatError(
+            f"sidecar path {path!r}: x-okapipy-exclude must be '*' or a list of "
+            f"HTTP methods, got {value!r}"
+        )
+    for entry in value:
+        if not isinstance(entry, str):
+            raise SidecarFormatError(
+                f"sidecar path {path!r}: x-okapipy-exclude list entry must be a "
+                f"string, got {entry!r}"
+            )
+        if entry.upper() not in EXCLUDABLE_METHODS:
+            raise SidecarFormatError(
+                f"sidecar path {path!r}: x-okapipy-exclude method {entry!r} is not "
+                f"one of {sorted(EXCLUDABLE_METHODS)}"
+            )

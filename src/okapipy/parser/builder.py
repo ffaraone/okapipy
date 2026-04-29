@@ -21,11 +21,17 @@ from okapipy.parser.disambiguation import (
     operation_hint,
     path_item_hint,
 )
+from okapipy.parser.disambiguation import (
+    path_exclusion as sidecar_path_exclusion,
+)
 from okapipy.parser.errors import InvalidStructureError
 from okapipy.parser.extension import (
     operation_extension,
     path_item_extension,
     root_namespaces,
+)
+from okapipy.parser.extension import (
+    path_item_exclusion as spec_path_exclusion,
 )
 from okapipy.parser.loader import detect_base_path, strip_base_path
 from okapipy.parser.model import (
@@ -43,6 +49,8 @@ log = logging.getLogger(__name__)
 type ListResponseResolver = Callable[[dict[str, Any]], dict[str, Any]]
 
 HTTP_METHODS = ("get", "post", "put", "patch", "delete")
+
+EXCLUDE_ALL = "*"
 
 type ContainerNode = APIModel | Namespace | Collection | Resource | Action
 
@@ -77,6 +85,11 @@ def build(
     raw_paths = strip_base_path(raw_spec.get("paths") or {}, base)
     ns_registry = root_namespaces(spec) | extra_namespaces(sidecar)
     for path, path_item in paths.items():
+        exclusion = _resolve_exclusion(path_item, sidecar, path)
+        if exclusion == EXCLUDE_ALL:
+            log.info("excluding path %s (x-okapipy-exclude='*')", path)
+            continue
+        excluded_methods: set[str] = exclusion if isinstance(exclusion, set) else set()
         raw_item = raw_paths.get(path, {})
         _walk_path(
             api=api,
@@ -87,8 +100,30 @@ def build(
             nlp=nlp,
             ns_registry=ns_registry,
             list_response_resolver=list_response_resolver,
+            excluded_methods=excluded_methods,
         )
     return api
+
+
+def _resolve_exclusion(
+    path_item: dict[str, Any],
+    sidecar: Sidecar,
+    path: str,
+) -> str | set[str]:
+    """Return the merged exclusion for a path: `'*'`, a set of upper methods, or empty.
+
+    Sidecar wins over spec when both declare an exclusion for the same path.
+    """
+    chosen = sidecar_path_exclusion(sidecar, path)
+    if chosen is None:
+        chosen = spec_path_exclusion(path_item)
+    if chosen is None:
+        return set()
+    if chosen == EXCLUDE_ALL:
+        return EXCLUDE_ALL
+    if isinstance(chosen, list):
+        return {method.upper() for method in chosen if isinstance(method, str)}
+    return set()
 
 
 def contextual_name(breadcrumb: list[str], current: str) -> str:
@@ -172,6 +207,7 @@ def _walk_path(
     nlp: Language,
     ns_registry: set[str],
     list_response_resolver: ListResponseResolver | None,
+    excluded_methods: set[str],
 ) -> None:
     """Walk a single OpenAPI path and attach its operations to the tree."""
     segments = [segment for segment in path.split("/") if segment]
@@ -222,6 +258,7 @@ def _walk_path(
         path=path,
         action_path=last_path,
         list_response_resolver=list_response_resolver,
+        excluded_methods=excluded_methods,
     )
 
 
@@ -295,11 +332,15 @@ def _install_operations(
     path: str,
     action_path: str,
     list_response_resolver: ListResponseResolver | None,
+    excluded_methods: set[str],
 ) -> None:
     """Attach Operation entries onto the terminal node according to its kind."""
     for method in HTTP_METHODS:
         op_data = path_item.get(method)
         if not isinstance(op_data, dict):
+            continue
+        if method.upper() in excluded_methods:
+            log.info("excluding %s %s (x-okapipy-exclude)", method.upper(), action_path)
             continue
         raw_op = raw_path_item.get(method) if isinstance(raw_path_item, dict) else None
         method_hint = _merge_hint(
