@@ -16,7 +16,7 @@ def test_parse_simple_spec_returns_top_level_collection(
     api = parse(simple_spec_path, nlp_cache_dir=cache_dir)
 
     orders = next(c for c in api.collections if c.name == "Orders")
-    assert orders.list_operation is not None
+    assert orders.fetch is not None
     assert orders.resource is not None
     assert orders.resource.name == "Order"
 

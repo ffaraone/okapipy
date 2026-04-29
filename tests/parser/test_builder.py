@@ -200,8 +200,8 @@ def test_build_creates_top_level_collection_for_simple_spec(
     orders = api.collections[0]
     assert orders.name == "Orders"
     assert orders.path == "/orders"
-    assert orders.list_operation is not None
-    assert orders.list_operation.method == "GET"
+    assert orders.fetch is not None
+    assert orders.fetch.method == "GET"
     assert orders.resource is not None
     assert orders.resource.name == "Order"
     assert orders.resource.retrieve is not None
@@ -274,7 +274,7 @@ def test_build_recovers_request_and_response_model_names(
 
     commerce = _find_namespace(api, "commerce")
     orders = next(c for c in commerce.collections if c.name == "Orders")
-    create = orders.create_operation
+    create = orders.create
     assert create is not None
     assert create.request_model == "Order"
     assert create.response_model == "Order"
@@ -351,8 +351,8 @@ def test_build_skips_non_canonical_collection_method_with_warning(
         api = build(spec, spec, Sidecar(), english_nlp)
 
     orders = api.collections[0]
-    assert orders.list_operation is None
-    assert orders.create_operation is None
+    assert orders.fetch is None
+    assert orders.create is None
     assert orders.actions == []
     assert "PUT /orders" in caplog.text
 
@@ -435,8 +435,8 @@ def test_build_handles_request_body_without_ref(english_nlp: Language) -> None:
     api = build(spec, spec, Sidecar(), english_nlp)
 
     orders = api.collections[0]
-    assert orders.create_operation is not None
-    assert orders.create_operation.request_model == "OrderInput"
+    assert orders.create is not None
+    assert orders.create.request_model == "OrderInput"
 
 
 def test_build_routes_resource_put_to_update_slot(english_nlp: Language) -> None:
@@ -479,7 +479,7 @@ def test_build_routes_collection_method_with_action_hint_to_synthetic_action(
     api = build(spec, spec, Sidecar(), english_nlp)
 
     orders = api.collections[0]
-    assert orders.list_operation is None
+    assert orders.fetch is None
     assert len(orders.actions) == 1
 
 

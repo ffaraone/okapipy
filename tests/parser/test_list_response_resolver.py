@@ -51,8 +51,8 @@ def test_user_resolver_overrides_default(
     api = build(spec, raw, Sidecar(), english_nlp, list_response_resolver=custom)
 
     orders = next(c for c in api.collections if c.name == "Orders")
-    assert orders.list_operation is not None
-    assert orders.list_operation.response_model == "Order"
+    assert orders.fetch is not None
+    assert orders.fetch.response_model == "Order"
 
 
 def test_user_resolver_returning_unchanged_falls_through_to_default(
@@ -94,5 +94,5 @@ def test_user_resolver_returning_unchanged_falls_through_to_default(
     api = build(spec, spec, Sidecar(), english_nlp, list_response_resolver=passthrough)
 
     orders = api.collections[0]
-    assert orders.list_operation is not None
-    assert orders.list_operation.response_model == "Order"
+    assert orders.fetch is not None
+    assert orders.fetch.response_model == "Order"

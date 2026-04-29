@@ -48,14 +48,14 @@ class Resource(BaseModel):
 
 
 class Collection(BaseModel):
-    """A plural endpoint that lists, creates, and contains a Resource."""
+    """A plural endpoint that fetches a list, creates, and contains a Resource."""
 
     name: str
     path: str
     summary: str | None = None
     description: str | None = None
-    list_operation: Operation | None = None
-    create_operation: Operation | None = None
+    fetch: Operation | None = None
+    create: Operation | None = None
     resource: Resource | None = None
     actions: list[Action] = Field(default_factory=list)
 

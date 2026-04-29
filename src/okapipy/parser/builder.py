@@ -349,9 +349,9 @@ def _route(
             _attach_synthetic_action(cursor, action_path, operation)
             return
         if method == "get":
-            cursor.list_operation = operation
+            cursor.fetch = operation
         elif method == "post":
-            cursor.create_operation = operation
+            cursor.create = operation
         else:
             log.warning(
                 "skipping %s %s: method has no canonical slot on collection %r and "
