@@ -18,6 +18,7 @@ def parse(
     sidecar: str | Path | None = None,
     lang: str = "en",
     *,
+    strip_prefix: str | None = None,
     nlp_cache_dir: Path = DEFAULT_NLP_CACHE_DIR,
 ) -> APIModel:
     """Parse an OpenAPI 3.x document into an APIModel tree.
@@ -29,6 +30,9 @@ def parse(
             the OpenAPI extension shape (root `x-okapipy-ns` and per-operation
             `x-okapipy`). URLs are not accepted.
         lang: ISO language code controlling which spaCy model is loaded.
+        strip_prefix: Optional path prefix to strip from every path before
+            classification, e.g. `/public/v1`. When set, overrides the prefix
+            inferred from `servers[].url`.
         nlp_cache_dir: Directory under which spaCy models are stored and looked up.
             On a cache miss the model is downloaded into this directory.
 
@@ -38,4 +42,4 @@ def parse(
     spec = load_spec(source)
     side = load_sidecar(sidecar)
     nlp = load_pipeline(lang, cache_dir=nlp_cache_dir)
-    return build(spec, side, nlp)
+    return build(spec, side, nlp, strip_prefix=strip_prefix)

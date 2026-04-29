@@ -35,6 +35,12 @@ def parse_command(
         help="Local path to a JSON/YAML disambiguation sidecar.",
     ),
     lang: str = typer.Option("en", "--lang", help="ISO language code for NLP."),
+    strip_prefix: str | None = typer.Option(
+        None,
+        "--strip-prefix",
+        help="Path prefix to strip from every path before classification "
+        "(e.g. '/public/v1'); overrides the prefix inferred from servers[].url.",
+    ),
     nlp_cache_dir: Path = typer.Option(
         DEFAULT_CACHE_DIR,
         "--nlp-cache-dir",
@@ -49,7 +55,13 @@ def parse_command(
     """Parse an OpenAPI document and print or save the resulting structural tree."""
     verbose = _verbose_from(ctx)
     try:
-        api = _run_pipeline(source=source, sidecar=sidecar, lang=lang, cache_dir=nlp_cache_dir)
+        api = _run_pipeline(
+            source=source,
+            sidecar=sidecar,
+            lang=lang,
+            cache_dir=nlp_cache_dir,
+            strip_prefix=strip_prefix,
+        )
     except ParserError as exc:
         print_error(exc, debug=verbose >= 2)
         raise typer.Exit(code=1) from exc
@@ -71,6 +83,7 @@ def _run_pipeline(
     sidecar: Path | None,
     lang: str,
     cache_dir: Path,
+    strip_prefix: str | None,
 ) -> APIModel:
     """Run the full parser pipeline with a spinner for each phase."""
     with _phase("Loading OpenAPI spec"):
@@ -80,7 +93,7 @@ def _run_pipeline(
     with _phase(f"Loading spaCy pipeline ({lang})"):
         nlp = load_pipeline(lang, cache_dir=cache_dir)
     with _phase("Building structural tree"):
-        return build(spec, side, nlp)
+        return build(spec, side, nlp, strip_prefix=strip_prefix)
 
 
 @contextmanager

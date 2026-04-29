@@ -60,6 +60,8 @@ def build(
     spec: dict[str, Any],
     sidecar: Sidecar,
     nlp: Language,
+    *,
+    strip_prefix: str | None = None,
 ) -> APIModel:
     """Construct an APIModel from an OpenAPI document.
 
@@ -71,6 +73,9 @@ def build(
         spec: The OpenAPI document, with `$ref`s preserved as in the source.
         sidecar: A loaded disambiguation sidecar (possibly empty).
         nlp: A loaded spaCy pipeline used by the classifier and naming engine.
+        strip_prefix: Optional path prefix to strip from every path before
+            classification, e.g. `/public/v1`. When set, this overrides the prefix
+            inferred from `servers[].url`.
 
     Returns:
         A populated APIModel.
@@ -79,7 +84,7 @@ def build(
     paths_obj = spec.get("paths") or {}
     if not paths_obj:
         return api
-    base = detect_base_path(spec)
+    base = strip_prefix if strip_prefix is not None else detect_base_path(spec)
     paths = strip_base_path(paths_obj, base)
     ns_registry = root_namespaces(spec) | extra_namespaces(sidecar)
     log.debug(

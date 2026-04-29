@@ -486,6 +486,39 @@ def test_build_routes_resource_method_with_action_hint_to_synthetic_action(
     assert len(orders.resource.actions) == 1
 
 
+def test_build_strips_explicit_prefix(english_nlp: Language) -> None:
+    """An explicit `strip_prefix` removes the prefix and overrides `servers[].url`."""
+    spec = {
+        "servers": [{"url": "https://example.com/wrong-base"}],
+        "paths": {
+            "/public/v1/orders": {
+                "get": {"responses": {"200": {"description": "OK"}}},
+            }
+        },
+    }
+
+    api = build(spec, Sidecar(), english_nlp, strip_prefix="/public/v1")
+
+    assert len(api.collections) == 1
+    assert api.collections[0].name == "Orders"
+    assert api.collections[0].path == "/orders"
+
+
+def test_build_strips_explicit_prefix_when_servers_absent(english_nlp: Language) -> None:
+    """`strip_prefix` works on its own when the spec has no `servers` declared."""
+    spec = {
+        "paths": {
+            "/api/v2/users": {
+                "get": {"responses": {"200": {"description": "OK"}}},
+            }
+        }
+    }
+
+    api = build(spec, Sidecar(), english_nlp, strip_prefix="/api/v2")
+
+    assert api.collections[0].name == "Users"
+
+
 def test_build_skips_paths_with_only_a_root_segment(english_nlp: Language) -> None:
     """A spec that only declares the root path `/` is parsed without errors and yields nothing."""
     api = build(
