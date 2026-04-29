@@ -7,6 +7,7 @@ internal and external `$ref` pointers inlined.
 
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
@@ -15,6 +16,8 @@ from prance import BaseParser, ResolvingParser, ValidationError
 from prance.util.url import ResolutionError
 
 from okapipy.parser.errors import SpecLoadError
+
+log = logging.getLogger(__name__)
 
 
 def load_spec(source: str | Path) -> dict[str, Any]:
@@ -36,6 +39,7 @@ def load_spec(source: str | Path) -> dict[str, Any]:
             when one of its references cannot be resolved.
     """
     location = _to_prance_url(source)
+    log.debug("resolving OpenAPI spec from %s", location)
     try:
         parser = ResolvingParser(
             url=location,
@@ -48,6 +52,7 @@ def load_spec(source: str | Path) -> dict[str, Any]:
     spec = parser.specification
     if not isinstance(spec, dict):
         raise SpecLoadError(f"resolved spec from {source!r} is not a JSON object")
+    log.debug("resolved spec contains %d paths", len(spec.get("paths") or {}))
     return spec
 
 
@@ -67,6 +72,7 @@ def load_raw_spec(source: str | Path) -> dict[str, Any]:
         SpecLoadError: When the document cannot be located or parsed.
     """
     location = _to_prance_url(source)
+    log.debug("loading raw (unresolved) OpenAPI spec from %s", location)
     try:
         parser = BaseParser(url=location, strict=False, lazy=False)
     except (ValidationError, ResolutionError, FileNotFoundError, OSError) as exc:
@@ -95,6 +101,8 @@ def detect_base_path(spec: dict[str, Any]) -> str:
         return ""
     parsed = urlparse(url)
     path = parsed.path.rstrip("/")
+    if path:
+        log.debug("detected base path %s from servers[0].url", path)
     return path or ""
 
 

@@ -11,6 +11,7 @@ This module owns three responsibilities:
 
 from __future__ import annotations
 
+import logging
 import re
 import subprocess
 import sys
@@ -22,6 +23,8 @@ import spacy
 from spacy.language import Language
 
 from okapipy.parser.errors import NlpModelMissingError
+
+log = logging.getLogger(__name__)
 
 DEFAULT_CACHE_DIR = Path.cwd() / ".spacy"
 
@@ -120,11 +123,14 @@ def load_pipeline(lang: str, cache_dir: Path = DEFAULT_CACHE_DIR) -> Language:
     key = (lang, str(cache_dir.resolve()))
     cached = _PIPELINE_CACHE.get(key)
     if cached is not None:
+        log.debug("reusing in-process spaCy pipeline for lang=%s", lang)
         return cached
     package_root = cache_dir / model_name_for(lang)
     if not package_root.exists():
+        log.debug("spaCy model not found at %s, fetching", package_root)
         fetch_model(lang, cache_dir)
     target = model_path(lang, cache_dir)
+    log.debug("loading spaCy pipeline from %s", target)
     pipeline = spacy.load(str(target))
     _PIPELINE_CACHE[key] = pipeline
     return pipeline

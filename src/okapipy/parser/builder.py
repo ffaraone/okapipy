@@ -84,6 +84,12 @@ def build(
     paths = strip_base_path(paths_obj, base)
     raw_paths = strip_base_path(raw_spec.get("paths") or {}, base)
     ns_registry = root_namespaces(spec) | extra_namespaces(sidecar)
+    log.debug(
+        "builder starting: %d paths, %d namespace hints, base=%r",
+        len(paths),
+        len(ns_registry),
+        base,
+    )
     for path, path_item in paths.items():
         exclusion = _resolve_exclusion(path_item, sidecar, path)
         if exclusion == EXCLUDE_ALL:
@@ -210,6 +216,7 @@ def _walk_path(
     excluded_methods: set[str],
 ) -> None:
     """Walk a single OpenAPI path and attach its operations to the tree."""
+    log.debug("walking path %s", path)
     segments = [segment for segment in path.split("/") if segment]
     if not segments:
         return

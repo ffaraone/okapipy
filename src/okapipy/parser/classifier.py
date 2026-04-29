@@ -50,6 +50,28 @@ def classify_segment(
     Returns:
         The classified `SegmentKind`.
     """
+    kind = _classify(
+        segment=segment,
+        cumulative_path=cumulative_path,
+        parent_kind=parent_kind,
+        nlp=nlp,
+        ns_registry=ns_registry,
+        extension_hint=extension_hint,
+    )
+    log.debug("classified segment %r at %r as %s", segment, cumulative_path, kind.value)
+    return kind
+
+
+def _classify(
+    *,
+    segment: str,
+    cumulative_path: str,
+    parent_kind: SegmentKind | None,
+    nlp: Language,
+    ns_registry: set[str],
+    extension_hint: str | None,
+) -> SegmentKind:
+    """Inner classifier — runs the precedence chain and returns a `SegmentKind`."""
     if "{" in segment and "}" in segment:
         return SegmentKind.RESOURCE_ID
     if extension_hint is not None:
