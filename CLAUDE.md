@@ -37,7 +37,7 @@ The parser is a linear pipeline. Each phase lives in one module under `src/okapi
    - **Bare for verb detection, wrapper for plural.** A clear verb in isolation (`reset`, `submit`) keeps its `VERB` tag; the wrapper would force it to `NOUN`. So `_analyze_token` runs both and combines the signals.
    - Models live at `<cache_dir>/<package>/<package>-<version>/`. `model_path()` resolves the inner versioned dir. Default `cache_dir` is `Path.cwd() / ".spacy"`. Cache miss triggers `python -m spacy download <model> --target <dir>` automatically (no opt-in flag).
 
-3. **`extension.py`** + **`disambiguation.py`** — read `x-okapipy-ns`, `x-okapipy`, `x-okapipy-exclude` from the spec and from a sidecar that mirrors the same shape. **Sidecar wins over spec** on every conflict. Sidecar is a *local file only* (no URL support).
+3. **`extension.py`** + **`rules.py`** — read `x-okapipy-ns`, `x-okapipy`, `x-okapipy-exclude` from the spec and from a project-local rules file (`Rules` / `PathRules` / `OperationRules` Pydantic models) that mirrors the same shape. **Rules-file values win over spec** on every conflict. The rules file is a *local file only* (no URL support).
 
 4. **`classifier.py`** — `classify_segment` decides if a single segment is `NAMESPACE | COLLECTION | RESOURCE_ID | ACTION`. Precedence: path-parameter → explicit `x-okapipy` hint → namespace registry → spaCy → fallback (`COLLECTION` + warn). A multi-word segment whose head is **not** plural is treated as a verb-phrase action — that's how `force-reimport` becomes an action while `password-recovery-requests` stays a collection.
 
@@ -47,19 +47,19 @@ The parser is a linear pipeline. Each phase lives in one module under `src/okapi
    - Operation routing: GET/POST on `Collection` → `fetch`/`create`; GET/PUT/PATCH/DELETE on `Resource` → `retrieve`/`update`/`partial_update`/`delete`. Anything that doesn't fit (e.g. `POST /users/{id}` with no `x-okapipy: action` hint, PUT on a bare collection) is **dropped with a warning**, not coerced into a synthetic action. Synthetic actions exist only for explicit `x-okapipy: action` opt-ins.
    - **Namespace-level actions are forbidden**: an action segment under a `Namespace` raises `InvalidStructureError`.
    - Schema names for `request_model` / `response_model` are recovered from `raw_spec` by reading the original `$ref`'s trailing segment; falls back to the resolved schema's `title` if no ref.
-   - `x-okapipy-exclude: "*"` skips a whole path; `x-okapipy-exclude: [DELETE, ...]` (case-insensitive) skips just those methods. Sidecar values override spec values.
+   - `x-okapipy-exclude: "*"` skips a whole path; `x-okapipy-exclude: [DELETE, ...]` (case-insensitive) skips just those methods. Rules-file values override spec values.
 
 6. **`model.py`** — Pydantic v2 models from `parser.md` §6, **with two deliberate deviations**: `APIModel` carries top-level `collections: list[Collection]` (real APIs commonly expose `/orders` with no namespace prefix), and `Operation.response_model` is `str | None` (some 2xx responses have no body). `Collection.fetch` and `.create` are the slot names (renamed from the original `list_operation`/`create_operation`).
 
 7. **`dump.py`** — `write(api, path)` infers JSON vs YAML from `.json`/`.yaml`/`.yml` extension. Unknown extension → `ValueError`.
 
-8. **`api.py`** — `parse(source, sidecar=None, lang="en", *, list_response_resolver=None, nlp_cache_dir=cwd/.spacy)` is the single public entry. Returns `APIModel` directly (no result wrapper) — non-fatal warnings go to `logging`.
+8. **`api.py`** — `parse(source, rules=None, lang="en", *, strip_prefix=None, nlp_cache_dir=cwd/.spacy)` is the single public entry. `rules` is an optional path to a `Rules` JSON/YAML file. Returns `APIModel` directly (no result wrapper) — non-fatal warnings go to `logging`.
 
 ## CLI
 
 `pyproject.toml` wires `okapipy = "okapipy.app:main"` → `okapipy/cli/__init__.py` (typer). Two sub-apps:
 - `okapipy nlp fetch <LANG> [--cache-dir]` — pre-warm the spaCy model.
-- `okapipy spec parse <SOURCE> [--sidecar] [--lang] [--nlp-cache-dir] [--output]` — parse + optionally write to a file (format inferred from extension).
+- `okapipy spec parse <SOURCE> [--rules] [--lang] [--nlp-cache-dir] [--output]` — parse + optionally write to a file (format inferred from extension).
 
 `SOURCE` accepts both file paths and URLs. Errors raise `ParserError` subclasses; the CLI catches them, prints to stderr, and exits non-zero.
 
@@ -78,5 +78,5 @@ OpenAPI fixtures live under `tests/fixtures/`. `pytest-httpserver` (`served_fixt
 
 - `ruff` with `max-line-length = 100`; isort known-first-party = `okapipy`.
 - **No underscore-prefixed "private" functions** in the parser per `parser.md` §9 — module organization handles encapsulation. Genuinely module-internal helpers (e.g. `_attach`, `_route`) are an exception within `builder.py`.
-- **No import aliases** unless strictly necessary. The two existing `from … import X as Y` aliases in `builder.py` exist because both `extension` and `disambiguation` export a same-named exclusion helper.
+- **No import aliases** unless strictly necessary. The two existing `from … import X as Y` aliases in `builder.py` exist because both `extension` and `rules` export a same-named exclusion helper.
 - `from __future__ import annotations` everywhere; type hints are mandatory for all parser code.

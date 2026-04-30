@@ -5,17 +5,17 @@ from __future__ import annotations
 from pathlib import Path
 
 from okapipy.parser.builder import build
-from okapipy.parser.disambiguation import load_sidecar
 from okapipy.parser.loader import load_spec
 from okapipy.parser.model import APIModel
 from okapipy.parser.nlp import DEFAULT_CACHE_DIR, load_pipeline
+from okapipy.parser.rules import load_rules
 
 DEFAULT_NLP_CACHE_DIR = DEFAULT_CACHE_DIR
 
 
 def parse(
     source: str | Path,
-    sidecar: str | Path | None = None,
+    rules: str | Path | None = None,
     lang: str = "en",
     *,
     strip_prefix: str | None = None,
@@ -26,8 +26,8 @@ def parse(
     Args:
         source: A local filesystem path or http(s) URL pointing to a JSON or YAML
             OpenAPI document. Format is auto-detected by content.
-        sidecar: Optional local path to a JSON/YAML disambiguation file that mirrors
-            the OpenAPI extension shape (root `x-okapipy-ns` and per-operation
+        rules: Optional local path to a JSON/YAML rules file that mirrors the
+            OpenAPI extension shape (root `x-okapipy-ns` and per-operation
             `x-okapipy`). URLs are not accepted.
         lang: ISO language code controlling which spaCy model is loaded.
         strip_prefix: Optional path prefix to strip from every path before
@@ -40,6 +40,6 @@ def parse(
         The fully-built APIModel rooted at the namespaces it discovered.
     """
     spec = load_spec(source)
-    side = load_sidecar(sidecar)
+    loaded_rules = load_rules(rules)
     nlp = load_pipeline(lang, cache_dir=nlp_cache_dir)
-    return build(spec, side, nlp, strip_prefix=strip_prefix)
+    return build(spec, loaded_rules, nlp, strip_prefix=strip_prefix)

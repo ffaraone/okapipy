@@ -14,17 +14,6 @@ from typing import Any
 from spacy.language import Language
 
 from okapipy.parser.classifier import SegmentKind, classify_segment
-from okapipy.parser.disambiguation import (
-    Sidecar,
-    extra_namespaces,
-    operation_hint,
-    operation_paginated,
-    path_item_hint,
-    path_item_paginated,
-)
-from okapipy.parser.disambiguation import (
-    path_exclusion as sidecar_path_exclusion,
-)
 from okapipy.parser.errors import InvalidStructureError
 from okapipy.parser.extension import (
     operation_extension,
@@ -46,6 +35,17 @@ from okapipy.parser.model import (
     Resource,
 )
 from okapipy.parser.nlp import analyze_segment, lemma_in_context
+from okapipy.parser.rules import (
+    Rules,
+    extra_namespaces,
+    operation_hint,
+    operation_paginated,
+    path_item_hint,
+    path_item_paginated,
+)
+from okapipy.parser.rules import (
+    path_exclusion as rules_path_exclusion,
+)
 
 log = logging.getLogger(__name__)
 
@@ -58,7 +58,7 @@ type ContainerNode = APIModel | Namespace | Collection | Resource | Action
 
 def build(
     spec: dict[str, Any],
-    sidecar: Sidecar,
+    rules: Rules,
     nlp: Language,
     *,
     strip_prefix: str | None = None,
@@ -71,7 +71,7 @@ def build(
 
     Args:
         spec: The OpenAPI document, with `$ref`s preserved as in the source.
-        sidecar: A loaded disambiguation sidecar (possibly empty).
+        rules: A loaded `Rules` document (possibly empty).
         nlp: A loaded spaCy pipeline used by the classifier and naming engine.
         strip_prefix: Optional path prefix to strip from every path before
             classification, e.g. `/public/v1`. When set, this overrides the prefix
@@ -86,7 +86,7 @@ def build(
         return api
     base = strip_prefix if strip_prefix is not None else detect_base_path(spec)
     paths = strip_base_path(paths_obj, base)
-    ns_registry = root_namespaces(spec) | extra_namespaces(sidecar)
+    ns_registry = root_namespaces(spec) | extra_namespaces(rules)
     log.debug(
         "builder starting: %d paths, %d namespace hints, base=%r",
         len(paths),
@@ -94,7 +94,7 @@ def build(
         base,
     )
     for path, path_item in paths.items():
-        exclusion = _resolve_exclusion(path_item, sidecar, path)
+        exclusion = _resolve_exclusion(path_item, rules, path)
         if exclusion == EXCLUDE_ALL:
             log.info("excluding path %s (x-okapipy-exclude='*')", path)
             continue
@@ -107,7 +107,7 @@ def build(
                 api=api,
                 path=path,
                 path_item=path_item,
-                sidecar=sidecar,
+                rules=rules,
                 nlp=nlp,
                 ns_registry=ns_registry,
                 excluded_methods=excluded_methods,
@@ -143,14 +143,14 @@ def _all_operations_deprecated(
 
 def _resolve_exclusion(
     path_item: dict[str, Any],
-    sidecar: Sidecar,
+    rules: Rules,
     path: str,
 ) -> str | set[str]:
     """Return the merged exclusion for a path: `'*'`, a set of upper methods, or empty.
 
-    Sidecar wins over spec when both declare an exclusion for the same path.
+    Rules wins over spec when both declare an exclusion for the same path.
     """
-    chosen = sidecar_path_exclusion(sidecar, path)
+    chosen = rules_path_exclusion(rules, path)
     if chosen is None:
         chosen = spec_path_exclusion(path_item)
     if chosen is None:
@@ -215,7 +215,7 @@ def _walk_path(
     api: APIModel,
     path: str,
     path_item: dict[str, Any],
-    sidecar: Sidecar,
+    rules: Rules,
     nlp: Language,
     ns_registry: set[str],
     excluded_methods: set[str],
@@ -229,12 +229,12 @@ def _walk_path(
     breadcrumb: list[str] = []
     parent_kind: SegmentKind | None = None
     cumulative_parts: list[str] = []
-    # The full-path hint (sidecar wins over spec extension) applies to the last
+    # The full-path hint (rules wins over spec extension) applies to the last
     # segment; intermediate segments resolve their hints by cumulative-path
-    # lookup so a sidecar entry like `/helpdesk/feedback: collection` propagates
+    # lookup so a rules entry like `/helpdesk/feedback: collection` propagates
     # to every nested path that walks through it.
     full_path_hint = _merge_hint(
-        path_item_hint(sidecar, path),
+        path_item_hint(rules, path),
         path_item_extension(path_item),
     )
     terminal_kind: SegmentKind | None = None
@@ -246,7 +246,7 @@ def _walk_path(
         if is_last:
             hint = full_path_hint
         else:
-            hint = path_item_hint(sidecar, "/" + cumulative_path)
+            hint = path_item_hint(rules, "/" + cumulative_path)
         kind = classify_segment(
             segment=segment,
             cumulative_path=cumulative_path,
@@ -272,7 +272,7 @@ def _walk_path(
         cursor=cursor,
         terminal_kind=terminal_kind,
         path_item=path_item,
-        sidecar=sidecar,
+        rules=rules,
         path=path,
         action_path=last_path,
         excluded_methods=excluded_methods,
@@ -344,14 +344,14 @@ def _install_operations(
     cursor: ContainerNode,
     terminal_kind: SegmentKind,
     path_item: dict[str, Any],
-    sidecar: Sidecar,
+    rules: Rules,
     path: str,
     action_path: str,
     excluded_methods: set[str],
 ) -> None:
     """Attach Operation entries onto the terminal node according to its kind."""
     item_paginated = _resolve_paginated(
-        sidecar_value=path_item_paginated(sidecar, path),
+        rules_value=path_item_paginated(rules, path),
         spec_value=path_item_paginated_extension(path_item),
     )
     for method in HTTP_METHODS:
@@ -365,12 +365,12 @@ def _install_operations(
             log.info("skipping %s %s (deprecated)", method.upper(), action_path)
             continue
         method_hint = _merge_hint(
-            operation_hint(sidecar, path, method),
+            operation_hint(rules, path, method),
             operation_extension(op_data),
         )
         is_action_method = method_hint == SegmentKind.ACTION.value
         op_paginated = _resolve_paginated(
-            sidecar_value=operation_paginated(sidecar, path, method),
+            rules_value=operation_paginated(rules, path, method),
             spec_value=operation_paginated_extension(op_data),
             fallback=item_paginated,
         )
@@ -391,13 +391,13 @@ def _install_operations(
 
 def _resolve_paginated(
     *,
-    sidecar_value: bool | None,
+    rules_value: bool | None,
     spec_value: bool | None,
     fallback: bool = True,
 ) -> bool:
-    """Merge a paginated flag with sidecar precedence; fall back to `fallback` if unset."""
-    if sidecar_value is not None:
-        return sidecar_value
+    """Merge a paginated flag with rules precedence; fall back to `fallback` if unset."""
+    if rules_value is not None:
+        return rules_value
     if spec_value is not None:
         return spec_value
     return fallback
@@ -622,10 +622,10 @@ def _schema_name(schema: dict[str, Any]) -> str | None:
     return ref.rsplit("/", 1)[-1] or None
 
 
-def _merge_hint(sidecar_hint: str | None, spec_hint: str | None) -> str | None:
-    """Return the sidecar hint when set, otherwise the spec hint, otherwise None."""
-    if sidecar_hint is not None:
-        return sidecar_hint
+def _merge_hint(rules_hint: str | None, spec_hint: str | None) -> str | None:
+    """Return the rules hint when set, otherwise the spec hint, otherwise None."""
+    if rules_hint is not None:
+        return rules_hint
     return spec_hint
 
 

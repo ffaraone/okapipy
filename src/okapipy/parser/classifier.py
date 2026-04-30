@@ -1,8 +1,8 @@
 """Single-segment classifier — phase 3 step 1 of the parser pipeline.
 
 The classifier converts one path segment into a `SegmentKind`. It consults, in order:
-the path-parameter shape, an explicit hint (sidecar > spec extension), the namespace
-registry (sidecar ∪ spec), and finally the spaCy-derived NLP signal.
+the path-parameter shape, an explicit hint (rules > spec extension), the namespace
+registry (rules ∪ spec), and finally the spaCy-derived NLP signal.
 """
 
 from __future__ import annotations
@@ -43,8 +43,8 @@ def classify_segment(
             leading or trailing slash; used for the namespace-registry lookup.
         parent_kind: The kind of the previous segment, or None when at the root.
         nlp: A loaded spaCy pipeline used for POS and morphology.
-        ns_registry: The union of namespace paths declared by the spec and sidecar.
-        extension_hint: A pre-merged `x-okapipy` hint with sidecar precedence; one of
+        ns_registry: The union of namespace paths declared by the spec and rules.
+        extension_hint: A pre-merged `x-okapipy` hint with rules precedence; one of
             the four kind names, or None.
 
     Returns:

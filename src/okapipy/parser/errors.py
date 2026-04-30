@@ -11,8 +11,8 @@ class SpecLoadError(ParserError):
     """Raised when the OpenAPI document cannot be loaded, parsed, or validated."""
 
 
-class SidecarFormatError(ParserError):
-    """Raised when the disambiguation sidecar file cannot be parsed."""
+class RulesFormatError(ParserError):
+    """Raised when the rules file cannot be parsed."""
 
 
 class NlpModelMissingError(ParserError):

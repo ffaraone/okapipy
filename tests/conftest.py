@@ -40,9 +40,9 @@ def external_ref_spec_path(fixtures_dir: Path) -> Path:
 
 
 @pytest.fixture
-def sidecar_path(fixtures_dir: Path) -> Path:
-    """Path to a sidecar YAML covering both `x-okapipy-ns` and per-op `x-okapipy`."""
-    return fixtures_dir / "sidecar.yaml"
+def rules_path(fixtures_dir: Path) -> Path:
+    """Path to a rules YAML covering both `x-okapipy-ns` and per-op `x-okapipy`."""
+    return fixtures_dir / "rules.yaml"
 
 
 @pytest.fixture

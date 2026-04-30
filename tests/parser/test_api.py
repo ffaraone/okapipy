@@ -21,13 +21,13 @@ def test_parse_simple_spec_returns_top_level_collection(
     assert orders.resource.name == "Order"
 
 
-def test_parse_nested_spec_with_sidecar_namespace(
-    nested_spec_path: Path, sidecar_path: Path
+def test_parse_nested_spec_with_rules_namespace(
+    nested_spec_path: Path, rules_path: Path
 ) -> None:
-    """A sidecar's `x-okapipy-ns` is honored alongside the spec's own registry."""
+    """A rules-file's `x-okapipy-ns` is honored alongside the spec's own registry."""
     cache_dir = Path(__file__).resolve().parent.parent.parent / ".spacy"
 
-    api = parse(nested_spec_path, sidecar=sidecar_path, nlp_cache_dir=cache_dir)
+    api = parse(nested_spec_path, rules=rules_path, nlp_cache_dir=cache_dir)
 
     commerce = next(ns for ns in api.namespaces if ns.name == "commerce")
     orders = next(c for c in commerce.collections if c.name == "Orders")

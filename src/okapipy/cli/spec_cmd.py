@@ -17,12 +17,12 @@ from okapipy.cli.console import is_piped, print_error, stderr, stdout, write_str
 from okapipy.generator import GenerationError, generate
 from okapipy.generator.vfs import write_to_disk
 from okapipy.parser.builder import build
-from okapipy.parser.disambiguation import load_sidecar
 from okapipy.parser.dump import to_json, write
 from okapipy.parser.errors import ParserError
 from okapipy.parser.loader import load_spec
 from okapipy.parser.model import APIModel, Collection, Namespace, Resource
 from okapipy.parser.nlp import DEFAULT_CACHE_DIR, load_pipeline
+from okapipy.parser.rules import load_rules
 
 app = typer.Typer(no_args_is_help=True, help="Inspect and parse OpenAPI specifications.")
 
@@ -31,10 +31,10 @@ app = typer.Typer(no_args_is_help=True, help="Inspect and parse OpenAPI specific
 def parse_command(
     ctx: typer.Context,
     source: str = typer.Argument(..., help="Path or http(s) URL of the OpenAPI document."),
-    sidecar: Path | None = typer.Option(
+    rules: Path | None = typer.Option(
         None,
-        "--sidecar",
-        help="Local path to a JSON/YAML disambiguation sidecar.",
+        "--rules",
+        help="Local path to a JSON/YAML rules file.",
     ),
     lang: str = typer.Option("en", "--lang", help="ISO language code for NLP."),
     strip_prefix: str | None = typer.Option(
@@ -59,7 +59,7 @@ def parse_command(
     try:
         api = _run_pipeline(
             source=source,
-            sidecar=sidecar,
+            rules=rules,
             lang=lang,
             cache_dir=nlp_cache_dir,
             strip_prefix=strip_prefix,
@@ -82,7 +82,7 @@ def parse_command(
 def _run_pipeline(
     *,
     source: str,
-    sidecar: Path | None,
+    rules: Path | None,
     lang: str,
     cache_dir: Path,
     strip_prefix: str | None,
@@ -90,12 +90,12 @@ def _run_pipeline(
     """Run the full parser pipeline with a spinner for each phase."""
     with _phase("Loading OpenAPI spec"):
         spec = load_spec(source)
-    with _phase("Loading disambiguation sidecar"):
-        side = load_sidecar(sidecar)
+    with _phase("Loading rules"):
+        loaded_rules = load_rules(rules)
     with _phase(f"Loading spaCy pipeline ({lang})"):
         nlp = load_pipeline(lang, cache_dir=cache_dir)
     with _phase("Building structural tree"):
-        return build(spec, side, nlp, strip_prefix=strip_prefix)
+        return build(spec, loaded_rules, nlp, strip_prefix=strip_prefix)
 
 
 @contextmanager
@@ -220,10 +220,10 @@ def generate_command(
         "--license",
         help="SPDX license identifier; drives the LICENSE placeholder.",
     ),
-    sidecar: Path | None = typer.Option(
+    rules: Path | None = typer.Option(
         None,
-        "--sidecar",
-        help="Local path to a JSON/YAML disambiguation sidecar.",
+        "--rules",
+        help="Local path to a JSON/YAML rules file.",
     ),
     lang: str = typer.Option("en", "--lang", help="ISO language code for NLP."),
     strip_prefix: str | None = typer.Option(
@@ -252,7 +252,7 @@ def generate_command(
     try:
         api = _run_pipeline(
             source=source,
-            sidecar=sidecar,
+            rules=rules,
             lang=lang,
             cache_dir=nlp_cache_dir,
             strip_prefix=strip_prefix,

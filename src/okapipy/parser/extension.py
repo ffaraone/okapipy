@@ -1,7 +1,7 @@
 """Helpers that read okapipy-specific extensions from a raw OpenAPI document.
 
 The structural parser combines these spec-derived hints with the matching values from
-a sidecar; sidecar values win on conflict.
+a rules file; rules-file values win on conflict.
 """
 
 from __future__ import annotations

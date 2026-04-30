@@ -8,7 +8,7 @@ from pathlib import Path
 from spacy.language import Language
 
 from okapipy.parser.builder import build
-from okapipy.parser.disambiguation import Sidecar, load_sidecar
+from okapipy.parser.rules import Rules, load_rules
 
 
 def test_collection_fetch_is_paginated_by_default(english_nlp: Language) -> None:
@@ -21,7 +21,7 @@ def test_collection_fetch_is_paginated_by_default(english_nlp: Language) -> None
         }
     }
 
-    api = build(spec, Sidecar(), english_nlp)
+    api = build(spec, Rules(), english_nlp)
 
     orders = api.collections[0]
     assert orders.fetch is not None
@@ -43,7 +43,7 @@ def test_filter_and_sort_default_to_unsupported(english_nlp: Language) -> None:
         }
     }
 
-    api = build(spec, Sidecar(), english_nlp)
+    api = build(spec, Rules(), english_nlp)
 
     fetch = api.collections[0].fetch
     assert fetch is not None
@@ -62,7 +62,7 @@ def test_path_item_extension_disables_pagination(english_nlp: Language) -> None:
         }
     }
 
-    api = build(spec, Sidecar(), english_nlp)
+    api = build(spec, Rules(), english_nlp)
 
     orders = api.collections[0]
     assert orders.fetch is not None
@@ -83,19 +83,19 @@ def test_operation_extension_overrides_path_item(english_nlp: Language) -> None:
         }
     }
 
-    api = build(spec, Sidecar(), english_nlp)
+    api = build(spec, Rules(), english_nlp)
 
     orders = api.collections[0]
     assert orders.fetch is not None
     assert orders.fetch.pagination_supported is True
 
 
-def test_sidecar_paginated_wins_over_spec(
+def test_rules_paginated_wins_over_spec(
     english_nlp: Language, tmp_path: Path
 ) -> None:
-    """When sidecar and spec both set `x-okapipy-paginated`, sidecar wins."""
-    sidecar_file = tmp_path / "side.yaml"
-    sidecar_file.write_text(
+    """When rules and spec both set `x-okapipy-paginated`, rules win."""
+    rules_file = tmp_path / "side.yaml"
+    rules_file.write_text(
         "paths:\n"
         "  /orders:\n"
         "    x-okapipy-paginated: false\n"
@@ -109,19 +109,19 @@ def test_sidecar_paginated_wins_over_spec(
         }
     }
 
-    api = build(spec, load_sidecar(sidecar_file), english_nlp)
+    api = build(spec, load_rules(rules_file), english_nlp)
 
     orders = api.collections[0]
     assert orders.fetch is not None
     assert orders.fetch.pagination_supported is False
 
 
-def test_sidecar_per_method_paginated_overrides_path_item(
+def test_rules_per_method_paginated_overrides_path_item(
     english_nlp: Language, tmp_path: Path
 ) -> None:
-    """A sidecar per-method `x-okapipy-paginated` overrides its sidecar path-item value."""
-    sidecar_file = tmp_path / "side.yaml"
-    sidecar_file.write_text(
+    """A rules-file per-method `x-okapipy-paginated` overrides its rules path-item value."""
+    rules_file = tmp_path / "side.yaml"
+    rules_file.write_text(
         "paths:\n"
         "  /orders:\n"
         "    x-okapipy-paginated: false\n"
@@ -136,7 +136,7 @@ def test_sidecar_per_method_paginated_overrides_path_item(
         }
     }
 
-    api = build(spec, load_sidecar(sidecar_file), english_nlp)
+    api = build(spec, load_rules(rules_file), english_nlp)
 
     orders = api.collections[0]
     assert orders.fetch is not None
@@ -163,7 +163,7 @@ def test_response_headers_are_captured(english_nlp: Language) -> None:
         }
     }
 
-    api = build(spec, Sidecar(), english_nlp)
+    api = build(spec, Rules(), english_nlp)
 
     orders = api.collections[0]
     assert orders.fetch is not None
@@ -206,7 +206,7 @@ def test_response_model_names_the_envelope_not_the_item(english_nlp: Language) -
         },
     }
 
-    api = build(spec, Sidecar(), english_nlp)
+    api = build(spec, Rules(), english_nlp)
 
     orders = api.collections[0]
     assert orders.fetch is not None
@@ -229,7 +229,7 @@ def test_paginated_flag_is_true_even_for_resource_get(english_nlp: Language) -> 
         }
     }
 
-    api = build(spec, Sidecar(), english_nlp)
+    api = build(spec, Rules(), english_nlp)
 
     resource = api.collections[0].resource
     assert resource is not None

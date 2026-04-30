@@ -36,9 +36,10 @@ def fetch(
         raise typer.Exit(code=1) from exc
     stderr.print(
         Panel(
-            f"Installed model into {target}",
+            "Installed model into",
             border_style="green",
             title="NLP",
             title_align="left",
         )
     )
+    stderr.print(str(target), soft_wrap=True, style="green")

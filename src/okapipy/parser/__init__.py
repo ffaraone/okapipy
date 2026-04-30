@@ -9,7 +9,7 @@ from okapipy.parser.errors import (
     InvalidStructureError,
     NlpModelMissingError,
     ParserError,
-    SidecarFormatError,
+    RulesFormatError,
     SpecLoadError,
 )
 from okapipy.parser.model import (
@@ -32,7 +32,7 @@ __all__ = [
     "Operation",
     "ParserError",
     "Resource",
-    "SidecarFormatError",
+    "RulesFormatError",
     "SpecLoadError",
     "parse",
 ]
