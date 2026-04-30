@@ -25,7 +25,7 @@ if TYPE_CHECKING:
 
 
 class {{ class_name }}:
-    """Resource at `{{ path_template }}` (sync)."""
+{{ class_docstring }}
 
     PATH_TEMPLATE = "{{ path_template }}"
 
@@ -45,7 +45,7 @@ class {{ class_name }}:
 
 {% if retrieve_op %}
     def retrieve(self, **overrides: Any) -> Any:
-        """`{{ retrieve_op.method }} {{ path_template }}`."""
+{{ retrieve_docstring }}
         return self._request(
             "{{ retrieve_op.method }}", body=None, overrides=overrides,
             response_model={{ retrieve_op.response_model | py_class_or_none }},
@@ -54,7 +54,7 @@ class {{ class_name }}:
 
 {% if update_op %}
     def update(self, body: Any, **overrides: Any) -> Any:
-        """`{{ update_op.method }} {{ path_template }}` (full replacement)."""
+{{ update_docstring }}
         return self._request(
             "{{ update_op.method }}", body=body, overrides=overrides,
             response_model={{ update_op.response_model | py_class_or_none }},
@@ -63,7 +63,7 @@ class {{ class_name }}:
 
 {% if patch_op %}
     def patch(self, body: Any, **overrides: Any) -> Any:
-        """`{{ patch_op.method }} {{ path_template }}` (partial update)."""
+{{ patch_docstring }}
         return self._request(
             "{{ patch_op.method }}", body=body, overrides=overrides,
             response_model={{ patch_op.response_model | py_class_or_none }},
@@ -72,7 +72,7 @@ class {{ class_name }}:
 
 {% if delete_op %}
     def delete(self, **overrides: Any) -> Any:
-        """`{{ delete_op.method }} {{ path_template }}`."""
+{{ delete_docstring }}
         return self._request(
             "{{ delete_op.method }}", body=None, overrides=overrides,
             response_model={{ delete_op.response_model | py_class_or_none }},
@@ -127,7 +127,7 @@ class {{ class_name }}:
 
 
 class Async{{ class_name }}:
-    """Resource at `{{ path_template }}` (async)."""
+{{ class_docstring }}
 
     PATH_TEMPLATE = "{{ path_template }}"
 
@@ -146,6 +146,7 @@ class Async{{ class_name }}:
 
 {% if retrieve_op %}
     async def retrieve(self, **overrides: Any) -> Any:
+{{ retrieve_docstring }}
         return await self._request(
             "{{ retrieve_op.method }}", body=None, overrides=overrides,
             response_model={{ retrieve_op.response_model | py_class_or_none }},
@@ -154,6 +155,7 @@ class Async{{ class_name }}:
 
 {% if update_op %}
     async def update(self, body: Any, **overrides: Any) -> Any:
+{{ update_docstring }}
         return await self._request(
             "{{ update_op.method }}", body=body, overrides=overrides,
             response_model={{ update_op.response_model | py_class_or_none }},
@@ -162,6 +164,7 @@ class Async{{ class_name }}:
 
 {% if patch_op %}
     async def patch(self, body: Any, **overrides: Any) -> Any:
+{{ patch_docstring }}
         return await self._request(
             "{{ patch_op.method }}", body=body, overrides=overrides,
             response_model={{ patch_op.response_model | py_class_or_none }},
@@ -170,6 +173,7 @@ class Async{{ class_name }}:
 
 {% if delete_op %}
     async def delete(self, **overrides: Any) -> Any:
+{{ delete_docstring }}
         return await self._request(
             "{{ delete_op.method }}", body=None, overrides=overrides,
             response_model={{ delete_op.response_model | py_class_or_none }},

@@ -19,7 +19,7 @@ if TYPE_CHECKING:
 
 
 class {{ class_name }}:
-    """Action at `{{ path_template }}` (sync)."""
+{{ class_docstring }}
 
     PATH_TEMPLATE = "{{ path_template }}"
 
@@ -38,7 +38,7 @@ class {{ class_name }}:
 
 {% if single_op %}
     def run(self, {% if single_op.has_body %}body: Any, {% endif %}**overrides: Any) -> Any:
-        """Single-op action method (`{{ single_op.method }} {{ path_template }}`)."""
+{{ single_op_docstring }}
         return self._request(
             "{{ single_op.method }}",
             body={% if single_op.has_body %}body{% else %}None{% endif %},
@@ -48,7 +48,7 @@ class {{ class_name }}:
 {% else %}
 {% for op in operations %}
     def {{ op.method | lower }}(self, {% if op.has_body %}body: Any, {% endif %}**overrides: Any) -> Any:
-        """`{{ op.method }} {{ path_template }}`."""
+{{ op_docstrings[loop.index0] }}
         return self._request(
             "{{ op.method }}",
             body={% if op.has_body %}body{% else %}None{% endif %},
@@ -91,7 +91,7 @@ class {{ class_name }}:
 
 
 class Async{{ class_name }}:
-    """Action at `{{ path_template }}` (async)."""
+{{ class_docstring }}
 
     PATH_TEMPLATE = "{{ path_template }}"
 
@@ -110,6 +110,7 @@ class Async{{ class_name }}:
 
 {% if single_op %}
     async def run(self, {% if single_op.has_body %}body: Any, {% endif %}**overrides: Any) -> Any:
+{{ single_op_docstring }}
         return await self._request(
             "{{ single_op.method }}",
             body={% if single_op.has_body %}body{% else %}None{% endif %},
@@ -119,6 +120,7 @@ class Async{{ class_name }}:
 {% else %}
 {% for op in operations %}
     async def {{ op.method | lower }}(self, {% if op.has_body %}body: Any, {% endif %}**overrides: Any) -> Any:
+{{ op_docstrings[loop.index0] }}
         return await self._request(
             "{{ op.method }}",
             body={% if op.has_body %}body{% else %}None{% endif %},

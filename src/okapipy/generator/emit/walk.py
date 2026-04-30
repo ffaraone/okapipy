@@ -112,6 +112,10 @@ def _emit_namespace(
         "class_name": _namespace_class(ns),
         "child_namespaces": child_namespaces,
         "child_collections": child_collections,
+        "class_docstring": build_docstring(
+            ns.summary, ns.description,
+            fallback=f"Namespace router for `{ns.name}`.",
+        ),
     }
     out[f"src/{package_path}/namespaces/{_namespace_module(ns)}.py"] = render_python(
         env, "package/namespace.py.jinja", ctx
@@ -157,6 +161,25 @@ def _emit_collection(
     # response model is the *envelope*; iteration calls `from_response(None, ...)`
     # because the parser doesn't expose item types yet (Phase 7).
     model_imports = sorted(_collect_model_names([create_op]))
+    # Class docstring comes from the fetch operation per generator.md §9. When
+    # the operation isn't populated, fall back to a generic structural string.
+    if fetch_op is not None:
+        class_doc = build_docstring(
+            fetch_op.summary, fetch_op.description,
+            fallback=f"Collection at `{coll.path}`.",
+        )
+    else:
+        class_doc = build_docstring(
+            coll.summary, coll.description,
+            fallback=f"Collection at `{coll.path}`.",
+        )
+    create_doc: str | None = None
+    if create_op is not None:
+        create_doc = build_docstring(
+            create_op.summary, create_op.description,
+            fallback=f"`{create_op.method}` body to {coll.path}.",
+            indent=8,
+        )
     ctx = {
         **project_context,
         "class_name": _collection_class(coll),
@@ -174,6 +197,8 @@ def _emit_collection(
             fetch_op.pagination_supported if fetch_op is not None else False
         ),
         "model_imports": model_imports,
+        "class_docstring": class_doc,
+        "create_docstring": create_doc,
     }
     out[f"src/{package_path}/collections/{_collection_module(coll)}.py"] = render_python(
         env, "package/collection.py.jinja", ctx
@@ -219,6 +244,12 @@ def _emit_resource(
             [resource.retrieve, resource.update, resource.partial_update, resource.delete]
         )
     )
+    def _op_doc(op: Operation | None, suffix: str = "") -> str | None:
+        if op is None:
+            return None
+        fallback = f"`{op.method} {resource.path}`{suffix}."
+        return build_docstring(op.summary, op.description, fallback=fallback, indent=8)
+
     ctx = {
         **project_context,
         "class_name": _resource_class(resource),
@@ -230,6 +261,14 @@ def _emit_resource(
         "child_collections": child_collections,
         "actions": actions,
         "model_imports": model_imports,
+        "class_docstring": build_docstring(
+            resource.summary, resource.description,
+            fallback=f"Resource at `{resource.path}`.",
+        ),
+        "retrieve_docstring": _op_doc(resource.retrieve),
+        "update_docstring": _op_doc(resource.update, " (full replacement)"),
+        "patch_docstring": _op_doc(resource.partial_update, " (partial update)"),
+        "delete_docstring": _op_doc(resource.delete),
     }
     out[f"src/{package_path}/resources/{_resource_module(resource)}.py"] = render_python(
         env, "package/resource.py.jinja", ctx
@@ -257,6 +296,20 @@ def _emit_action(
     operations = [op for op in operations if op is not None]
     single_op = operations[0] if len(operations) == 1 else None
     model_imports = sorted(_collect_model_names(action.operations))
+    # Single op: class doc and the (sole) method's doc share the same source per
+    # generator.md §11. Multi-op: class doc lists all operations; per-method docs
+    # come from each operation individually.
+    class_doc = build_action_docstring(action)
+    op_docstrings: list[str] = []
+    for op in action.operations:
+        op_docstrings.append(
+            build_docstring(
+                op.summary, op.description,
+                fallback=f"`{op.method} {action.path}`.",
+                indent=8,
+            )
+        )
+    single_op_docstring = op_docstrings[0] if len(op_docstrings) == 1 else None
     ctx = {
         **project_context,
         "class_name": _action_class(action),
@@ -264,6 +317,9 @@ def _emit_action(
         "operations": operations,
         "single_op": single_op,
         "model_imports": model_imports,
+        "class_docstring": class_doc,
+        "single_op_docstring": single_op_docstring,
+        "op_docstrings": op_docstrings,
     }
     return {
         f"src/{package_path}/actions/{_action_module(action)}.py": render_python(
@@ -275,6 +331,71 @@ def _emit_action(
 # --------------------------------------------------------------------------- #
 # Helpers                                                                     #
 # --------------------------------------------------------------------------- #
+
+
+def build_docstring(
+    summary: str | None,
+    description: str | None,
+    fallback: str,
+    indent: int = 4,
+) -> str:
+    """Format a Python docstring from OpenAPI `summary` + `description`.
+
+    Returns a triple-quoted block ready to splice into a generated source file.
+    `indent` controls left padding (4 for class docstrings, 8 for method
+    docstrings). Falls back to `fallback` when both inputs are empty.
+    """
+    parts: list[str] = []
+    if summary and summary.strip():
+        parts.append(summary.strip())
+    if description and description.strip():
+        parts.append(description.strip())
+    body = "\n\n".join(parts) if parts else fallback
+    return _build_docstring_from_body(body, indent)
+
+
+def build_action_docstring(action: Action, indent: int = 4) -> str:
+    """Format an action class docstring: single-op uses the op's text, multi-op lists them."""
+    if not action.operations:
+        return build_docstring(
+            action.summary, action.description,
+            f"Action at `{action.path}`.", indent,
+        )
+    if len(action.operations) == 1:
+        op = action.operations[0]
+        return build_docstring(
+            op.summary, op.description,
+            f"Action at `{action.path}`.", indent,
+        )
+    header: list[str] = []
+    if action.summary and action.summary.strip():
+        header.append(action.summary.strip())
+    elif action.description and action.description.strip():
+        header.append(action.description.strip())
+    else:
+        header.append(f"Action at `{action.path}`.")
+    header.append("")
+    header.append("Operations:")
+    for op in action.operations:
+        summary = (op.summary or "").strip() or "(no summary)"
+        header.append(f"- `{op.method}`: {summary}")
+    return _build_docstring_from_body("\n".join(header), indent)
+
+
+def _build_docstring_from_body(body: str, indent: int) -> str:
+    """Wrap `body` in a triple-quoted block at the given indent level."""
+    body = body.replace('"""', "'''")
+    pad = " " * indent
+    lines = body.split("\n")
+    if len(lines) == 1 and len(lines[0]) + indent + 6 <= 100:
+        return f'{pad}"""{lines[0]}"""'
+    first = lines[0]
+    rest = lines[1:]
+    out_lines = [f'{pad}"""{first}']
+    for line in rest:
+        out_lines.append(pad + line if line.strip() else "")
+    out_lines.append(f'{pad}"""')
+    return "\n".join(out_lines)
 
 
 def _collect_model_names(operations: Sequence[Operation | None]) -> set[str]:

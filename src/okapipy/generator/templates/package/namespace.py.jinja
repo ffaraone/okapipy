@@ -24,7 +24,7 @@ if TYPE_CHECKING:
 
 
 class {{ class_name }}:
-    """Namespace router (sync)."""
+{{ class_docstring }}
 
     def __init__(self, client: {{ client_class }}) -> None:
         self.client = client
@@ -44,7 +44,7 @@ class {{ class_name }}:
 
 
 class Async{{ class_name }}:
-    """Namespace router (async)."""
+{{ class_docstring }}
 
     def __init__(self, client: Async{{ client_class }}) -> None:
         self.client = client

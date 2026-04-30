@@ -28,7 +28,7 @@ if TYPE_CHECKING:
 
 
 class {{ class_name }}:
-    """Collection at `{{ path_template }}` (sync)."""
+{{ class_docstring }}
 
     PATH_TEMPLATE = "{{ path_template }}"
 
@@ -94,7 +94,7 @@ class {{ class_name }}:
 
 {% if create_op %}
     def create(self, body: Any, **overrides: Any) -> Any:
-        """`{{ create_op.method }}` body to {{ path_template }}."""
+{{ create_docstring }}
         request_kwargs: dict[str, Any] = {"json": self._serialize_body(body)}
         params = dict(overrides.get("params") or {})
         if params:
@@ -221,7 +221,7 @@ class {{ class_name }}Iterator(Iterator[Any]):
 
 
 class Async{{ class_name }}:
-    """Collection at `{{ path_template }}` (async)."""
+{{ class_docstring }}
 
     PATH_TEMPLATE = "{{ path_template }}"
 
@@ -281,6 +281,7 @@ class Async{{ class_name }}:
 
 {% if create_op %}
     async def create(self, body: Any, **overrides: Any) -> Any:
+{{ create_docstring }}
         request_kwargs: dict[str, Any] = {"json": self._serialize_body(body)}
         params = dict(overrides.get("params") or {})
         if params:
