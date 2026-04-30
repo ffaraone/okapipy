@@ -246,6 +246,21 @@ def generate_command(
         "--model-templates-dir",
         help="Directory of datamodel-code-generator templates for models.py.",
     ),
+    check: bool = typer.Option(
+        False,
+        "--check",
+        help=(
+            "Dry-run: report what would change but do not write or delete. "
+            "Exits non-zero when any base file differs, any drift warning "
+            "fires, or any stale base file would be pruned. CI gate."
+        ),
+    ),
+    quiet: bool = typer.Option(
+        False,
+        "--quiet",
+        "-q",
+        help="Suppress drift-detection warnings. Pruning still runs.",
+    ),
 ) -> None:
     """Generate a Python client project from an OpenAPI document."""
     verbose = _verbose_from(ctx)
@@ -275,15 +290,50 @@ def generate_command(
                 templates_dir=templates_dir,
                 model_templates_dir=model_templates_dir,
             )
-        with _phase(f"Writing {len(vfs)} files to {output}"):
-            write_to_disk(vfs, output)
+        action = "Checking" if check else f"Writing {len(vfs)} files to {output}"
+        with _phase(action):
+            report = write_to_disk(vfs, output, dry_run=check)
     except GenerationError as exc:
         print_error(exc, debug=verbose >= 2)
         raise typer.Exit(code=1) from exc
-    stderr.print(
-        Panel(
-            f"Wrote {len(vfs)} files to {output}",
-            border_style="green",
-            title_align="left",
+    if not quiet:
+        for warning in report.warnings:
+            stderr.print(Panel(warning, border_style="yellow", title="WARNING", title_align="left"))
+    if check:
+        if report.would_change or report.warnings:
+            stderr.print(
+                Panel(
+                    _check_summary(report),
+                    border_style="red",
+                    title="--check failed",
+                    title_align="left",
+                )
+            )
+            raise typer.Exit(code=1)
+        stderr.print(
+            Panel(
+                "No changes; no drift.",
+                border_style="green",
+                title="--check passed",
+                title_align="left",
+            )
         )
-    )
+        return
+    summary = f"Wrote {len(report.written)} files to {output}"
+    if report.skipped:
+        summary += f"; skipped {len(report.skipped)} existing user-layer files"
+    if report.pruned:
+        summary += f"; pruned {len(report.pruned)} stale base files"
+    stderr.print(Panel(summary, border_style="green", title_align="left"))
+
+
+def _check_summary(report) -> str:  # type: ignore[no-untyped-def]
+    """One-line summary of what `--check` found."""
+    parts: list[str] = []
+    if report.would_change:
+        parts.append("base content would change")
+    if report.warnings:
+        parts.append(f"{len(report.warnings)} drift warning(s)")
+    if report.pruned:
+        parts.append(f"{len(report.pruned)} stale base file(s) would be pruned")
+    return "; ".join(parts) or "no changes"

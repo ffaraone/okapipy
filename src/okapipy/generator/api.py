@@ -29,6 +29,11 @@ from okapipy.generator.emit.project import emit_project_skeleton
 from okapipy.generator.emit.runtime import emit_runtime
 from okapipy.generator.emit.stubs import emit_stubs
 from okapipy.generator.emit.walk import emit_root_init_extension, emit_tree
+from okapipy.generator.manifest import (
+    MANIFEST_FILENAME,
+    compute_manifest,
+    serialize,
+)
 from okapipy.generator.models import emit_models, public_names
 from okapipy.generator.templating import make_environment
 from okapipy.generator.vfs import GeneratedFile
@@ -114,6 +119,15 @@ def generate(
             vfs.setdefault(path, GeneratedFile(""))
     # User-layer subclass stubs — already marked one-shot internally.
     vfs.update(emit_stubs(api, package, package_path, client_class))
+    # Manifest, computed last so `base_files` reflects the full base tree.
+    # The manifest path itself is included in `base_files` so pruning treats
+    # it like any other regenerated base file.
+    manifest_path = f"src/{package_path}/base/{MANIFEST_FILENAME}"
+    base_files = sorted(
+        [p for p in vfs if p.startswith(f"src/{package_path}/base/")] + [manifest_path]
+    )
+    manifest = compute_manifest(api, package, base_files)
+    vfs[manifest_path] = GeneratedFile(content=serialize(manifest))
     return vfs
 
 
