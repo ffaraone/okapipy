@@ -172,10 +172,19 @@ def _emit_collection(
     ]
     fetch_op = coll.fetch
     create_op = coll.create
-    # Collection imports only what its emitted code references. The fetch
-    # response model is the *envelope*; iteration calls `from_response(None, ...)`
-    # because the parser doesn't expose item types yet (Phase 7).
-    model_imports = sorted(_collect_model_names([create_op], available_models))
+    # The fetch response model is the *envelope*; the iterator yields items
+    # typed as `fetch_item_model` when the parser detected a list shape.
+    fetch_item_model = (
+        _filter_model_name(fetch_op.item_model, available_models)
+        if fetch_op is not None
+        else None
+    )
+    # Collection imports only what its emitted code references: the create
+    # request/response models and (when present) the iterator's item type.
+    import_names = _collect_model_names([create_op], available_models)
+    if fetch_item_model is not None:
+        import_names.add(fetch_item_model)
+    model_imports = sorted(import_names)
     create_op_ctx = _op_context(create_op, available_models)
     # Class docstring comes from the fetch operation per generator.md §9. When
     # the operation isn't populated, fall back to a generic structural string.
@@ -208,6 +217,7 @@ def _emit_collection(
             if fetch_op is not None
             else None
         ),
+        "fetch_item_model": fetch_item_model,
         "pagination_supported": (
             fetch_op.pagination_supported if fetch_op is not None else False
         ),

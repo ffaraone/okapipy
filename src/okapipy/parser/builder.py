@@ -461,7 +461,7 @@ def _build_operation(
     summary = op_data.get("summary")
     description = op_data.get("description")
     request_content_type, request_model = _request_info(op_data)
-    response_content_type, response_model, response_headers = _response_info(op_data)
+    response_content_type, response_model, item_model, response_headers = _response_info(op_data)
     return Operation(
         method=method.upper(),
         summary=summary if isinstance(summary, str) else None,
@@ -470,6 +470,7 @@ def _build_operation(
         request_model=request_model,
         response_content_type=response_content_type,
         response_model=response_model,
+        item_model=item_model,
         response_headers=response_headers,
         pagination_supported=pagination_supported,
     )
@@ -491,30 +492,58 @@ def _request_info(op_data: dict[str, Any]) -> tuple[str | None, str | None]:
 
 def _response_info(
     op_data: dict[str, Any],
-) -> tuple[str | None, str | None, list[str]]:
-    """Return `(content_type, schema_name, header_names)` for the chosen 2xx response.
+) -> tuple[str | None, str | None, str | None, list[str]]:
+    """Return `(content_type, schema_name, item_name, header_names)` for the chosen 2xx response.
 
     `schema_name` always names the literal response body schema as declared (the
-    envelope, when one wraps a list). The parser does not unpack list envelopes —
-    that is the generator's responsibility.
+    envelope, when one wraps a list). `item_name` names the inner element schema
+    when the response is list-shaped — either a plain `type: array` or an object
+    with a known data-array property (`items`, `data`, `results`, `records`,
+    `entries`); `None` otherwise. The generator uses `item_name` so paginated
+    iteration yields typed model instances.
     """
     responses = op_data.get("responses")
     if not isinstance(responses, dict):
-        return None, None, []
+        return None, None, None, []
     status = _pick_success_status(responses)
     if status is None:
-        return None, None, []
+        return None, None, None, []
     response = responses[status]
     if not isinstance(response, dict):
-        return None, None, []
+        return None, None, None, []
     headers = _response_header_names(response)
     content = response.get("content")
     if not isinstance(content, dict) or not content:
-        return None, None, headers
+        return None, None, None, headers
     content_type = next(iter(content))
     entry = content.get(content_type)
     schema = entry.get("schema") if isinstance(entry, dict) else None
-    return content_type, _name_from_schema(schema), headers
+    return content_type, _name_from_schema(schema), _item_name_from_schema(schema), headers
+
+
+_ENVELOPE_DATA_KEYS = ("items", "data", "results", "records", "entries")
+
+
+def _item_name_from_schema(schema: Any) -> str | None:
+    """Return the inner item schema name for a list-shaped response, or `None`.
+
+    Recognised shapes: plain `type: array` (item is `schema.items`) and object
+    schemas with one of the conventional data-array properties (`items`, `data`,
+    `results`, `records`, `entries`). Anything else returns `None` and the
+    generator falls back to yielding raw dicts.
+    """
+    if not isinstance(schema, dict):
+        return None
+    if schema.get("type") == "array":
+        return _name_from_schema(schema.get("items"))
+    props = schema.get("properties")
+    if not isinstance(props, dict):
+        return None
+    for key in _ENVELOPE_DATA_KEYS:
+        entry = props.get(key)
+        if isinstance(entry, dict) and entry.get("type") == "array":
+            return _name_from_schema(entry.get("items"))
+    return None
 
 
 def _name_from_schema(schema: Any) -> str | None:

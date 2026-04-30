@@ -212,7 +212,7 @@ class {{ class_name }}Iterator(Iterator[Any]):
         response.raise_for_status()
         strat = self.collection.client.pagination_strategy
         self.current_page = [
-            self.collection.client.from_response(None, raw)
+            self.collection.client.from_response({{ fetch_item_model | py_class_or_none }}, raw)
             for raw in strat.extract_items(response)
         ]
         self.index = 0
@@ -387,7 +387,7 @@ class Async{{ class_name }}Iterator(AsyncIterator[Any]):
         response.raise_for_status()
         strat = self.collection.client.pagination_strategy
         self.current_page = [
-            self.collection.client.from_response(None, raw)
+            self.collection.client.from_response({{ fetch_item_model | py_class_or_none }}, raw)
             for raw in strat.extract_items(response)
         ]
         self.index = 0

@@ -15,7 +15,11 @@ class Operation(BaseModel):
 
     `response_model` names the literal 2xx response body schema (the envelope when
     the response wraps a list, or the resource itself for single-item responses).
-    The parser does not dive into list envelopes — that is the generator's job.
+    `item_model` names the **inner** schema of a list envelope when one is detected
+    (plain `type: array`, or an object with an `items`/`data`/`results`/`records`/
+    `entries` array property). The generator uses it so paginated iteration can
+    yield typed model instances instead of raw dicts; left as `None` when the
+    response isn't list-shaped or the item schema is anonymous.
 
     `pagination_supported` defaults to `True` and is only meaningful on
     collection-fetch operations; the generator decides what to do with it on other
@@ -33,6 +37,7 @@ class Operation(BaseModel):
     request_model: str | None = None
     response_content_type: str | None = None
     response_model: str | None = None
+    item_model: str | None = None
     response_headers: list[str] = Field(default_factory=list)
     pagination_supported: bool = True
     filter_supported: bool = False
