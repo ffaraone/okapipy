@@ -84,6 +84,80 @@ def test_action_stub_emitted(stubs_vfs) -> None:
 
     assert act_stub.one_shot is True
     assert "class OrderSubmitAction(OrderSubmitActionBase):" in act_stub.content
+    # Actions are leaves — body is `pass`, no factory lines.
+    assert "    pass" in act_stub.content
+
+
+def test_client_stub_auto_wires_top_namespace_factory(stubs_vfs) -> None:
+    """The Client stub assigns `__commerce_factory__ = CommerceNamespace` for top namespaces."""
+    client_stub = stubs_vfs["src/acme/client/client.py"].content
+
+    assert "__commerce_factory__ = CommerceNamespace" in client_stub
+    assert "__commerce_factory__ = AsyncCommerceNamespace" in client_stub
+    assert "from acme.client.namespaces.commerce import (" in client_stub
+
+
+def test_namespace_stub_auto_wires_child_collections(stubs_vfs) -> None:
+    """A namespace stub assigns `__orders_factory__ = OrdersCollection` for each child."""
+    ns_stub = stubs_vfs["src/acme/client/namespaces/commerce.py"].content
+
+    assert "__orders_factory__ = OrdersCollection" in ns_stub
+    assert "__orders_factory__ = AsyncOrdersCollection" in ns_stub
+    assert "from acme.client.collections.orders import (" in ns_stub
+
+
+def test_collection_stub_auto_wires_resource_and_actions(stubs_vfs) -> None:
+    """A collection stub wires `__resource_factory__` for its resource."""
+    coll_stub = stubs_vfs["src/acme/client/collections/orders.py"].content
+
+    assert "__resource_factory__ = OrderResource" in coll_stub
+    assert "__resource_factory__ = AsyncOrderResource" in coll_stub
+    assert "from acme.client.resources.order import (" in coll_stub
+
+
+def test_resource_stub_auto_wires_actions(stubs_vfs) -> None:
+    """A resource stub wires `__<action>_factory__` for each action child."""
+    res_stub = stubs_vfs["src/acme/client/resources/order.py"].content
+
+    assert "__submit_factory__ = OrderSubmitAction" in res_stub
+    assert "__submit_factory__ = AsyncOrderSubmitAction" in res_stub
+    assert "from acme.client.actions.order_submit import (" in res_stub
+
+
+def test_user_subclass_is_on_the_wire_by_default(tmp_path: Path) -> None:
+    """Auto-wiring puts the user-layer subclass on the wire without manual edits.
+
+    `client.commerce.orders` must return the user's `OrdersCollection` (not
+    `OrdersCollectionBase`) immediately after first generation, with no
+    customization applied.
+    """
+    package = "autowired"
+    out = tmp_path / "out"
+    api = parse(FIXTURE)
+    vfs = generate(
+        api, raw_spec=FIXTURE, output_dir=out, package=package, client_class="AutoClient",
+    )
+    write_to_disk(vfs, out)
+    sys.path.insert(0, str(out / "src"))
+    try:
+        for name in list(sys.modules):
+            if name == package or name.startswith(package + "."):
+                del sys.modules[name]
+        client_module = importlib.import_module(f"{package}.client")
+        commerce_module = importlib.import_module(f"{package}.namespaces.commerce")
+        orders_module = importlib.import_module(f"{package}.collections.orders")
+
+        client = client_module.AutoClient("https://api.example.com")
+        try:
+            assert isinstance(client.commerce, commerce_module.CommerceNamespace)
+            assert isinstance(client.commerce.orders, orders_module.OrdersCollection)
+        finally:
+            client.close()
+    finally:
+        sys.path.remove(str(out / "src"))
+        for name in list(sys.modules):
+            if name == package or name.startswith(package + "."):
+                del sys.modules[name]
 
 
 def test_user_subdir_init_markers_are_one_shot_empty(stubs_vfs) -> None:
