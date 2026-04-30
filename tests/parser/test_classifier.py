@@ -31,7 +31,7 @@ def test_path_parameter_segment_classified_as_resource_id(mocker: MockerFixture)
 
 
 def test_extension_hint_overrides_nlp(mocker: MockerFixture) -> None:
-    """An explicit `x-okapipy` hint wins over the NLP signal."""
+    """An explicit `x-okapipy-kind` hint wins over the NLP signal."""
     nlp = mocker.Mock(name="Language")
     _stub_segment(mocker, SegmentInfo("orders", False, True, False))
 

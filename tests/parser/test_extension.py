@@ -29,20 +29,20 @@ def test_root_namespaces_ignores_non_string_entries() -> None:
 
 
 def test_operation_extension_returns_value_when_set() -> None:
-    """The string value of `x-okapipy` is returned when present on the operation."""
-    operation = {"x-okapipy": "action"}
+    """The string value of `x-okapipy-kind` is returned when present on the operation."""
+    operation = {"x-okapipy-kind": "action"}
 
     assert operation_extension(operation) == "action"
 
 
 def test_operation_extension_returns_none_when_missing() -> None:
-    """No `x-okapipy` key yields None."""
+    """No `x-okapipy-kind` key yields None."""
     assert operation_extension({"summary": "x"}) is None
 
 
 def test_path_item_extension_returns_value_when_set() -> None:
-    """Path-item-level `x-okapipy` is read the same way as operation-level."""
-    item = {"x-okapipy": "collection"}
+    """Path-item-level `x-okapipy-kind` is read the same way as operation-level."""
+    item = {"x-okapipy-kind": "collection"}
 
     assert path_item_extension(item) == "collection"
 
@@ -53,5 +53,5 @@ def test_root_namespaces_returns_empty_for_non_list_value() -> None:
 
 
 def test_operation_extension_returns_none_for_non_string_value() -> None:
-    """A non-string `x-okapipy` value (e.g. a list) is treated as absent."""
-    assert operation_extension({"x-okapipy": ["a"]}) is None
+    """A non-string `x-okapipy-kind` value (e.g. a list) is treated as absent."""
+    assert operation_extension({"x-okapipy-kind": ["a"]}) is None

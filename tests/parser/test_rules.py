@@ -32,14 +32,14 @@ def test_load_rules_parses_yaml_root_extensions(rules_path: Path) -> None:
 
 
 def test_load_rules_parses_per_operation_hint(rules_path: Path) -> None:
-    """Per-method `x-okapipy` is exposed via operation_hint."""
+    """Per-method `x-okapipy-kind` is exposed via operation_hint."""
     rules = load_rules(rules_path)
 
     assert operation_hint(rules, "/commerce/orders/{id}/submit", "POST") == "action"
 
 
 def test_load_rules_parses_path_item_hint(rules_path: Path) -> None:
-    """Path-item-level `x-okapipy` is exposed via path_item_hint."""
+    """Path-item-level `x-okapipy-kind` is exposed via path_item_hint."""
     rules = load_rules(rules_path)
 
     assert path_item_hint(rules, "/commerce/staff") == "collection"
@@ -63,9 +63,9 @@ def test_load_rules_accepts_json_input(tmp_path: Path) -> None:
 
 
 def test_load_rules_rejects_unknown_hint(tmp_path: Path) -> None:
-    """`x-okapipy` values outside the four legal kinds are flagged early."""
+    """`x-okapipy-kind` values outside the four legal kinds are flagged early."""
     target = tmp_path / "rules.yaml"
-    target.write_text("paths:\n  /x:\n    x-okapipy: garbage\n")
+    target.write_text("paths:\n  /x:\n    x-okapipy-kind: garbage\n")
 
     with pytest.raises(RulesFormatError, match="garbage"):
         load_rules(target)
@@ -88,7 +88,7 @@ def test_load_rules_missing_file_raises(tmp_path: Path) -> None:
 
 def test_operation_hint_falls_back_to_path_item_when_method_absent() -> None:
     """When the per-method entry is missing the path-item hint is returned."""
-    rules = Rules.model_validate({"paths": {"/x": {"x-okapipy": "collection"}}})
+    rules = Rules.model_validate({"paths": {"/x": {"x-okapipy-kind": "collection"}}})
 
     assert operation_hint(rules, "/x", "PATCH") == "collection"
 
@@ -108,9 +108,9 @@ def test_load_rules_rejects_invalid_yaml(tmp_path: Path) -> None:
 
 
 def test_load_rules_rejects_unknown_per_method_hint(tmp_path: Path) -> None:
-    """A garbage `x-okapipy` value at method level is flagged with method context."""
+    """A garbage `x-okapipy-kind` value at method level is flagged with method context."""
     target = tmp_path / "side.yaml"
-    target.write_text("paths:\n  /x:\n    post:\n      x-okapipy: bogus\n")
+    target.write_text("paths:\n  /x:\n    post:\n      x-okapipy-kind: bogus\n")
 
     with pytest.raises(RulesFormatError, match="post"):
         load_rules(target)

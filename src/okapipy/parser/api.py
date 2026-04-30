@@ -28,7 +28,7 @@ def parse(
             OpenAPI document. Format is auto-detected by content.
         rules: Optional local path to a JSON/YAML rules file that mirrors the
             OpenAPI extension shape (root `x-okapipy-ns` and per-operation
-            `x-okapipy`). URLs are not accepted.
+            `x-okapipy-kind`). URLs are not accepted.
         lang: ISO language code controlling which spaCy model is loaded.
         strip_prefix: Optional path prefix to strip from every path before
             classification, e.g. `/public/v1`. When set, overrides the prefix

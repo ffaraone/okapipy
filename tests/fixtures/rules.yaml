@@ -4,6 +4,6 @@ x-okapipy-ns:
 paths:
   /commerce/orders/{id}/submit:
     post:
-      x-okapipy: action
+      x-okapipy-kind: action
   /commerce/staff:
-    x-okapipy: collection
+    x-okapipy-kind: collection

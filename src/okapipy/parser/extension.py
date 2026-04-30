@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import Any
 
-OKAPIPY_EXT = "x-okapipy"
+OKAPIPY_KIND_EXT = "x-okapipy-kind"
 OKAPIPY_NS_EXT = "x-okapipy-ns"
 OKAPIPY_EXCLUDE_EXT = "x-okapipy-exclude"
 OKAPIPY_PAGINATED_EXT = "x-okapipy-paginated"
@@ -29,14 +29,14 @@ def root_namespaces(spec: dict[str, Any]) -> set[str]:
 
 
 def operation_extension(operation: dict[str, Any]) -> str | None:
-    """Return the `x-okapipy` value declared on a single OpenAPI operation, if any."""
-    value = operation.get(OKAPIPY_EXT)
+    """Return the `x-okapipy-kind` value declared on a single OpenAPI operation, if any."""
+    value = operation.get(OKAPIPY_KIND_EXT)
     return value if isinstance(value, str) else None
 
 
 def path_item_extension(path_item: dict[str, Any]) -> str | None:
-    """Return the `x-okapipy` value declared at the path-item level, if any."""
-    value = path_item.get(OKAPIPY_EXT)
+    """Return the `x-okapipy-kind` value declared at the path-item level, if any."""
+    value = path_item.get(OKAPIPY_KIND_EXT)
     return value if isinstance(value, str) else None
 
 

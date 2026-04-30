@@ -44,7 +44,7 @@ def classify_segment(
         parent_kind: The kind of the previous segment, or None when at the root.
         nlp: A loaded spaCy pipeline used for POS and morphology.
         ns_registry: The union of namespace paths declared by the spec and rules.
-        extension_hint: A pre-merged `x-okapipy` hint with rules precedence; one of
+        extension_hint: A pre-merged `x-okapipy-kind` hint with rules precedence; one of
             the four kind names, or None.
 
     Returns:
@@ -98,7 +98,7 @@ def _classify(
 
 
 def _hint_to_kind(hint: str) -> SegmentKind | None:
-    """Map an `x-okapipy` string to a `SegmentKind`, or None when the hint is invalid."""
+    """Map an `x-okapipy-kind` string to a `SegmentKind`, or None when the hint is invalid."""
     try:
         return SegmentKind(hint)
     except ValueError:

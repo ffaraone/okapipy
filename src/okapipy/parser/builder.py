@@ -433,7 +433,7 @@ def _route(
             log.warning(
                 "skipping %s %s: method has no canonical slot on collection %r and "
                 "the operation does not fit the namespace/collection/resource/action "
-                "hierarchy. Mark it with x-okapipy: action to keep it.",
+                "hierarchy. Mark it with x-okapipy-kind: action to keep it.",
                 method.upper(),
                 action_path,
                 cursor.name,
@@ -455,7 +455,7 @@ def _route(
             log.warning(
                 "skipping %s %s: method has no canonical slot on resource %r and "
                 "the operation does not fit the namespace/collection/resource/action "
-                "hierarchy. Mark it with x-okapipy: action to keep it.",
+                "hierarchy. Mark it with x-okapipy-kind: action to keep it.",
                 method.upper(),
                 action_path,
                 cursor.name,

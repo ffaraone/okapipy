@@ -1,7 +1,7 @@
 """External rules file: a project-local override layer for OpenAPI parsing.
 
 A rules file lets a user supply (or override) `x-okapipy-ns` at the document
-root and `x-okapipy` / `x-okapipy-paginated` / `x-okapipy-exclude` on path-items
+root and `x-okapipy-kind` / `x-okapipy-paginated` / `x-okapipy-exclude` on path-items
 or operations without editing the OpenAPI document itself. Rules-file values
 take precedence over values declared inline in the spec.
 
@@ -28,7 +28,7 @@ class OperationRules(BaseModel):
 
     model_config = ConfigDict(populate_by_name=True, extra="ignore")
 
-    x_okapipy: str | None = Field(default=None, alias="x-okapipy")
+    x_okapipy_kind: str | None = Field(default=None, alias="x-okapipy-kind")
     x_okapipy_paginated: bool | None = Field(
         default=None, alias="x-okapipy-paginated"
     )
@@ -39,7 +39,7 @@ class PathRules(BaseModel):
 
     model_config = ConfigDict(populate_by_name=True, extra="ignore")
 
-    x_okapipy: str | None = Field(default=None, alias="x-okapipy")
+    x_okapipy_kind: str | None = Field(default=None, alias="x-okapipy-kind")
     x_okapipy_exclude: str | list[str] | None = Field(
         default=None, alias="x-okapipy-exclude"
     )
@@ -70,7 +70,7 @@ def load_rules(source: str | Path | None) -> Rules:
 
     Raises:
         RulesFormatError: When the file cannot be read or parsed, or when an
-            `x-okapipy` value is not one of the four legal kinds.
+            `x-okapipy-kind` value is not one of the four legal kinds.
     """
     if source is None:
         return Rules()
@@ -99,10 +99,10 @@ def path_exclusion(rules: Rules, path: str) -> str | list[str] | None:
 
 
 def operation_hint(rules: Rules, path: str, method: str) -> str | None:
-    """Return the rules' `x-okapipy` for a specific operation, if set.
+    """Return the rules' `x-okapipy-kind` for a specific operation, if set.
 
-    The lookup falls back to the path-item-level `x-okapipy` when no per-method value
-    exists.
+    The lookup falls back to the path-item-level `x-okapipy-kind` when no per-method
+    value exists.
     """
     item = rules.paths.get(path)
     if item is None:
@@ -111,15 +111,15 @@ def operation_hint(rules: Rules, path: str, method: str) -> str | None:
     op: OperationRules | None = None
     if op_attr in {"get", "post", "put", "patch", "delete"}:
         op = getattr(item, op_attr)
-    if op is not None and op.x_okapipy is not None:
-        return op.x_okapipy
-    return item.x_okapipy
+    if op is not None and op.x_okapipy_kind is not None:
+        return op.x_okapipy_kind
+    return item.x_okapipy_kind
 
 
 def path_item_hint(rules: Rules, path: str) -> str | None:
-    """Return the path-item-level `x-okapipy`, ignoring per-method overrides."""
+    """Return the path-item-level `x-okapipy-kind`, ignoring per-method overrides."""
     item = rules.paths.get(path)
-    return item.x_okapipy if item is not None else None
+    return item.x_okapipy_kind if item is not None else None
 
 
 def path_item_paginated(rules: Rules, path: str) -> bool | None:
@@ -171,23 +171,27 @@ def _parse_text(text: str, path: Path) -> dict[str, Any]:
 
 
 def _validate_hints(rules: Rules) -> None:
-    """Reject any `x-okapipy` value outside the four legal kinds.
+    """Reject any `x-okapipy-kind` value outside the four legal kinds.
 
     Also validates `x-okapipy-exclude` entries: each must be either the literal `"*"`
     or a list of HTTP method names (case-insensitive) drawn from the supported set.
     """
     for path, item in rules.paths.items():
-        if item.x_okapipy is not None and item.x_okapipy not in ALLOWED_HINTS:
+        if item.x_okapipy_kind is not None and item.x_okapipy_kind not in ALLOWED_HINTS:
             raise RulesFormatError(
-                f"rules path {path!r}: unknown x-okapipy value {item.x_okapipy!r}"
+                f"rules path {path!r}: unknown x-okapipy-kind value {item.x_okapipy_kind!r}"
             )
         _validate_exclusion(path, item.x_okapipy_exclude)
         for method in ("get", "post", "put", "patch", "delete"):
             op: OperationRules | None = getattr(item, method)
-            if op is not None and op.x_okapipy is not None and op.x_okapipy not in ALLOWED_HINTS:
+            if (
+                op is not None
+                and op.x_okapipy_kind is not None
+                and op.x_okapipy_kind not in ALLOWED_HINTS
+            ):
                 raise RulesFormatError(
                     f"rules path {path!r} method {method!r}: "
-                    f"unknown x-okapipy value {op.x_okapipy!r}"
+                    f"unknown x-okapipy-kind value {op.x_okapipy_kind!r}"
                 )
 
 

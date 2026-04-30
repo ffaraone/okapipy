@@ -100,7 +100,7 @@ def test_build_drops_post_on_resource_path_when_not_marked_as_action(
 
     A POST whose path ends in a path parameter doesn't fit the
     namespace/collection/resource/action hierarchy and the user has not marked it
-    with `x-okapipy: action`, so the parser logs a warning and skips it.
+    with `x-okapipy-kind: action`, so the parser logs a warning and skips it.
     """
     spec = {
         "x-okapipy-ns": ["auth"],
@@ -201,7 +201,7 @@ def test_build_uses_contextual_name_for_subcollection(
 def test_build_attaches_action_under_resource_when_extension_set(
     nested_spec_path: Path, english_nlp: Language
 ) -> None:
-    """`/orders/{id}/submit` with `x-okapipy: action` becomes a Resource-level action."""
+    """`/orders/{id}/submit` with `x-okapipy-kind: action` becomes a Resource-level action."""
     spec = load_spec(nested_spec_path)
 
     api = build(spec, Rules(), english_nlp)
@@ -293,7 +293,7 @@ def test_build_rejects_namespace_level_action(
         "paths": {
             "/commerce/ping": {
                 "post": {
-                    "x-okapipy": "action",
+                    "x-okapipy-kind": "action",
                     "responses": {"200": {"description": "OK"}},
                 }
             }
@@ -311,7 +311,7 @@ def test_build_rejects_namespace_level_action(
 def test_build_skips_non_canonical_collection_method_with_warning(
     english_nlp: Language, caplog: pytest.LogCaptureFixture
 ) -> None:
-    """A bare PUT on a collection has no canonical slot and no `x-okapipy: action`.
+    """A bare PUT on a collection has no canonical slot and no `x-okapipy-kind: action`.
 
     Such operations don't fit the namespace/collection/resource/action hierarchy, so
     the parser drops them with a warning rather than fabricating a synthetic action.
@@ -371,11 +371,11 @@ def test_build_groups_methods_on_action_path(english_nlp: Language) -> None:
                     {"name": "id", "in": "path", "required": True, "schema": {"type": "string"}}
                 ],
                 "post": {
-                    "x-okapipy": "action",
+                    "x-okapipy-kind": "action",
                     "responses": {"200": {"description": "OK"}},
                 },
                 "put": {
-                    "x-okapipy": "action",
+                    "x-okapipy-kind": "action",
                     "responses": {"200": {"description": "OK"}},
                 },
             }
@@ -441,12 +441,12 @@ def test_build_routes_resource_put_to_update_slot(english_nlp: Language) -> None
 def test_build_routes_collection_method_with_action_hint_to_synthetic_action(
     english_nlp: Language,
 ) -> None:
-    """A per-method `x-okapipy: action` on a collection sends the op to a synthetic action."""
+    """A per-method `x-okapipy-kind: action` on a collection sends the op to a synthetic action."""
     spec = {
         "paths": {
             "/orders": {
                 "get": {
-                    "x-okapipy": "action",
+                    "x-okapipy-kind": "action",
                     "responses": {"200": {"description": "OK"}},
                 }
             }
@@ -463,7 +463,7 @@ def test_build_routes_collection_method_with_action_hint_to_synthetic_action(
 def test_build_routes_resource_method_with_action_hint_to_synthetic_action(
     english_nlp: Language,
 ) -> None:
-    """A per-method `x-okapipy: action` on a resource path sends the op to a resource action."""
+    """A per-method `x-okapipy-kind: action` on a resource path routes to a resource action."""
     spec = {
         "paths": {
             "/orders/{id}": {
@@ -471,7 +471,7 @@ def test_build_routes_resource_method_with_action_hint_to_synthetic_action(
                     {"name": "id", "in": "path", "required": True, "schema": {"type": "string"}}
                 ],
                 "get": {
-                    "x-okapipy": "action",
+                    "x-okapipy-kind": "action",
                     "responses": {"200": {"description": "OK"}},
                 },
             }
