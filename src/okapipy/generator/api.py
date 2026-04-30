@@ -35,7 +35,6 @@ def generate(
     project_version: str = "0.1.0",
     python_version: str = "3.13",
     license: str = "Proprietary",
-    base_url_default: str | None = None,
     templates_dir: Path | None = None,
     model_templates_dir: Path | None = None,
 ) -> dict[str, str]:
@@ -54,7 +53,6 @@ def generate(
         project_version: initial version string emitted into `pyproject.toml`.
         python_version: pinned Python version for the generated project.
         license: SPDX identifier; drives the `LICENSE` placeholder.
-        base_url_default: optional default `base_url` baked into the generated client.
         templates_dir: optional directory of user templates. Resolved before the
             packaged defaults (ChoiceLoader).
         model_templates_dir: optional directory of `datamodel-code-generator`
@@ -74,7 +72,6 @@ def generate(
         "project_version": project_version,
         "python_version": python_version,
         "license": license,
-        "base_url_default": base_url_default,
     }
     env = make_environment(templates_dir)
     vfs: dict[str, str] = {}

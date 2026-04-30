@@ -30,7 +30,6 @@ def async_client_module(tmp_path: Path):
         package=package,
         client_class="AsyncCli",
         project_name="async-cli",
-        base_url_default="https://api.example.com",
     )
     write_to_disk(vfs, out)
     sys.path.insert(0, str(out / "src"))
@@ -68,7 +67,7 @@ def test_async_iteration_walks_all_pages(async_client_module) -> None:
             {"items": [{"id": "5"}], "total": 5},
         ]
         transport = httpx.MockTransport(_async_paged_handler(pages))
-        async with async_client_module.AsyncAsyncCli(transport=transport) as c:
+        async with async_client_module.AsyncAsyncCli("https://api.example.com", transport=transport) as c:
             return [item async for item in c.orders.page_size(2)]
 
     items = asyncio.run(run())
@@ -82,7 +81,7 @@ def test_async_first_short_circuits(async_client_module) -> None:
     async def run():
         pages = [{"items": [{"id": "first"}], "total": 99}]
         transport = httpx.MockTransport(_async_paged_handler(pages))
-        async with async_client_module.AsyncAsyncCli(transport=transport) as c:
+        async with async_client_module.AsyncAsyncCli("https://api.example.com", transport=transport) as c:
             return await c.orders.first()
 
     first = asyncio.run(run())
@@ -97,7 +96,7 @@ def test_async_count_returns_envelope_total(async_client_module) -> None:
         transport = httpx.MockTransport(
             lambda r: httpx.Response(200, json={"items": [{"id": "x"}], "total": 4321}),
         )
-        async with async_client_module.AsyncAsyncCli(transport=transport) as c:
+        async with async_client_module.AsyncAsyncCli("https://api.example.com", transport=transport) as c:
             return await c.orders.count()
 
     total = asyncio.run(run())
@@ -112,7 +111,7 @@ def test_async_resource_retrieve(async_client_module) -> None:
         transport = httpx.MockTransport(
             lambda r: httpx.Response(200, json={"id": "42", "total": 99.99}),
         )
-        async with async_client_module.AsyncAsyncCli(transport=transport) as c:
+        async with async_client_module.AsyncAsyncCli("https://api.example.com", transport=transport) as c:
             return await c.orders["42"].retrieve()
 
     order = asyncio.run(run())

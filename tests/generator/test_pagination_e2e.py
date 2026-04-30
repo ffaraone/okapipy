@@ -40,7 +40,6 @@ def client_module(tmp_path: Path):
         package=package,
         client_class="PagClient",
         project_name="pag-client",
-        base_url_default="https://api.example.com",
     )
     write_to_disk(vfs, out)
     sys.path.insert(0, str(out / "src"))
@@ -84,6 +83,7 @@ def test_offset_limit_iteration_walks_all_pages(client_module) -> None:
     ]
     transport = httpx.MockTransport(_paged_handler(pages))
     client = client_module.PagClient(
+        "https://api.example.com",
         transport=transport,
         pagination_strategy=client_module.OffsetLimitPagination(),
     )
@@ -101,6 +101,7 @@ def test_first_short_circuits_after_one_page(client_module) -> None:
     ]
     transport = httpx.MockTransport(_paged_handler(pages))
     client = client_module.PagClient(
+        "https://api.example.com",
         transport=transport,
         pagination_strategy=client_module.OffsetLimitPagination(),
     )
@@ -123,6 +124,7 @@ def test_count_uses_dedicated_minimal_request(client_module) -> None:
 
     transport = httpx.MockTransport(handler)
     client = client_module.PagClient(
+        "https://api.example.com",
         transport=transport,
         pagination_strategy=client_module.OffsetLimitPagination(),
     )
@@ -143,6 +145,7 @@ def test_cursor_pagination_follows_next_token_until_absent(client_module) -> Non
     ]
     transport = httpx.MockTransport(_paged_handler(pages))
     client = client_module.PagClient(
+        "https://api.example.com",
         transport=transport,
         pagination_strategy=client_module.CursorPagination(),
     )
@@ -171,6 +174,7 @@ def test_link_header_pagination_follows_rel_next(client_module) -> None:
 
     transport = httpx.MockTransport(handler)
     client = client_module.PagClient(
+        "https://api.example.com",
         transport=transport,
         pagination_strategy=client_module.LinkHeaderPagination(),
     )
@@ -193,6 +197,7 @@ def test_with_options_seeds_overrides_for_every_page(client_module) -> None:
 
     transport = httpx.MockTransport(handler)
     client = client_module.PagClient(
+        "https://api.example.com",
         transport=transport,
         pagination_strategy=client_module.OffsetLimitPagination(),
     )

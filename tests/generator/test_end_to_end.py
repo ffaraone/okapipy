@@ -55,7 +55,6 @@ def test_generated_tree_passes_lint_and_typecheck(
         package=package,
         client_class=client_class,
         project_name=f"{package}-test",
-        base_url_default="https://api.example.com",
     )
     write_to_disk(vfs, out)
 
@@ -85,8 +84,6 @@ def test_cli_invocation_writes_files(tmp_path: Path) -> None:
         "clitest",
         "--client-class",
         "CLIClient",
-        "--base-url",
-        "https://api.example.com",
     ]
     project_root = Path(__file__).resolve().parents[2]
     result = _run(cmd, cwd=project_root)

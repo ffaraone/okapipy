@@ -220,11 +220,6 @@ def generate_command(
         "--license",
         help="SPDX license identifier; drives the LICENSE placeholder.",
     ),
-    base_url_default: str | None = typer.Option(
-        None,
-        "--base-url",
-        help="Default base URL baked into the generated client.",
-    ),
     sidecar: Path | None = typer.Option(
         None,
         "--sidecar",
@@ -277,7 +272,6 @@ def generate_command(
                 project_version=project_version,
                 python_version=python_version,
                 license=license_id,
-                base_url_default=base_url_default,
                 templates_dir=templates_dir,
                 model_templates_dir=model_templates_dir,
             )

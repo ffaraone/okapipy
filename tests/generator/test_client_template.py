@@ -34,7 +34,6 @@ def generated_client_module(tmp_path: Path):
         package=package,
         client_class="AcmeClient",
         project_name="acme-client",
-        base_url_default="https://api.example.com",
     )
     write_to_disk(vfs, out)
     sys.path.insert(0, str(out / "src"))
@@ -51,25 +50,23 @@ def generated_client_module(tmp_path: Path):
 
 
 def test_client_class_is_constructable(generated_client_module) -> None:
-    """`AcmeClient(...)` instantiates with default base_url and exposes a shape."""
-    client = generated_client_module.AcmeClient()
+    """`AcmeClient(base_url=...)` instantiates and exposes shape + base_url."""
+    client = generated_client_module.AcmeClient("https://api.example.com")
 
     assert client.base_url == "https://api.example.com"
     assert client.shape == "models"
     client.close()
 
 
-def test_client_uses_explicit_base_url(generated_client_module) -> None:
-    """An explicit `base_url=...` overrides the baked-in default."""
-    client = generated_client_module.AcmeClient(base_url="https://other.example.com")
-
-    assert client.base_url == "https://other.example.com"
-    client.close()
+def test_client_requires_base_url(generated_client_module) -> None:
+    """`base_url` is a required positional argument; constructing without it raises."""
+    with pytest.raises(TypeError):
+        generated_client_module.AcmeClient()
 
 
 def test_with_shape_returns_sibling_sharing_transport(generated_client_module) -> None:
     """`with_shape("dicts")` returns a sibling pointing at the same `_http`."""
-    client = generated_client_module.AcmeClient()
+    client = generated_client_module.AcmeClient("https://api.example.com")
     sibling = client.with_shape("dicts")
 
     assert sibling is not client
@@ -87,7 +84,9 @@ def test_from_response_branches_on_shape(generated_client_module) -> None:
         def model_validate(cls, raw):
             return ("validated", raw)
 
-    client_models = generated_client_module.AcmeClient(shape="models")
+    client_models = generated_client_module.AcmeClient(
+        "https://api.example.com", shape="models"
+    )
     client_dicts = client_models.with_shape("dicts")
 
     assert client_models.from_response(_M, {"id": 1}) == ("validated", {"id": 1})
@@ -102,6 +101,7 @@ def test_client_forwards_auth_and_headers(generated_client_module) -> None:
         lambda request: httpx.Response(200, json={"ok": True})
     )
     client = generated_client_module.AcmeClient(
+        "https://api.example.com",
         transport=transport,
         auth=httpx.BasicAuth("u", "p"),
         headers={"X-Custom": "value"},
@@ -129,6 +129,7 @@ def test_retries_wrap_user_transport(generated_client_module) -> None:
 
     transport = httpx.MockTransport(handler)
     client = generated_client_module.AcmeClient(
+        "https://api.example.com",
         transport=transport,
         retries=runtime.RetryPolicy(total=3, backoff=0.0),
     )
@@ -150,6 +151,7 @@ def test_post_is_never_retried_through_client(generated_client_module) -> None:
 
     transport = httpx.MockTransport(handler)
     client = generated_client_module.AcmeClient(
+        "https://api.example.com",
         transport=transport,
         retries=runtime.RetryPolicy(total=5, backoff=0.0),
     )
@@ -162,7 +164,7 @@ def test_post_is_never_retried_through_client(generated_client_module) -> None:
 
 def test_async_client_constructable(generated_client_module) -> None:
     """The async sibling instantiates and exposes the same shape API."""
-    client = generated_client_module.AsyncAcmeClient()
+    client = generated_client_module.AsyncAcmeClient("https://api.example.com")
 
     assert client.base_url == "https://api.example.com"
     assert client.shape == "models"

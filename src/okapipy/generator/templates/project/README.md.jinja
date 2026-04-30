@@ -14,7 +14,7 @@ uv sync
 ```python
 from {{ package }} import {{ client_class }}
 
-with {{ client_class }}(base_url="{{ base_url_default or 'https://api.example.com' }}") as client:
+with {{ client_class }}(base_url="https://api.example.com") as client:
     ...
 ```
 

@@ -31,16 +31,13 @@ from .namespaces.{{ ns.module }} import {{ ns.class_name }}, Async{{ ns.class_na
 from .collections.{{ coll.module }} import {{ coll.class_name }}, Async{{ coll.class_name }}
 {% endfor %}
 
-DEFAULT_BASE_URL: str | None = {{ base_url_default | py_repr }}
-
-
 class {{ client_class }}:
     """Synchronous client for `{{ project_name }}`."""
 
     def __init__(
         self,
+        base_url: str,
         *,
-        base_url: str | None = None,
         auth: httpx.Auth | None = None,
         timeout: httpx.Timeout | float | None | Unset = UNSET,
         retries: RetryPolicy | None = None,
@@ -52,12 +49,7 @@ class {{ client_class }}:
         filter_strategy: FilterStrategy | None = None,
         sort_strategy: SortStrategy | None = None,
     ) -> None:
-        resolved_base_url = base_url if base_url is not None else DEFAULT_BASE_URL
-        if resolved_base_url is None:
-            raise TypeError(
-                "base_url is required (no default was baked in at generation time)"
-            )
-        self._base_url = resolved_base_url
+        self._base_url = base_url
         self._shape = shape
         self.default_page_size = default_page_size
         self.pagination_strategy: PaginationStrategy = (
@@ -69,7 +61,7 @@ class {{ client_class }}:
         self.sort_strategy: SortStrategy = (
             sort_strategy if sort_strategy is not None else CommaSignedSort()
         )
-        kwargs: dict[str, Any] = {"base_url": resolved_base_url}
+        kwargs: dict[str, Any] = {"base_url": base_url}
         if auth is not None:
             kwargs["auth"] = auth
         if not isinstance(timeout, Unset):
@@ -142,8 +134,8 @@ class Async{{ client_class }}:
 
     def __init__(
         self,
+        base_url: str,
         *,
-        base_url: str | None = None,
         auth: httpx.Auth | None = None,
         timeout: httpx.Timeout | float | None | Unset = UNSET,
         retries: RetryPolicy | None = None,
@@ -155,12 +147,7 @@ class Async{{ client_class }}:
         filter_strategy: FilterStrategy | None = None,
         sort_strategy: SortStrategy | None = None,
     ) -> None:
-        resolved_base_url = base_url if base_url is not None else DEFAULT_BASE_URL
-        if resolved_base_url is None:
-            raise TypeError(
-                "base_url is required (no default was baked in at generation time)"
-            )
-        self._base_url = resolved_base_url
+        self._base_url = base_url
         self._shape = shape
         self.default_page_size = default_page_size
         self.pagination_strategy: PaginationStrategy = (
@@ -172,7 +159,7 @@ class Async{{ client_class }}:
         self.sort_strategy: SortStrategy = (
             sort_strategy if sort_strategy is not None else CommaSignedSort()
         )
-        kwargs: dict[str, Any] = {"base_url": resolved_base_url}
+        kwargs: dict[str, Any] = {"base_url": base_url}
         if auth is not None:
             kwargs["auth"] = auth
         if not isinstance(timeout, Unset):
