@@ -19,7 +19,7 @@ from okapipy.generator.emit.client import emit_client
 from okapipy.generator.emit.project import emit_project_skeleton
 from okapipy.generator.emit.runtime import emit_runtime
 from okapipy.generator.emit.walk import emit_root_init_extension, emit_tree
-from okapipy.generator.models import emit_models
+from okapipy.generator.models import emit_models, public_names
 from okapipy.generator.templating import make_environment
 from okapipy.parser.model import APIModel
 
@@ -86,13 +86,13 @@ def generate(
     # both the runtime primitives and the top-level namespace/collection classes.
     vfs.update(emit_runtime(package_path, client_class, extra_imports, extra_public))
     # Phase 4: models from dmcg.
-    vfs[f"src/{package_path}/models.py"] = emit_models(
-        raw_spec, model_templates_dir, python_version
-    )
+    models_source = emit_models(raw_spec, model_templates_dir, python_version)
+    vfs[f"src/{package_path}/models.py"] = models_source
+    available_models = public_names(models_source)
     # Phase 5: sync + async client classes.
     vfs.update(emit_client(env, project_context, package_path, api))
     # Phase 6: walk the parsed tree and emit one file per node.
-    vfs.update(emit_tree(env, api, project_context, package_path))
+    vfs.update(emit_tree(env, api, project_context, package_path, available_models))
     # Make the four subdirectories importable (only when they contain files).
     for subdir in ("namespaces", "collections", "resources", "actions"):
         if any(p.startswith(f"src/{package_path}/{subdir}/") for p in vfs):

@@ -1,0 +1,48 @@
+{% for decorator in decorators -%}
+{{ decorator }}
+{% endfor -%}
+class {{ class_name }}({{ base_class }}):{% if comment is defined %}  # {{ comment }}{% endif %}
+{%- if description %}
+    """
+    {{ description | indent(4) }}
+    """
+{%- endif %}
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+        use_enum_values=True,
+    )
+{%- if not fields %}
+    pass
+{%- endif %}
+{%- for field in fields %}
+    {%- if field.alias %}
+    {%- if '| None' in field.type_hint %}
+    {{ field.name }}: {{ field.type_hint }} = Field(
+        default=None,
+        validation_alias=AliasChoices("{{ field.name }}", "{{ field.alias }}"),
+        serialization_alias="{{ field.alias }}",
+    )
+    {%- else %}
+    {{ field.name }}: {{ field.type_hint }} | None = Field(
+        default=None,
+        validation_alias=AliasChoices("{{ field.name }}", "{{ field.alias }}"),
+        serialization_alias="{{ field.alias }}",
+    )
+    {%- endif %}
+    {%- elif field.annotated %}
+    {{ field.name }}: {{ field.annotated }} = None
+    {%- elif '| None' in field.type_hint %}
+    {{ field.name }}: {{ field.type_hint }} = None
+    {%- else %}
+    {{ field.name }}: {{ field.type_hint }} | None = None
+    {%- endif %}
+    {%- if field.docstring %}
+    """
+    {{ field.docstring | indent(4) }}
+    """
+    {%- endif %}
+{%- endfor %}
+{%- for method in methods -%}
+{{ method }}
+{%- endfor -%}

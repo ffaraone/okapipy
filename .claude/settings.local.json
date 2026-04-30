@@ -13,7 +13,8 @@
       "Read(//tmp/**)",
       "Read(//tmp/gen-smoke/**)",
       "Bash(mkdir -p tests)",
-      "Bash(rm -rf /tmp/gen-nested)"
+      "Bash(rm -rf /tmp/gen-nested)",
+      "Bash(python3 *)"
     ]
   }
 }

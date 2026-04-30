@@ -41,15 +41,26 @@ def emit_tree(
     api: APIModel,
     project_context: Mapping[str, Any],
     package_path: str,
+    available_models: set[str] | None = None,
 ) -> dict[str, str]:
-    """Render every namespace, collection, resource, and action in `api`."""
+    """Render every namespace, collection, resource, and action in `api`.
+
+    `available_models` is the set of top-level identifiers actually emitted in
+    `models.py` (computed by introspecting dmcg's output). When provided, model
+    references not in the set are dropped from import lines and replaced with
+    `None` in `response_model` slots — this prevents `ImportError` for schema
+    names dmcg inlined or skipped (primitive aliases, empty objects, etc.).
+    Passing `None` disables filtering (used in tests that mock the walker
+    directly).
+    """
     out: dict[str, str] = {}
+    available = available_models if available_models is not None else None
     # Top-level namespaces.
     for ns in api.namespaces:
-        out.update(_emit_namespace(env, ns, project_context, package_path))
+        out.update(_emit_namespace(env, ns, project_context, package_path, available))
     # Top-level collections.
     for coll in api.collections:
-        out.update(_emit_collection(env, coll, project_context, package_path))
+        out.update(_emit_collection(env, coll, project_context, package_path, available))
     return out
 
 
@@ -90,6 +101,7 @@ def _emit_namespace(
     ns: Namespace,
     project_context: Mapping[str, Any],
     package_path: str,
+    available_models: set[str] | None,
 ) -> dict[str, str]:
     out: dict[str, str] = {}
     child_namespaces: list[_ChildRef] = [
@@ -123,9 +135,9 @@ def _emit_namespace(
         env, "package/namespace.py.jinja", ctx
     )
     for child in ns.namespaces:
-        out.update(_emit_namespace(env, child, project_context, package_path))
+        out.update(_emit_namespace(env, child, project_context, package_path, available_models))
     for coll in ns.collections:
-        out.update(_emit_collection(env, coll, project_context, package_path))
+        out.update(_emit_collection(env, coll, project_context, package_path, available_models))
     return out
 
 
@@ -139,6 +151,7 @@ def _emit_collection(
     coll: Collection,
     project_context: Mapping[str, Any],
     package_path: str,
+    available_models: set[str] | None,
 ) -> dict[str, str]:
     out: dict[str, str] = {}
     resource_ref: dict[str, str] | None = None
@@ -162,7 +175,8 @@ def _emit_collection(
     # Collection imports only what its emitted code references. The fetch
     # response model is the *envelope*; iteration calls `from_response(None, ...)`
     # because the parser doesn't expose item types yet (Phase 7).
-    model_imports = sorted(_collect_model_names([create_op]))
+    model_imports = sorted(_collect_model_names([create_op], available_models))
+    create_op_ctx = _op_context(create_op, available_models)
     # Class docstring comes from the fetch operation per generator.md §9. When
     # the operation isn't populated, fall back to a generic structural string.
     if fetch_op is not None:
@@ -188,8 +202,12 @@ def _emit_collection(
         "path_template": coll.path,
         "resource": resource_ref,
         "actions": actions,
-        "create_op": _op_context(create_op) if create_op is not None else None,
-        "fetch_response_model": fetch_op.response_model if fetch_op is not None else None,
+        "create_op": create_op_ctx,
+        "fetch_response_model": (
+            _filter_model_name(fetch_op.response_model, available_models)
+            if fetch_op is not None
+            else None
+        ),
         "pagination_supported": (
             fetch_op.pagination_supported if fetch_op is not None else False
         ),
@@ -206,9 +224,11 @@ def _emit_collection(
         env, "package/collection.py.jinja", ctx
     )
     if coll.resource is not None:
-        out.update(_emit_resource(env, coll, coll.resource, project_context, package_path))
+        out.update(_emit_resource(
+            env, coll, coll.resource, project_context, package_path, available_models
+        ))
     for action in coll.actions:
-        out.update(_emit_action(env, action, project_context, package_path))
+        out.update(_emit_action(env, action, project_context, package_path, available_models))
     return out
 
 
@@ -223,6 +243,7 @@ def _emit_resource(
     resource: Resource,
     project_context: Mapping[str, Any],
     package_path: str,
+    available_models: set[str] | None,
 ) -> dict[str, str]:
     out: dict[str, str] = {}
     child_collections = [
@@ -244,7 +265,8 @@ def _emit_resource(
     ]
     model_imports = sorted(
         _collect_model_names(
-            [resource.retrieve, resource.update, resource.partial_update, resource.delete]
+            [resource.retrieve, resource.update, resource.partial_update, resource.delete],
+            available_models,
         )
     )
     def _op_doc(op: Operation | None, suffix: str = "") -> str | None:
@@ -257,10 +279,10 @@ def _emit_resource(
         **project_context,
         "class_name": _resource_class(resource),
         "path_template": resource.path,
-        "retrieve_op": _op_context(resource.retrieve),
-        "update_op": _op_context(resource.update),
-        "patch_op": _op_context(resource.partial_update),
-        "delete_op": _op_context(resource.delete),
+        "retrieve_op": _op_context(resource.retrieve, available_models),
+        "update_op": _op_context(resource.update, available_models),
+        "patch_op": _op_context(resource.partial_update, available_models),
+        "delete_op": _op_context(resource.delete, available_models),
         "child_collections": child_collections,
         "actions": actions,
         "model_imports": model_imports,
@@ -277,9 +299,9 @@ def _emit_resource(
         env, "package/resource.py.jinja", ctx
     )
     for coll in resource.collections:
-        out.update(_emit_collection(env, coll, project_context, package_path))
+        out.update(_emit_collection(env, coll, project_context, package_path, available_models))
     for action in resource.actions:
-        out.update(_emit_action(env, action, project_context, package_path))
+        out.update(_emit_action(env, action, project_context, package_path, available_models))
     _ = parent_coll  # parent context kept for future use (e.g. type hints)
     return out
 
@@ -294,11 +316,12 @@ def _emit_action(
     action: Action,
     project_context: Mapping[str, Any],
     package_path: str,
+    available_models: set[str] | None,
 ) -> dict[str, str]:
-    operations = [_op_context(op) for op in action.operations]
+    operations = [_op_context(op, available_models) for op in action.operations]
     operations = [op for op in operations if op is not None]
     single_op = operations[0] if len(operations) == 1 else None
-    model_imports = sorted(_collect_model_names(action.operations))
+    model_imports = sorted(_collect_model_names(action.operations, available_models))
     # Single op: class doc and the (sole) method's doc share the same source per
     # generator.md §11. Multi-op: class doc lists all operations; per-method docs
     # come from each operation individually.
@@ -424,12 +447,17 @@ def _build_docstring_from_body(body: str, indent: int) -> str:
     return "\n".join(out_lines)
 
 
-def _collect_model_names(operations: Sequence[Operation | None]) -> set[str]:
+def _collect_model_names(
+    operations: Sequence[Operation | None],
+    available_models: set[str] | None,
+) -> set[str]:
     """Return the set of Pydantic model names referenced by `operations`.
 
     Used to emit `from ..models import <names>` at the top of each generated
     collection / resource / action file. Empty when every operation is `None`
-    or has no `request_model` / `response_model`.
+    or has no `request_model` / `response_model`. Names not in `available_models`
+    are filtered out so the generated import line never references a symbol
+    dmcg didn't actually emit (e.g. schemas inlined as primitive aliases).
     """
     names: set[str] = set()
     for op in operations:
@@ -439,17 +467,37 @@ def _collect_model_names(operations: Sequence[Operation | None]) -> set[str]:
             names.add(op.request_model)
         if op.response_model:
             names.add(op.response_model)
+    if available_models is not None:
+        names &= available_models
     return names
 
 
-def _op_context(op: Operation | None) -> dict[str, Any] | None:
+def _filter_model_name(
+    name: str | None, available_models: set[str] | None
+) -> str | None:
+    """Return `name` if dmcg emitted a matching symbol; otherwise `None`.
+
+    A `None` response_model causes the runtime `from_response` to short-circuit
+    and yield raw dicts, which is the right behavior when the schema couldn't
+    be modeled as a typed class.
+    """
+    if name is None:
+        return None
+    if available_models is None or name in available_models:
+        return name
+    return None
+
+
+def _op_context(
+    op: Operation | None, available_models: set[str] | None = None
+) -> dict[str, Any] | None:
     """Translate an Operation into the small dict templates need."""
     if op is None:
         return None
     return {
         "method": op.method,
-        "response_model": op.response_model,
-        "request_model": op.request_model,
+        "response_model": _filter_model_name(op.response_model, available_models),
+        "request_model": _filter_model_name(op.request_model, available_models),
         "has_body": op.request_model is not None,
         "pagination_supported": op.pagination_supported,
         "filter_supported": op.filter_supported,
