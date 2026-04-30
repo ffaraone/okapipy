@@ -18,59 +18,10 @@ if TYPE_CHECKING:
     from ..client import {{ client_class }}, Async{{ client_class }}
 
 
-PATH_TEMPLATE = "{{ path_template }}"
-
-
-def _build_request_kwargs(body: Any, overrides: dict[str, Any]) -> dict[str, Any]:
-    request_kwargs: dict[str, Any] = {}
-    if body is not None:
-        dump = getattr(body, "model_dump", None)
-        request_kwargs["json"] = dump(mode="json") if callable(dump) else body
-    params = overrides.get("params")
-    if params:
-        request_kwargs["params"] = dict(params)
-    headers = overrides.get("headers")
-    if headers:
-        request_kwargs["headers"] = dict(headers)
-    return request_kwargs
-
-
-def _action_request(
-    client: Any,
-    method: str,
-    url: str,
-    *,
-    body: Any,
-    overrides: dict[str, Any],
-    response_model: type[Any] | None,
-) -> Any:
-    response = client._http.request(method, url, **_build_request_kwargs(body, overrides))
-    response.raise_for_status()
-    if response.status_code == 204 or not response.content:
-        return None
-    return client.from_response(response_model, response.json())
-
-
-async def _async_action_request(
-    client: Any,
-    method: str,
-    url: str,
-    *,
-    body: Any,
-    overrides: dict[str, Any],
-    response_model: type[Any] | None,
-) -> Any:
-    response = await client._http.request(method, url, **_build_request_kwargs(body, overrides))
-    response.raise_for_status()
-    if response.status_code == 204 or not response.content:
-        return None
-    return client.from_response(response_model, response.json())
-
-
 class {{ class_name }}:
     """Action at `{{ path_template }}` (sync)."""
 
-    PATH_TEMPLATE = PATH_TEMPLATE
+    PATH_TEMPLATE = "{{ path_template }}"
 
     def __init__(
         self,
@@ -88,8 +39,8 @@ class {{ class_name }}:
 {% if single_op %}
     def run(self, {% if single_op.has_body %}body: Any, {% endif %}**overrides: Any) -> Any:
         """Single-op action method (`{{ single_op.method }} {{ path_template }}`)."""
-        return _action_request(
-            self.client, "{{ single_op.method }}", self.url,
+        return self._request(
+            "{{ single_op.method }}",
             body={% if single_op.has_body %}body{% else %}None{% endif %},
             overrides=overrides,
             response_model={{ single_op.response_model | py_class_or_none }},
@@ -98,8 +49,8 @@ class {{ class_name }}:
 {% for op in operations %}
     def {{ op.method | lower }}(self, {% if op.has_body %}body: Any, {% endif %}**overrides: Any) -> Any:
         """`{{ op.method }} {{ path_template }}`."""
-        return _action_request(
-            self.client, "{{ op.method }}", self.url,
+        return self._request(
+            "{{ op.method }}",
             body={% if op.has_body %}body{% else %}None{% endif %},
             overrides=overrides,
             response_model={{ op.response_model | py_class_or_none }},
@@ -108,11 +59,41 @@ class {{ class_name }}:
 {% endfor %}
 {% endif %}
 
+    def _request(
+        self,
+        method: str,
+        *,
+        body: Any,
+        overrides: dict[str, Any],
+        response_model: type[Any] | None,
+    ) -> Any:
+        response = self.client._http.request(
+            method, self.url, **self._build_request_kwargs(body, overrides),
+        )
+        response.raise_for_status()
+        if response.status_code == 204 or not response.content:
+            return None
+        return self.client.from_response(response_model, response.json())
+
+    @staticmethod
+    def _build_request_kwargs(body: Any, overrides: dict[str, Any]) -> dict[str, Any]:
+        request_kwargs: dict[str, Any] = {}
+        if body is not None:
+            dump = getattr(body, "model_dump", None)
+            request_kwargs["json"] = dump(mode="json") if callable(dump) else body
+        params = overrides.get("params")
+        if params:
+            request_kwargs["params"] = dict(params)
+        headers = overrides.get("headers")
+        if headers:
+            request_kwargs["headers"] = dict(headers)
+        return request_kwargs
+
 
 class Async{{ class_name }}:
     """Action at `{{ path_template }}` (async)."""
 
-    PATH_TEMPLATE = PATH_TEMPLATE
+    PATH_TEMPLATE = "{{ path_template }}"
 
     def __init__(
         self,
@@ -129,8 +110,8 @@ class Async{{ class_name }}:
 
 {% if single_op %}
     async def run(self, {% if single_op.has_body %}body: Any, {% endif %}**overrides: Any) -> Any:
-        return await _async_action_request(
-            self.client, "{{ single_op.method }}", self.url,
+        return await self._request(
+            "{{ single_op.method }}",
             body={% if single_op.has_body %}body{% else %}None{% endif %},
             overrides=overrides,
             response_model={{ single_op.response_model | py_class_or_none }},
@@ -138,8 +119,8 @@ class Async{{ class_name }}:
 {% else %}
 {% for op in operations %}
     async def {{ op.method | lower }}(self, {% if op.has_body %}body: Any, {% endif %}**overrides: Any) -> Any:
-        return await _async_action_request(
-            self.client, "{{ op.method }}", self.url,
+        return await self._request(
+            "{{ op.method }}",
             body={% if op.has_body %}body{% else %}None{% endif %},
             overrides=overrides,
             response_model={{ op.response_model | py_class_or_none }},
@@ -147,3 +128,33 @@ class Async{{ class_name }}:
 
 {% endfor %}
 {% endif %}
+
+    async def _request(
+        self,
+        method: str,
+        *,
+        body: Any,
+        overrides: dict[str, Any],
+        response_model: type[Any] | None,
+    ) -> Any:
+        response = await self.client._http.request(
+            method, self.url, **self._build_request_kwargs(body, overrides),
+        )
+        response.raise_for_status()
+        if response.status_code == 204 or not response.content:
+            return None
+        return self.client.from_response(response_model, response.json())
+
+    @staticmethod
+    def _build_request_kwargs(body: Any, overrides: dict[str, Any]) -> dict[str, Any]:
+        request_kwargs: dict[str, Any] = {}
+        if body is not None:
+            dump = getattr(body, "model_dump", None)
+            request_kwargs["json"] = dump(mode="json") if callable(dump) else body
+        params = overrides.get("params")
+        if params:
+            request_kwargs["params"] = dict(params)
+        headers = overrides.get("headers")
+        if headers:
+            request_kwargs["headers"] = dict(headers)
+        return request_kwargs

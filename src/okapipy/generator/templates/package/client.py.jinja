@@ -9,11 +9,7 @@ from collections.abc import Mapping
 {% if top_namespaces %}
 from functools import cached_property
 {% endif %}
-{% if top_namespaces or top_collections %}
-from typing import TYPE_CHECKING, Any, Literal
-{% else %}
 from typing import Any, Literal
-{% endif %}
 
 import httpx
 
@@ -28,41 +24,18 @@ from .strategies import (
 from .transport import AsyncRetryTransport, RetryPolicy, RetryTransport
 from .types import UNSET, Unset
 
-{% if top_namespaces or top_collections %}
-if TYPE_CHECKING:
 {% for ns in top_namespaces %}
-    from .namespaces.{{ ns.module }} import {{ ns.class_name }}, Async{{ ns.class_name }}
+from .namespaces.{{ ns.module }} import {{ ns.class_name }}, Async{{ ns.class_name }}
 {% endfor %}
 {% for coll in top_collections %}
-    from .collections.{{ coll.module }} import {{ coll.class_name }}, Async{{ coll.class_name }}
+from .collections.{{ coll.module }} import {{ coll.class_name }}, Async{{ coll.class_name }}
 {% endfor %}
-{% endif %}
 
 DEFAULT_BASE_URL: str | None = {{ base_url_default | py_repr }}
 
 
-def _default_pagination() -> PaginationStrategy:
-    """Built-in pagination default — `OffsetLimitPagination` with envelope total."""
-    return OffsetLimitPagination()
-
-
-def _default_filter() -> FilterStrategy:
-    """Built-in filter default — equality-only `KeyValueFilter`."""
-    return KeyValueFilter()
-
-
-def _default_sort() -> SortStrategy:
-    """Built-in sort default — `?sort=field,-field` comma-signed encoding."""
-    return CommaSignedSort()
-
-
 class {{ client_class }}:
-    """Synchronous client for `{{ project_name }}`.
-
-    Construct with `base_url`, optional `auth` / `timeout` / `headers` /
-    `transport`, the `shape` selector (`"models"` / `"dicts"`), and optional
-    strategy overrides for pagination, filtering, and sorting.
-    """
+    """Synchronous client for `{{ project_name }}`."""
 
     def __init__(
         self,
@@ -88,13 +61,13 @@ class {{ client_class }}:
         self._shape = shape
         self.default_page_size = default_page_size
         self.pagination_strategy: PaginationStrategy = (
-            pagination_strategy if pagination_strategy is not None else _default_pagination()
+            pagination_strategy if pagination_strategy is not None else OffsetLimitPagination()
         )
         self.filter_strategy: FilterStrategy = (
-            filter_strategy if filter_strategy is not None else _default_filter()
+            filter_strategy if filter_strategy is not None else KeyValueFilter()
         )
         self.sort_strategy: SortStrategy = (
-            sort_strategy if sort_strategy is not None else _default_sort()
+            sort_strategy if sort_strategy is not None else CommaSignedSort()
         )
         kwargs: dict[str, Any] = {"base_url": resolved_base_url}
         if auth is not None:
@@ -113,7 +86,7 @@ class {{ client_class }}:
 
     @property
     def shape(self) -> Literal["models", "dicts"]:
-        """The currently configured response shape (`"models"` or `"dicts"`)."""
+        """The currently configured response shape."""
         return self._shape
 
     @property
@@ -128,16 +101,11 @@ class {{ client_class }}:
         self.close()
 
     def close(self) -> None:
-        """Close the underlying httpx client. Idempotent."""
+        """Close the underlying httpx client."""
         self._http.close()
 
     def with_shape(self, shape: Literal["models", "dicts"]) -> {{ client_class }}:
-        """Return a sibling client sharing the same httpx connection in a new shape.
-
-        The new client reuses `_http`, `_base_url`, and the configured strategies;
-        only the shape selector changes. Closing the original client also closes
-        the sibling (they share the underlying transport).
-        """
+        """Return a sibling client sharing the underlying httpx connection in a new shape."""
         sibling = object.__new__(type(self))
         sibling._http = self._http
         sibling._base_url = self._base_url
@@ -149,12 +117,7 @@ class {{ client_class }}:
         return sibling
 
     def from_response(self, model_cls: type[Any] | None, raw: Any) -> Any:
-        """Deserialize one raw record per the configured shape.
-
-        In `models` shape, `model_cls.model_validate(raw)` is invoked. In `dicts`
-        shape (or when the operation has no response model), `raw` is returned
-        unchanged.
-        """
+        """Deserialize one raw record per the configured shape."""
         if model_cls is None or self._shape == "dicts":
             return raw
         return model_cls.model_validate(raw)
@@ -162,26 +125,19 @@ class {{ client_class }}:
 {% for ns in top_namespaces %}
     @cached_property
     def {{ ns.attr }}(self) -> {{ ns.class_name }}:
-        from .namespaces.{{ ns.module }} import {{ ns.class_name }}
-
         return {{ ns.class_name }}(self)
 
 {% endfor %}
 {% for coll in top_collections %}
     @property
     def {{ coll.attr }}(self) -> {{ coll.class_name }}:
-        from .collections.{{ coll.module }} import {{ coll.class_name }}
-
         return {{ coll.class_name }}(client=self, path_params={})
 
 {% endfor %}
 
 
 class Async{{ client_class }}:
-    """Asynchronous sibling of `{{ client_class }}`.
-
-    Mirrors the sync surface; the underlying transport is `httpx.AsyncClient`.
-    """
+    """Asynchronous sibling of `{{ client_class }}`."""
 
     def __init__(
         self,
@@ -207,13 +163,13 @@ class Async{{ client_class }}:
         self._shape = shape
         self.default_page_size = default_page_size
         self.pagination_strategy: PaginationStrategy = (
-            pagination_strategy if pagination_strategy is not None else _default_pagination()
+            pagination_strategy if pagination_strategy is not None else OffsetLimitPagination()
         )
         self.filter_strategy: FilterStrategy = (
-            filter_strategy if filter_strategy is not None else _default_filter()
+            filter_strategy if filter_strategy is not None else KeyValueFilter()
         )
         self.sort_strategy: SortStrategy = (
-            sort_strategy if sort_strategy is not None else _default_sort()
+            sort_strategy if sort_strategy is not None else CommaSignedSort()
         )
         kwargs: dict[str, Any] = {"base_url": resolved_base_url}
         if auth is not None:
@@ -251,7 +207,6 @@ class Async{{ client_class }}:
         await self._http.aclose()
 
     def with_shape(self, shape: Literal["models", "dicts"]) -> Async{{ client_class }}:
-        """Return a sibling async client sharing the same httpx connection in a new shape."""
         sibling = object.__new__(type(self))
         sibling._http = self._http
         sibling._base_url = self._base_url
@@ -270,16 +225,12 @@ class Async{{ client_class }}:
 {% for ns in top_namespaces %}
     @cached_property
     def {{ ns.attr }}(self) -> Async{{ ns.class_name }}:
-        from .namespaces.{{ ns.module }} import Async{{ ns.class_name }}
-
         return Async{{ ns.class_name }}(self)
 
 {% endfor %}
 {% for coll in top_collections %}
     @property
     def {{ coll.attr }}(self) -> Async{{ coll.class_name }}:
-        from .collections.{{ coll.module }} import Async{{ coll.class_name }}
-
         return Async{{ coll.class_name }}(client=self, path_params={})
 
 {% endfor %}

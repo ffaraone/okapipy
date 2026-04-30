@@ -10,42 +10,27 @@ from __future__ import annotations
 from collections.abc import AsyncIterator, Iterator, Mapping
 from typing import TYPE_CHECKING, Any
 
-{% if filter_supported %}
 from ..filters import Filter
-{% endif %}
-{% if sort_supported %}
 from ..sort import Sort
-{% endif %}
 from ..types import RequestOptions
 {% if model_imports %}
 from ..models import {{ model_imports | join(", ") }}
 {% endif %}
+{% if resource %}
+from ..resources.{{ resource.module }} import {{ resource.class_name }}, Async{{ resource.class_name }}
+{% endif %}
+{% for action in actions %}
+from ..actions.{{ action.module }} import {{ action.class_name }}, Async{{ action.class_name }}
+{% endfor %}
 
 if TYPE_CHECKING:
     from ..client import {{ client_class }}, Async{{ client_class }}
-{% if resource %}
-    from ..resources.{{ resource.module }} import {{ resource.class_name }}, Async{{ resource.class_name }}
-{% endif %}
-{% for action in actions %}
-    from ..actions.{{ action.module }} import {{ action.class_name }}, Async{{ action.class_name }}
-{% endfor %}
-
-
-PATH_TEMPLATE = "{{ path_template }}"
-
-
-def _serialize_body(body: Any) -> Any:
-    """Coerce a Pydantic model instance to a dict; pass dicts through."""
-    dump = getattr(body, "model_dump", None)
-    if callable(dump):
-        return dump(mode="json")
-    return body
 
 
 class {{ class_name }}:
     """Collection at `{{ path_template }}` (sync)."""
 
-    PATH_TEMPLATE = PATH_TEMPLATE
+    PATH_TEMPLATE = "{{ path_template }}"
 
     def __init__(
         self,
@@ -55,15 +40,9 @@ class {{ class_name }}:
     ) -> None:
         self.client = client
         self.path_params: dict[str, Any] = dict(path_params) if path_params else {}
-{% if filter_supported %}
         self.filter_expr: Filter | None = None
-{% endif %}
-{% if sort_supported %}
         self.sort_expr: Sort | None = None
-{% endif %}
-{% if pagination_supported %}
         self.current_page_size: int | None = client.default_page_size
-{% endif %}
         self.options: RequestOptions = RequestOptions()
 
     @property
@@ -89,32 +68,24 @@ class {{ class_name }}:
         """Fluent identity. Returns `self`."""
         return self
 
-{% if filter_supported %}
     def filter(self, expr: Filter) -> {{ class_name }}:
         """Accumulate filter expressions via boolean AND."""
         self.filter_expr = expr if self.filter_expr is None else self.filter_expr & expr
         return self
-{% endif %}
 
-{% if sort_supported %}
     def order_by(self, term: Sort | str) -> {{ class_name }}:
         """Append sort terms; string shorthand wraps in `Sort(...)`."""
         wrapped = term if isinstance(term, Sort) else Sort(term)
         self.sort_expr = wrapped if self.sort_expr is None else self.sort_expr + wrapped
         return self
-{% endif %}
 
-{% if pagination_supported %}
     def page_size(self, n: int) -> {{ class_name }}:
         """Set the page size for subsequent iteration / terminal calls."""
         self.current_page_size = n
         return self
-{% endif %}
 
 {% if resource %}
     def __getitem__(self, {{ resource.id_param }}: Any) -> {{ resource.class_name }}:
-        from ..resources.{{ resource.module }} import {{ resource.class_name }}
-
         return {{ resource.class_name }}(
             client=self.client,
             path_params={**self.path_params, "{{ resource.id_param }}": {{ resource.id_param }}},
@@ -124,7 +95,7 @@ class {{ class_name }}:
 {% if create_op %}
     def create(self, body: Any, **overrides: Any) -> Any:
         """`{{ create_op.method }}` body to {{ path_template }}."""
-        request_kwargs: dict[str, Any] = {"json": _serialize_body(body)}
+        request_kwargs: dict[str, Any] = {"json": self._serialize_body(body)}
         params = dict(overrides.get("params") or {})
         if params:
             request_kwargs["params"] = params
@@ -144,87 +115,115 @@ class {{ class_name }}:
             return item
         return None
 
-{% if pagination_supported %}
     def count(self) -> int:
         """Issue one minimal request and read the strategy-specific total."""
         if not self.client.pagination_strategy.supports_count:
             raise NotImplementedError(
                 "configured pagination strategy does not support count()"
             )
-        params = self._collect_filter_sort_params()
+        params = self.collect_filter_sort_params()
         params = dict(self.client.pagination_strategy.count_request_params(params))
-        params = self._merge_options_params(params)
+        params = self.merge_options_params(params)
         response = self.client._http.request(
-            "GET", self.url, params=params, headers=self._collect_headers(),
+            "GET", self.url, params=params, headers=self.collect_headers(),
         )
         response.raise_for_status()
         return self.client.pagination_strategy.extract_count(response)
-{% endif %}
 
 {% for action in actions %}
     @property
     def {{ action.attr }}(self) -> {{ action.class_name }}:
-        from ..actions.{{ action.module }} import {{ action.class_name }}
-
         return {{ action.class_name }}(client=self.client, path_params=self.path_params)
 
 {% endfor %}
 
-    def __iter__(self) -> Iterator[Any]:
-        strat = self.client.pagination_strategy
-{% if pagination_supported %}
-        page_size = self.current_page_size
-{% else %}
-        page_size = None
-{% endif %}
-        params = dict(strat.initial(page_size))
-        params.update(self._collect_filter_sort_params())
-        params = self._merge_options_params(params)
-        next_params: Mapping[str, Any] | None = params
-        while next_params is not None:
-            request_params = dict(next_params)
-            url = request_params.pop("__url__", None)
-            response = self.client._http.request(
-                "GET",
-                url if url is not None else self.url,
-                params=request_params,
-                headers=self._collect_headers(),
-            )
-            response.raise_for_status()
-            for raw in strat.extract_items(response):
-                yield self.client.from_response(None, raw)
-{% if pagination_supported %}
-            nxt = strat.next(response, request_params)
-            next_params = nxt
-{% else %}
-            next_params = None
-{% endif %}
+    def __iter__(self) -> {{ class_name }}Iterator:
+        """Construct a fresh iterator bound to the current query state."""
+        return {{ class_name }}Iterator(self)
 
-    def _collect_filter_sort_params(self) -> dict[str, Any]:
+    def collect_filter_sort_params(self) -> dict[str, Any]:
+        """Encode `filter()` / `order_by()` accumulators into request parameters."""
         out: dict[str, Any] = {}
-{% if filter_supported %}
         out.update(self.client.filter_strategy.encode(self.filter_expr))
-{% endif %}
-{% if sort_supported %}
         out.update(self.client.sort_strategy.encode(self.sort_expr))
-{% endif %}
         return out
 
-    def _merge_options_params(self, params: dict[str, Any]) -> dict[str, Any]:
+    def merge_options_params(self, params: dict[str, Any]) -> dict[str, Any]:
+        """Merge `with_options(params=...)` overrides into the request params."""
         if self.options.params:
             params = {**params, **dict(self.options.params)}
         return params
 
-    def _collect_headers(self) -> dict[str, str] | None:
+    def collect_headers(self) -> dict[str, str] | None:
+        """Return the header overrides accumulated by `with_options(headers=...)`."""
         if self.options.headers:
             return dict(self.options.headers)
         return None
+
+    @staticmethod
+    def _serialize_body(body: Any) -> Any:
+        """Coerce a Pydantic model instance to a dict; pass dicts through."""
+        dump = getattr(body, "model_dump", None)
+        if callable(dump):
+            return dump(mode="json")
+        return body
+
+
+class {{ class_name }}Iterator(Iterator[Any]):
+    """Pulls successive pages from `{{ class_name }}` and yields items.
+
+    The state machine: hold the parameters for the next request (`next_params`);
+    when the current page is exhausted, fetch the next page; when the strategy
+    reports no further page, raise `StopIteration`.
+    """
+
+    def __init__(self, collection: {{ class_name }}) -> None:
+        self.collection = collection
+        params = dict(collection.client.pagination_strategy.initial(collection.current_page_size))
+        params.update(collection.collect_filter_sort_params())
+        self.next_params: Mapping[str, Any] | None = collection.merge_options_params(params)
+        self.current_page: list[Any] = []
+        self.index: int = 0
+
+    def __iter__(self) -> {{ class_name }}Iterator:
+        return self
+
+    def __next__(self) -> Any:
+        while self.index >= len(self.current_page):
+            if self.next_params is None:
+                raise StopIteration
+            self.fetch_next_page()
+        item = self.current_page[self.index]
+        self.index += 1
+        return item
+
+    def fetch_next_page(self) -> None:
+        """Issue the next page request and load `current_page`."""
+        if self.next_params is None:
+            return
+        request_params = dict(self.next_params)
+        url = request_params.pop("__url__", None)
+        response = self.collection.client._http.request(
+            "GET",
+            url if url is not None else self.collection.url,
+            params=request_params,
+            headers=self.collection.collect_headers(),
+        )
+        response.raise_for_status()
+        strat = self.collection.client.pagination_strategy
+        self.current_page = [
+            self.collection.client.from_response(None, raw)
+            for raw in strat.extract_items(response)
+        ]
+        self.index = 0
+        nxt = strat.next(response, request_params)
+        self.next_params = nxt
 
 
 class Async{{ class_name }}:
     """Collection at `{{ path_template }}` (async)."""
 
-    PATH_TEMPLATE = PATH_TEMPLATE
+    PATH_TEMPLATE = "{{ path_template }}"
 
     def __init__(
         self,
@@ -234,15 +233,9 @@ class Async{{ class_name }}:
     ) -> None:
         self.client = client
         self.path_params: dict[str, Any] = dict(path_params) if path_params else {}
-{% if filter_supported %}
         self.filter_expr: Filter | None = None
-{% endif %}
-{% if sort_supported %}
         self.sort_expr: Sort | None = None
-{% endif %}
-{% if pagination_supported %}
         self.current_page_size: int | None = client.default_page_size
-{% endif %}
         self.options: RequestOptions = RequestOptions()
 
     @property
@@ -265,29 +258,21 @@ class Async{{ class_name }}:
     def all(self) -> Async{{ class_name }}:
         return self
 
-{% if filter_supported %}
     def filter(self, expr: Filter) -> Async{{ class_name }}:
         self.filter_expr = expr if self.filter_expr is None else self.filter_expr & expr
         return self
-{% endif %}
 
-{% if sort_supported %}
     def order_by(self, term: Sort | str) -> Async{{ class_name }}:
         wrapped = term if isinstance(term, Sort) else Sort(term)
         self.sort_expr = wrapped if self.sort_expr is None else self.sort_expr + wrapped
         return self
-{% endif %}
 
-{% if pagination_supported %}
     def page_size(self, n: int) -> Async{{ class_name }}:
         self.current_page_size = n
         return self
-{% endif %}
 
 {% if resource %}
     def __getitem__(self, {{ resource.id_param }}: Any) -> Async{{ resource.class_name }}:
-        from ..resources.{{ resource.module }} import Async{{ resource.class_name }}
-
         return Async{{ resource.class_name }}(
             client=self.client,
             path_params={**self.path_params, "{{ resource.id_param }}": {{ resource.id_param }}},
@@ -296,7 +281,7 @@ class Async{{ class_name }}:
 
 {% if create_op %}
     async def create(self, body: Any, **overrides: Any) -> Any:
-        request_kwargs: dict[str, Any] = {"json": _serialize_body(body)}
+        request_kwargs: dict[str, Any] = {"json": self._serialize_body(body)}
         params = dict(overrides.get("params") or {})
         if params:
             request_kwargs["params"] = params
@@ -315,77 +300,95 @@ class Async{{ class_name }}:
             return item
         return None
 
-{% if pagination_supported %}
     async def count(self) -> int:
         if not self.client.pagination_strategy.supports_count:
             raise NotImplementedError(
                 "configured pagination strategy does not support count()"
             )
-        params = self._collect_filter_sort_params()
+        params = self.collect_filter_sort_params()
         params = dict(self.client.pagination_strategy.count_request_params(params))
-        params = self._merge_options_params(params)
+        params = self.merge_options_params(params)
         response = await self.client._http.request(
-            "GET", self.url, params=params, headers=self._collect_headers(),
+            "GET", self.url, params=params, headers=self.collect_headers(),
         )
         response.raise_for_status()
         return self.client.pagination_strategy.extract_count(response)
-{% endif %}
 
 {% for action in actions %}
     @property
     def {{ action.attr }}(self) -> Async{{ action.class_name }}:
-        from ..actions.{{ action.module }} import Async{{ action.class_name }}
-
         return Async{{ action.class_name }}(client=self.client, path_params=self.path_params)
 
 {% endfor %}
 
-    async def __aiter__(self) -> AsyncIterator[Any]:
-        strat = self.client.pagination_strategy
-{% if pagination_supported %}
-        page_size = self.current_page_size
-{% else %}
-        page_size = None
-{% endif %}
-        params = dict(strat.initial(page_size))
-        params.update(self._collect_filter_sort_params())
-        params = self._merge_options_params(params)
-        next_params: Mapping[str, Any] | None = params
-        while next_params is not None:
-            request_params = dict(next_params)
-            url = request_params.pop("__url__", None)
-            response = await self.client._http.request(
-                "GET",
-                url if url is not None else self.url,
-                params=request_params,
-                headers=self._collect_headers(),
-            )
-            response.raise_for_status()
-            for raw in strat.extract_items(response):
-                yield self.client.from_response(None, raw)
-{% if pagination_supported %}
-            nxt = strat.next(response, request_params)
-            next_params = nxt
-{% else %}
-            next_params = None
-{% endif %}
+    def __aiter__(self) -> Async{{ class_name }}Iterator:
+        """Construct a fresh async iterator bound to the current query state."""
+        return Async{{ class_name }}Iterator(self)
 
-    def _collect_filter_sort_params(self) -> dict[str, Any]:
+    def collect_filter_sort_params(self) -> dict[str, Any]:
         out: dict[str, Any] = {}
-{% if filter_supported %}
         out.update(self.client.filter_strategy.encode(self.filter_expr))
-{% endif %}
-{% if sort_supported %}
         out.update(self.client.sort_strategy.encode(self.sort_expr))
-{% endif %}
         return out
 
-    def _merge_options_params(self, params: dict[str, Any]) -> dict[str, Any]:
+    def merge_options_params(self, params: dict[str, Any]) -> dict[str, Any]:
         if self.options.params:
             params = {**params, **dict(self.options.params)}
         return params
 
-    def _collect_headers(self) -> dict[str, str] | None:
+    def collect_headers(self) -> dict[str, str] | None:
         if self.options.headers:
             return dict(self.options.headers)
         return None
+
+    @staticmethod
+    def _serialize_body(body: Any) -> Any:
+        dump = getattr(body, "model_dump", None)
+        if callable(dump):
+            return dump(mode="json")
+        return body
+
+
+class Async{{ class_name }}Iterator(AsyncIterator[Any]):
+    """Async sibling of `{{ class_name }}Iterator`."""
+
+    def __init__(self, collection: Async{{ class_name }}) -> None:
+        self.collection = collection
+        params = dict(collection.client.pagination_strategy.initial(collection.current_page_size))
+        params.update(collection.collect_filter_sort_params())
+        self.next_params: Mapping[str, Any] | None = collection.merge_options_params(params)
+        self.current_page: list[Any] = []
+        self.index: int = 0
+
+    def __aiter__(self) -> Async{{ class_name }}Iterator:
+        return self
+
+    async def __anext__(self) -> Any:
+        while self.index >= len(self.current_page):
+            if self.next_params is None:
+                raise StopAsyncIteration
+            await self.fetch_next_page()
+        item = self.current_page[self.index]
+        self.index += 1
+        return item
+
+    async def fetch_next_page(self) -> None:
+        if self.next_params is None:
+            return
+        request_params = dict(self.next_params)
+        url = request_params.pop("__url__", None)
+        response = await self.collection.client._http.request(
+            "GET",
+            url if url is not None else self.collection.url,
+            params=request_params,
+            headers=self.collection.collect_headers(),
+        )
+        response.raise_for_status()
+        strat = self.collection.client.pagination_strategy
+        self.current_page = [
+            self.collection.client.from_response(None, raw)
+            for raw in strat.extract_items(response)
+        ]
+        self.index = 0
+        nxt = strat.next(response, request_params)
+        self.next_params = nxt
