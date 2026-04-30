@@ -15,11 +15,17 @@ OKAPIPY_PAGINATED_EXT = "x-okapipy-paginated"
 
 
 def root_namespaces(spec: dict[str, Any]) -> set[str]:
-    """Return the set of namespace paths declared by `x-okapipy-ns` at the root."""
+    """Return the set of namespace paths declared by `x-okapipy-ns` at the root.
+
+    Entries are normalized by stripping a leading `/` so that both `accounts`
+    and `/accounts` register the same path — the classifier compares against
+    the slash-less `cumulative_path` form, but users naturally write paths
+    with the leading slash.
+    """
     raw = spec.get(OKAPIPY_NS_EXT, [])
     if not isinstance(raw, list):
         return set()
-    return {item for item in raw if isinstance(item, str)}
+    return {item.lstrip("/") for item in raw if isinstance(item, str)}
 
 
 def operation_extension(operation: dict[str, Any]) -> str | None:

@@ -99,6 +99,9 @@ def build(
             log.info("excluding path %s (x-okapipy-exclude='*')", path)
             continue
         excluded_methods: set[str] = exclusion if isinstance(exclusion, set) else set()
+        if _all_operations_deprecated(path_item, excluded_methods):
+            log.info("skipping path %s (all operations deprecated)", path)
+            continue
         try:
             _walk_path(
                 api=api,
@@ -112,6 +115,30 @@ def build(
         except InvalidStructureError as exc:
             log.warning("skipping path %s: %s", path, exc)
     return api
+
+
+def _all_operations_deprecated(
+    path_item: dict[str, Any], excluded_methods: set[str]
+) -> bool:
+    """Return True when every non-excluded operation on `path_item` is `deprecated`.
+
+    Used to skip an entire path before walking it: if the path has no live
+    operations left after deprecation + exclusion filtering, building its
+    structural tree is wasted work and may produce confusing partial trees
+    (a Collection whose only fetch op was deprecated, etc.).
+    """
+    has_live = False
+    for method in HTTP_METHODS:
+        op = path_item.get(method)
+        if not isinstance(op, dict):
+            continue
+        if method.upper() in excluded_methods:
+            continue
+        if op.get("deprecated") is True:
+            continue
+        has_live = True
+        break
+    return not has_live
 
 
 def _resolve_exclusion(
@@ -202,7 +229,11 @@ def _walk_path(
     breadcrumb: list[str] = []
     parent_kind: SegmentKind | None = None
     cumulative_parts: list[str] = []
-    item_hint = _merge_hint(
+    # The full-path hint (sidecar wins over spec extension) applies to the last
+    # segment; intermediate segments resolve their hints by cumulative-path
+    # lookup so a sidecar entry like `/helpdesk/feedback: collection` propagates
+    # to every nested path that walks through it.
+    full_path_hint = _merge_hint(
         path_item_hint(sidecar, path),
         path_item_extension(path_item),
     )
@@ -212,7 +243,10 @@ def _walk_path(
         cumulative_parts.append(segment)
         cumulative_path = "/".join(cumulative_parts)
         is_last = index == len(segments) - 1
-        hint = item_hint if is_last else None
+        if is_last:
+            hint = full_path_hint
+        else:
+            hint = path_item_hint(sidecar, "/" + cumulative_path)
         kind = classify_segment(
             segment=segment,
             cumulative_path=cumulative_path,
@@ -326,6 +360,9 @@ def _install_operations(
             continue
         if method.upper() in excluded_methods:
             log.info("excluding %s %s (x-okapipy-exclude)", method.upper(), action_path)
+            continue
+        if op_data.get("deprecated") is True:
+            log.info("skipping %s %s (deprecated)", method.upper(), action_path)
             continue
         method_hint = _merge_hint(
             operation_hint(sidecar, path, method),

@@ -146,8 +146,13 @@ def operation_paginated(sidecar: Sidecar, path: str, method: str) -> bool | None
 
 
 def extra_namespaces(sidecar: Sidecar) -> set[str]:
-    """Return the set of namespace paths declared by the sidecar's `x-okapipy-ns`."""
-    return set(sidecar.x_okapipy_ns)
+    """Return the set of namespace paths declared by the sidecar's `x-okapipy-ns`.
+
+    Entries are normalized by stripping a leading `/` so users can write either
+    `accounts` or `/accounts`; the classifier compares against the slash-less
+    `cumulative_path` form built by the builder.
+    """
+    return {item.lstrip("/") for item in sidecar.x_okapipy_ns}
 
 
 def _parse_text(text: str, path: Path) -> dict[str, Any]:

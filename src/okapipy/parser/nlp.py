@@ -55,6 +55,15 @@ _PIPELINE_CACHE: dict[tuple[str, str], Language] = {}
 
 _TOKEN_SPLIT = re.compile(r"[-_]+")
 
+# English function words that introduce a postmodifying phrase. When one of
+# these appears between hyphenated tokens, the head noun is on the **left**
+# (`units-of-measure` = "units"; `rules-and-regulations` = both heads, plural;
+# `point-in-time` = "point", singular). The classifier uses this to override
+# the default head-noun-on-the-right rule.
+_POSTMODIFIER_WORDS = frozenset({
+    "of", "and", "or", "in", "for", "with", "to", "by", "from", "on", "at",
+})
+
 
 class SegmentInfo(NamedTuple):
     """The classifier-facing summary of a single path segment.
@@ -171,14 +180,22 @@ def analyze_segment(nlp: Language, segment: str) -> SegmentInfo:
     """Reduce a raw path segment to the booleans the classifier needs.
 
     The segment is split on `-` and `_`, each token is independently POS-tagged, and
-    the results are combined:
+    the results are combined under the **head-noun rule** — in English compounds,
+    the last token determines the role of the whole phrase (`account-users` is a
+    kind of users; `password-recovery-requests` is a kind of requests):
 
-    1. A clear verb anywhere in the segment wins (e.g. `reset` in `reset-password`).
-    2. A plural noun wins next (e.g. `requests` in `password-recovery-requests`).
-    3. A multi-word segment whose head is not plural is treated as a verb-phrase
-       action (e.g. `force-reimport`, `send-email`) — compound nouns in REST paths
-       almost always end with a plural head, so non-plural compounds signal an action.
-    4. Otherwise the segment is reported as singular-or-unknown.
+    1. If the last token is a plural noun, the segment is a plural collection
+       (`account-users`, `api-tokens`, `password-recovery-requests`). Earlier
+       tokens that look verb-ish (`account`, `api`, `password` are all noun/verb
+       in English) do not override the head.
+    2. Single-token verbs are actions (`reset`, `submit`).
+    3. A multi-word compound with a non-plural head and at least one verb-ish
+       token is a verb-phrase action (`reset-password`, `force-reimport`,
+       `send-email`).
+    4. A multi-word compound with a non-plural head and no verb is a verb-phrase
+       action too — REST collections almost always end in a plural head, so a
+       non-plural compound head almost never names a collection.
+    5. Otherwise the segment is reported as singular-or-unknown.
 
     Args:
         nlp: A loaded spaCy pipeline.
@@ -188,24 +205,29 @@ def analyze_segment(nlp: Language, segment: str) -> SegmentInfo:
         A `SegmentInfo` with three mutually exclusive flags set.
     """
     tokens = [t for t in _TOKEN_SPLIT.split(segment) if t]
-    is_verb = False
-    is_plural = False
-    for token in tokens:
-        verb, plural = _analyze_token(nlp, token)
-        if verb:
-            is_verb = True
-            break
-        if plural:
-            is_plural = True
-    if is_verb:
-        return SegmentInfo(segment, True, False, False)
-    if is_plural:
-        return SegmentInfo(segment, False, True, False)
-    if len(tokens) > 1:
-        _, last_is_plural = _analyze_token(nlp, tokens[-1])
-        if not last_is_plural:
+    if not tokens:
+        return SegmentInfo(segment, False, False, True)
+    last_verb, last_plural = _analyze_token(nlp, tokens[-1])
+    if len(tokens) == 1:
+        if last_verb:
             return SegmentInfo(segment, True, False, False)
-    return SegmentInfo(segment, False, False, True)
+        if last_plural:
+            return SegmentInfo(segment, False, True, False)
+        return SegmentInfo(segment, False, False, True)
+    # Multi-token: head-noun rule wins over earlier verb-ish tokens.
+    if last_plural:
+        return SegmentInfo(segment, False, True, False)
+    # Postmodifier exception: when a function word like `of`/`and`/`in` joins
+    # tokens, the head sits to its **left** rather than at the end. Probe each
+    # token for plurality and treat the segment as a collection if any
+    # pre-postmodifier token is plural (`units-of-measure`, `rules-and-tags`,
+    # `terms-and-conditions`).
+    if any(token.lower() in _POSTMODIFIER_WORDS for token in tokens):
+        for token in tokens:
+            _, plural = _analyze_token(nlp, token)
+            if plural:
+                return SegmentInfo(segment, False, True, False)
+    return SegmentInfo(segment, True, False, False)
 
 
 @lru_cache(maxsize=4096)
