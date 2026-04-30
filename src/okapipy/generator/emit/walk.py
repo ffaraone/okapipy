@@ -33,6 +33,7 @@ class _ChildRef:
     attr: str          # snake_case property name
     class_name: str    # PascalCase class name including suffix
     module: str        # snake_case module name (no suffix, no extension)
+    docstring: str | None = None  # docstring for the property accessor (indent=8)
 
 
 def emit_tree(
@@ -104,6 +105,7 @@ def _emit_namespace(
             attr=_collection_attr(coll),
             class_name=_collection_class(coll),
             module=_collection_module(coll),
+            docstring=collection_property_docstring(coll),
         )
         for coll in ns.collections
     ]
@@ -228,6 +230,7 @@ def _emit_resource(
             attr=_collection_attr(coll),
             class_name=_collection_class(coll),
             module=_collection_module(coll),
+            docstring=collection_property_docstring(coll),
         )
         for coll in resource.collections
     ]
@@ -352,6 +355,29 @@ def build_docstring(
         parts.append(description.strip())
     body = "\n\n".join(parts) if parts else fallback
     return _build_docstring_from_body(body, indent)
+
+
+def collection_property_docstring(coll: Collection, indent: int = 8) -> str | None:
+    """Docstring for a property that exposes a `Collection`.
+
+    Per generator.md §7.7, the property accessor (e.g. `Admin.accounts`,
+    `Order.lines`, `client.orders`) carries the docstring of the collection's
+    `fetch` operation so users see the collection's purpose at the call site.
+    Falls back to a structural string when the collection has no fetch op or
+    the fetch op has no documentation.
+    """
+    fetch = coll.fetch
+    if fetch is not None:
+        return build_docstring(
+            fetch.summary, fetch.description,
+            fallback=f"Collection at `{coll.path}`.",
+            indent=indent,
+        )
+    return build_docstring(
+        coll.summary, coll.description,
+        fallback=f"Collection at `{coll.path}`.",
+        indent=indent,
+    )
 
 
 def build_action_docstring(action: Action, indent: int = 4) -> str:

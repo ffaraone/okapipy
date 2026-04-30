@@ -131,6 +131,7 @@ class {{ client_class }}:
 {% for coll in top_collections %}
     @property
     def {{ coll.attr }}(self) -> {{ coll.class_name }}:
+{{ coll.docstring }}
         return {{ coll.class_name }}(client=self, path_params={})
 
 {% endfor %}
@@ -231,6 +232,7 @@ class Async{{ client_class }}:
 {% for coll in top_collections %}
     @property
     def {{ coll.attr }}(self) -> Async{{ coll.class_name }}:
+{{ coll.docstring }}
         return Async{{ coll.class_name }}(client=self, path_params={})
 
 {% endfor %}

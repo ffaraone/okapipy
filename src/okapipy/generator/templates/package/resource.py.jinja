@@ -82,6 +82,7 @@ class {{ class_name }}:
 {% for child in child_collections %}
     @property
     def {{ child.attr }}(self) -> {{ child.class_name }}:
+{{ child.docstring }}
         return {{ child.class_name }}(client=self.client, path_params=self.path_params)
 
 {% endfor %}
@@ -183,6 +184,7 @@ class Async{{ class_name }}:
 {% for child in child_collections %}
     @property
     def {{ child.attr }}(self) -> Async{{ child.class_name }}:
+{{ child.docstring }}
         return Async{{ child.class_name }}(client=self.client, path_params=self.path_params)
 
 {% endfor %}

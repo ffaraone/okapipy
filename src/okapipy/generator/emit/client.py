@@ -13,6 +13,7 @@ from okapipy.generator.emit.walk import (
     _collection_module,
     _namespace_class,
     _namespace_module,
+    collection_property_docstring,
 )
 from okapipy.generator.templating import _snake_case, render_python
 from okapipy.parser.model import APIModel
@@ -42,6 +43,7 @@ def emit_client(
             "attr": _collection_attr(coll),
             "class_name": _collection_class(coll),
             "module": _collection_module(coll),
+            "docstring": collection_property_docstring(coll),
         }
         for coll in api.collections
     ]
