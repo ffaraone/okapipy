@@ -31,9 +31,21 @@ class _ChildRef:
     """Reference to a child node — used in template contexts for property emission."""
 
     attr: str          # snake_case property name
-    class_name: str    # PascalCase class name including suffix
+    class_name: str    # PascalCase class name including the `Base` suffix
     module: str        # snake_case module name (no suffix, no extension)
+    factory_attr: str  # dunder-protected ClassVar hook, e.g. `__orders_factory__`
     docstring: str | None = None  # docstring for the property accessor (indent=8)
+
+
+def _factory_attr(attr: str) -> str:
+    """Return the dunder-protected factory hook name for a child reachable as `attr`.
+
+    Dunder-both-sides (`__orders_factory__`) does not trigger Python's name
+    mangling, so the same attribute name is read with `self.__orders_factory__`
+    from inside the base class and overridden as `__orders_factory__ = MyOrders`
+    in a subclass without any `_ClassName__...` prefix dance.
+    """
+    return f"__{attr}_factory__"
 
 
 def emit_tree(
@@ -109,6 +121,7 @@ def _emit_namespace(
             attr=_snake_case(child.name),
             class_name=_namespace_class(child),
             module=_namespace_module(child),
+            factory_attr=_factory_attr(_snake_case(child.name)),
         )
         for child in ns.namespaces
     ]
@@ -117,6 +130,7 @@ def _emit_namespace(
             attr=_collection_attr(coll),
             class_name=_collection_class(coll),
             module=_collection_module(coll),
+            factory_attr=_factory_attr(_collection_attr(coll)),
             docstring=collection_property_docstring(coll),
         )
         for coll in ns.collections
@@ -131,7 +145,7 @@ def _emit_namespace(
             fallback=f"Namespace router for `{ns.name}`.",
         ),
     }
-    out[f"src/{package_path}/namespaces/{_namespace_module(ns)}.py"] = render_python(
+    out[f"src/{package_path}/base/namespaces/{_namespace_module(ns)}.py"] = render_python(
         env, "package/namespace.py.jinja", ctx
     )
     for child in ns.namespaces:
@@ -161,12 +175,14 @@ def _emit_collection(
             "class_name": _resource_class(coll.resource),
             "module": _resource_module(coll.resource),
             "id_param": id_param,
+            "factory_attr": _factory_attr("resource"),
         }
     actions = [
         {
             "attr": _action_attr(action),
             "class_name": _action_class(action),
             "module": _action_module(action),
+            "factory_attr": _factory_attr(_action_attr(action)),
         }
         for action in coll.actions
     ]
@@ -230,7 +246,7 @@ def _emit_collection(
         "class_docstring": class_doc,
         "create_docstring": create_doc,
     }
-    out[f"src/{package_path}/collections/{_collection_module(coll)}.py"] = render_python(
+    out[f"src/{package_path}/base/collections/{_collection_module(coll)}.py"] = render_python(
         env, "package/collection.py.jinja", ctx
     )
     if coll.resource is not None:
@@ -261,6 +277,7 @@ def _emit_resource(
             attr=_collection_attr(coll),
             class_name=_collection_class(coll),
             module=_collection_module(coll),
+            factory_attr=_factory_attr(_collection_attr(coll)),
             docstring=collection_property_docstring(coll),
         )
         for coll in resource.collections
@@ -270,6 +287,7 @@ def _emit_resource(
             attr=_action_attr(action),
             class_name=_action_class(action),
             module=_action_module(action),
+            factory_attr=_factory_attr(_action_attr(action)),
         )
         for action in resource.actions
     ]
@@ -305,7 +323,7 @@ def _emit_resource(
         "patch_docstring": _op_doc(resource.partial_update, " (partial update)"),
         "delete_docstring": _op_doc(resource.delete),
     }
-    out[f"src/{package_path}/resources/{_resource_module(resource)}.py"] = render_python(
+    out[f"src/{package_path}/base/resources/{_resource_module(resource)}.py"] = render_python(
         env, "package/resource.py.jinja", ctx
     )
     for coll in resource.collections:
@@ -358,7 +376,7 @@ def _emit_action(
         "op_docstrings": op_docstrings,
     }
     return {
-        f"src/{package_path}/actions/{_action_module(action)}.py": render_python(
+        f"src/{package_path}/base/actions/{_action_module(action)}.py": render_python(
             env, "package/action.py.jinja", ctx
         ),
     }
@@ -541,7 +559,7 @@ def _path_segment(path: str) -> str:
 
 
 def _namespace_class(ns: Namespace) -> str:
-    return f"{_pascal(ns.name)}Namespace"
+    return f"{_pascal(ns.name)}NamespaceBase"
 
 
 def _namespace_module(ns: Namespace) -> str:
@@ -549,7 +567,7 @@ def _namespace_module(ns: Namespace) -> str:
 
 
 def _collection_class(coll: Collection) -> str:
-    return f"{coll.name}Collection"
+    return f"{coll.name}CollectionBase"
 
 
 def _collection_module(coll: Collection) -> str:
@@ -561,7 +579,7 @@ def _collection_attr(coll: Collection) -> str:
 
 
 def _resource_class(resource: Resource) -> str:
-    return f"{resource.name}Resource"
+    return f"{resource.name}ResourceBase"
 
 
 def _resource_module(resource: Resource) -> str:
@@ -569,7 +587,7 @@ def _resource_module(resource: Resource) -> str:
 
 
 def _action_class(action: Action) -> str:
-    return f"{action.name}Action"
+    return f"{action.name}ActionBase"
 
 
 def _action_module(action: Action) -> str:

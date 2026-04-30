@@ -50,9 +50,9 @@ def emit_runtime(
     out: dict[str, str] = {}
     for name in RUNTIME_FILES:
         source = (runtime_root / name).read_text(encoding="utf-8")
-        out[f"src/{package_path}/{name}"] = BANNER + source
+        out[f"src/{package_path}/base/{name}"] = BANNER + source
     init_text = _runtime_init(client_class, extra_imports or [], extra_public_names or [])
-    out[f"src/{package_path}/__init__.py"] = _polish(init_text)
+    out[f"src/{package_path}/base/__init__.py"] = _polish(init_text)
     return out
 
 
@@ -129,14 +129,15 @@ def _runtime_init(
     """Return the generated package's `__init__.py` re-exporting the public API.
 
     Replaces the empty stub from the project skeleton. Re-exports the runtime
-    primitives plus the sync (`<client_class>`) and async (`Async<client_class>`)
-    client classes from `client.py`, and any top-level namespace / collection
-    classes the walker provides via `extra_imports` / `extra_public_names`.
+    primitives plus the sync (`<client_class>Base`) and async
+    (`Async<client_class>Base`) client classes from `client.py`, and any
+    top-level namespace / collection `*Base` classes the walker provides via
+    `extra_imports` / `extra_public_names`.
     """
     all_names = (
         *RUNTIME_PUBLIC_NAMES,
-        client_class,
-        f"Async{client_class}",
+        f"{client_class}Base",
+        f"Async{client_class}Base",
         *extra_public_names,
     )
     all_block = ",\n    ".join(f'"{name}"' for name in all_names)
@@ -178,7 +179,7 @@ def _runtime_init(
         + ")\n"
         + "from .transport import AsyncRetryTransport, RetryPolicy, RetryTransport\n"
         + "from .types import UNSET, RequestOptions, Unset\n"
-        + f"from .client import {client_class}, Async{client_class}"
+        + f"from .client import {client_class}Base, Async{client_class}Base"
         + extras_block
         + "\n\n"
         + "__all__ = [\n"

@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from okapipy.generator import GenerationError, generate
+from okapipy.generator.vfs import GeneratedFile
 from okapipy.parser.model import APIModel
 
 FIXTURE = Path(__file__).resolve().parent.parent / "fixtures" / "simple.yaml"
@@ -28,15 +29,18 @@ def _generate_skeleton(tmp_path: Path) -> dict[str, str]:
 
 
 def test_generate_returns_dict() -> None:
-    """`generate(...)` returns a `dict[str, str]` populated with the skeleton.
+    """`generate(...)` returns a `dict[str, GeneratedFile]` populated with the skeleton.
 
     The contract is documented in §3.1 of `generator_plan.md`: a virtual FS keyed
-    on POSIX-style relative paths, values are file contents.
+    on POSIX-style relative paths; values are `GeneratedFile` records carrying
+    content + lifecycle policy.
     """
     vfs = _generate_skeleton(Path("/tmp"))
 
     assert isinstance(vfs, dict)
-    assert all(isinstance(k, str) and isinstance(v, str) for k, v in vfs.items())
+    assert all(
+        isinstance(k, str) and isinstance(v, GeneratedFile) for k, v in vfs.items()
+    )
 
 
 def test_skeleton_emits_expected_paths() -> None:
@@ -55,16 +59,17 @@ def test_skeleton_emits_expected_paths() -> None:
     assert ".python-version" in vfs
     assert "src/acme/client/__init__.py" in vfs
     assert "src/acme/client/py.typed" in vfs
-    assert "src/acme/client/client.py" in vfs
-    assert "src/acme/client/models.py" in vfs
+    assert "src/acme/client/base/__init__.py" in vfs
+    assert "src/acme/client/base/client.py" in vfs
+    assert "src/acme/client/base/models.py" in vfs
 
 
 def test_skeleton_substitutes_context_variables() -> None:
     """Templated values flow through: client class, package, project name."""
     vfs = _generate_skeleton(Path("/tmp"))
 
-    pyproject = vfs["pyproject.toml"]
-    readme = vfs["README.md"]
+    pyproject = vfs["pyproject.toml"].content
+    readme = vfs["README.md"].content
     assert 'name = "client"' in pyproject  # project_name defaults to last segment
     assert "AcmeClient" in readme
     assert "acme.client" in readme

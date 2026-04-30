@@ -36,7 +36,7 @@ def async_client_module(tmp_path: Path):
     try:
         if package in sys.modules:
             del sys.modules[package]
-        module = importlib.import_module(package)
+        module = importlib.import_module(f"{package}.base")
         yield module
     finally:
         sys.path.remove(str(out / "src"))
@@ -67,7 +67,7 @@ def test_async_iteration_walks_all_pages(async_client_module) -> None:
             {"items": [{"id": "5"}], "total": 5},
         ]
         transport = httpx.MockTransport(_async_paged_handler(pages))
-        client_cls = async_client_module.AsyncAsyncCli
+        client_cls = async_client_module.AsyncAsyncCliBase
         async with client_cls("https://api.example.com", transport=transport) as c:
             return [item async for item in c.orders.page_size(2)]
 
@@ -82,7 +82,7 @@ def test_async_first_short_circuits(async_client_module) -> None:
     async def run():
         pages = [{"items": [{"id": "first"}], "total": 99}]
         transport = httpx.MockTransport(_async_paged_handler(pages))
-        client_cls = async_client_module.AsyncAsyncCli
+        client_cls = async_client_module.AsyncAsyncCliBase
         async with client_cls("https://api.example.com", transport=transport) as c:
             return await c.orders.first()
 
@@ -98,7 +98,7 @@ def test_async_count_returns_envelope_total(async_client_module) -> None:
         transport = httpx.MockTransport(
             lambda r: httpx.Response(200, json={"items": [{"id": "x"}], "total": 4321}),
         )
-        client_cls = async_client_module.AsyncAsyncCli
+        client_cls = async_client_module.AsyncAsyncCliBase
         async with client_cls("https://api.example.com", transport=transport) as c:
             return await c.orders.count()
 
@@ -114,7 +114,7 @@ def test_async_resource_retrieve(async_client_module) -> None:
         transport = httpx.MockTransport(
             lambda r: httpx.Response(200, json={"id": "42", "total": 99.99}),
         )
-        client_cls = async_client_module.AsyncAsyncCli
+        client_cls = async_client_module.AsyncAsyncCliBase
         async with client_cls("https://api.example.com", transport=transport) as c:
             return await c.orders["42"].retrieve()
 
