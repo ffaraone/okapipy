@@ -53,3 +53,42 @@ jobs:
 
       - name: Run tests
         run: uv run pytest
+
+      - name: Upload coverage report
+        if: matrix.python-version == '3.13'
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage.xml
+          if-no-files-found: error
+          retention-days: 1
+
+  sonar:
+    name: SonarCloud scan + quality gate
+    needs: checks
+    runs-on: ubuntu-latest
+    # Skip on PRs from forks: SONAR_TOKEN isn't exposed there and the scan would fail.
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          # Sonar needs full history to attribute issues via git blame.
+          fetch-depth: 0
+
+      - name: Download coverage report
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage
+
+      - name: SonarCloud scan
+        uses: SonarSource/sonarqube-scan-action@v6
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: https://sonarcloud.io
+
+      - name: SonarCloud quality gate
+        uses: SonarSource/sonarqube-quality-gate-action@v1
+        timeout-minutes: 5
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
