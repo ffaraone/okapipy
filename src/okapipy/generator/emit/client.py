@@ -8,15 +8,15 @@ from typing import Any
 from jinja2 import Environment
 
 from okapipy.generator.emit.walk import (
-    _collection_attr,
-    _collection_class,
-    _collection_module,
-    _factory_attr,
-    _namespace_class,
-    _namespace_module,
+    collection_attr,
+    collection_class,
+    collection_module,
     collection_property_docstring,
+    factory_attr,
+    namespace_class,
+    namespace_module,
 )
-from okapipy.generator.templating import _snake_case, render_python
+from okapipy.generator.templating import render_python, snake_case
 from okapipy.parser.model import APIModel
 
 
@@ -33,19 +33,19 @@ def emit_client(
     """
     top_namespaces = [
         {
-            "attr": _snake_case(ns.name),
-            "class_name": _namespace_class(ns),
-            "module": _namespace_module(ns),
-            "factory_attr": _factory_attr(_snake_case(ns.name)),
+            "attr": snake_case(ns.name),
+            "class_name": namespace_class(ns),
+            "module": namespace_module(ns),
+            "factory_attr": factory_attr(snake_case(ns.name)),
         }
         for ns in api.namespaces
     ]
     top_collections = [
         {
-            "attr": _collection_attr(coll),
-            "class_name": _collection_class(coll),
-            "module": _collection_module(coll),
-            "factory_attr": _factory_attr(_collection_attr(coll)),
+            "attr": collection_attr(coll),
+            "class_name": collection_class(coll),
+            "module": collection_module(coll),
+            "factory_attr": factory_attr(collection_attr(coll)),
             "docstring": collection_property_docstring(coll),
         }
         for coll in api.collections

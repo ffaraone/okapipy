@@ -31,19 +31,19 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from okapipy.generator.emit.walk import (
-    _action_attr,
-    _action_class,
-    _action_module,
-    _collection_attr,
-    _collection_class,
-    _collection_module,
-    _factory_attr,
-    _namespace_class,
-    _namespace_module,
-    _resource_class,
-    _resource_module,
+    action_attr,
+    action_class,
+    action_module,
+    collection_attr,
+    collection_class,
+    collection_module,
+    factory_attr,
+    namespace_class,
+    namespace_module,
+    resource_class,
+    resource_module,
 )
-from okapipy.generator.templating import _snake_case
+from okapipy.generator.templating import snake_case
 from okapipy.generator.vfs import GeneratedFile
 from okapipy.parser.model import (
     Action,
@@ -64,7 +64,7 @@ STUB_DOCSTRING = (
 
 
 @dataclass(frozen=True)
-class _ChildWiring:
+class ChildWiring:
     """One `__<attr>_factory__ = UserClass` line plus the import that supports it."""
 
     factory_attr: str  # e.g. "__orders_factory__"
@@ -87,7 +87,7 @@ def emit_stubs(
         from_module=f"{package}.base.client",
         base_class=f"{client_class}Base",
         user_class=client_class,
-        wirings=_client_wirings(api, package),
+        wirings=client_wirings(api, package),
     )
     for ns in api.namespaces:
         _walk_namespace(ns, out, package, package_path)
@@ -109,7 +109,7 @@ def _stub_pair(
     from_module: str,
     base_class: str,
     user_class: str,
-    wirings: list[_ChildWiring] | None = None,
+    wirings: list[ChildWiring] | None = None,
 ) -> GeneratedFile:
     """Render a `class X(XBase)` stub plus its async sibling, with factory wiring.
 
@@ -149,7 +149,7 @@ def _import_block(module_path: str, names: list[str]) -> str:
     return f"from {module_path} import (\n{name_lines})"
 
 
-def _factory_lines(wirings: list[_ChildWiring], *, async_: bool) -> str:
+def _factory_lines(wirings: list[ChildWiring], *, async_: bool) -> str:
     """Render the body of a stub class — factory assignments or `pass`."""
     if not wirings:
         return "    pass"
@@ -162,9 +162,9 @@ def _factory_lines(wirings: list[_ChildWiring], *, async_: bool) -> str:
 # --------------------------------------------------------------------------- #
 
 
-def _client_wirings(api: APIModel, package: str) -> list[_ChildWiring]:
+def client_wirings(api: APIModel, package: str) -> list[ChildWiring]:
     """Children of the top-level client: top-level namespaces + collections."""
-    out: list[_ChildWiring] = []
+    out: list[ChildWiring] = []
     for ns in api.namespaces:
         out.append(_namespace_child_wiring(ns, package))
     for coll in api.collections:
@@ -172,9 +172,9 @@ def _client_wirings(api: APIModel, package: str) -> list[_ChildWiring]:
     return out
 
 
-def _namespace_wirings(ns: Namespace, package: str) -> list[_ChildWiring]:
+def namespace_wirings(ns: Namespace, package: str) -> list[ChildWiring]:
     """Children of a namespace: sub-namespaces + collections."""
-    out: list[_ChildWiring] = []
+    out: list[ChildWiring] = []
     for child in ns.namespaces:
         out.append(_namespace_child_wiring(child, package))
     for coll in ns.collections:
@@ -182,9 +182,9 @@ def _namespace_wirings(ns: Namespace, package: str) -> list[_ChildWiring]:
     return out
 
 
-def _collection_wirings(coll: Collection, package: str) -> list[_ChildWiring]:
+def collection_wirings(coll: Collection, package: str) -> list[ChildWiring]:
     """Children of a collection: at most one resource + zero-or-more actions."""
-    out: list[_ChildWiring] = []
+    out: list[ChildWiring] = []
     if coll.resource is not None:
         out.append(_resource_child_wiring(coll.resource, package))
     for action in coll.actions:
@@ -192,9 +192,9 @@ def _collection_wirings(coll: Collection, package: str) -> list[_ChildWiring]:
     return out
 
 
-def _resource_wirings(resource: Resource, package: str) -> list[_ChildWiring]:
+def resource_wirings(resource: Resource, package: str) -> list[ChildWiring]:
     """Children of a resource: sub-collections + actions."""
-    out: list[_ChildWiring] = []
+    out: list[ChildWiring] = []
     for coll in resource.collections:
         out.append(_collection_child_wiring(coll, package))
     for action in resource.actions:
@@ -202,39 +202,39 @@ def _resource_wirings(resource: Resource, package: str) -> list[_ChildWiring]:
     return out
 
 
-def _namespace_child_wiring(ns: Namespace, package: str) -> _ChildWiring:
-    base = _namespace_class(ns)
-    return _ChildWiring(
-        factory_attr=_factory_attr(_snake_case(ns.name)),
+def _namespace_child_wiring(ns: Namespace, package: str) -> ChildWiring:
+    base = namespace_class(ns)
+    return ChildWiring(
+        factory_attr=factory_attr(snake_case(ns.name)),
         user_class=base.removesuffix("Base"),
-        user_module_path=f"{package}.namespaces.{_namespace_module(ns)}",
+        user_module_path=f"{package}.namespaces.{namespace_module(ns)}",
     )
 
 
-def _collection_child_wiring(coll: Collection, package: str) -> _ChildWiring:
-    base = _collection_class(coll)
-    return _ChildWiring(
-        factory_attr=_factory_attr(_collection_attr(coll)),
+def _collection_child_wiring(coll: Collection, package: str) -> ChildWiring:
+    base = collection_class(coll)
+    return ChildWiring(
+        factory_attr=factory_attr(collection_attr(coll)),
         user_class=base.removesuffix("Base"),
-        user_module_path=f"{package}.collections.{_collection_module(coll)}",
+        user_module_path=f"{package}.collections.{collection_module(coll)}",
     )
 
 
-def _resource_child_wiring(resource: Resource, package: str) -> _ChildWiring:
-    base = _resource_class(resource)
-    return _ChildWiring(
-        factory_attr=_factory_attr("resource"),
+def _resource_child_wiring(resource: Resource, package: str) -> ChildWiring:
+    base = resource_class(resource)
+    return ChildWiring(
+        factory_attr=factory_attr("resource"),
         user_class=base.removesuffix("Base"),
-        user_module_path=f"{package}.resources.{_resource_module(resource)}",
+        user_module_path=f"{package}.resources.{resource_module(resource)}",
     )
 
 
-def _action_child_wiring(action: Action, package: str) -> _ChildWiring:
-    base = _action_class(action)
-    return _ChildWiring(
-        factory_attr=_factory_attr(_action_attr(action)),
+def _action_child_wiring(action: Action, package: str) -> ChildWiring:
+    base = action_class(action)
+    return ChildWiring(
+        factory_attr=factory_attr(action_attr(action)),
         user_class=base.removesuffix("Base"),
-        user_module_path=f"{package}.actions.{_action_module(action)}",
+        user_module_path=f"{package}.actions.{action_module(action)}",
     )
 
 
@@ -250,14 +250,14 @@ def _walk_namespace(
     package_path: str,
 ) -> None:
     """Emit a namespace stub and recurse into children."""
-    base_class = _namespace_class(ns)
+    base_class = namespace_class(ns)
     user_class = base_class.removesuffix("Base")
-    module = _namespace_module(ns)
+    module = namespace_module(ns)
     out[f"src/{package_path}/namespaces/{module}.py"] = _stub_pair(
         from_module=f"{package}.base.namespaces.{module}",
         base_class=base_class,
         user_class=user_class,
-        wirings=_namespace_wirings(ns, package),
+        wirings=namespace_wirings(ns, package),
     )
     for child in ns.namespaces:
         _walk_namespace(child, out, package, package_path)
@@ -272,14 +272,14 @@ def _walk_collection(
     package_path: str,
 ) -> None:
     """Emit a collection stub and recurse into the resource and any actions."""
-    base_class = _collection_class(coll)
+    base_class = collection_class(coll)
     user_class = base_class.removesuffix("Base")
-    module = _collection_module(coll)
+    module = collection_module(coll)
     out[f"src/{package_path}/collections/{module}.py"] = _stub_pair(
         from_module=f"{package}.base.collections.{module}",
         base_class=base_class,
         user_class=user_class,
-        wirings=_collection_wirings(coll, package),
+        wirings=collection_wirings(coll, package),
     )
     if coll.resource is not None:
         _walk_resource(coll.resource, out, package, package_path)
@@ -294,14 +294,14 @@ def _walk_resource(
     package_path: str,
 ) -> None:
     """Emit a resource stub and recurse into sub-collections and actions."""
-    base_class = _resource_class(resource)
+    base_class = resource_class(resource)
     user_class = base_class.removesuffix("Base")
-    module = _resource_module(resource)
+    module = resource_module(resource)
     out[f"src/{package_path}/resources/{module}.py"] = _stub_pair(
         from_module=f"{package}.base.resources.{module}",
         base_class=base_class,
         user_class=user_class,
-        wirings=_resource_wirings(resource, package),
+        wirings=resource_wirings(resource, package),
     )
     for coll in resource.collections:
         _walk_collection(coll, out, package, package_path)
@@ -316,9 +316,9 @@ def _walk_action(
     package_path: str,
 ) -> None:
     """Emit an action stub. Actions are leaves — no factory wiring."""
-    base_class = _action_class(action)
+    base_class = action_class(action)
     user_class = base_class.removesuffix("Base")
-    module = _action_module(action)
+    module = action_module(action)
     out[f"src/{package_path}/actions/{module}.py"] = _stub_pair(
         from_module=f"{package}.base.actions.{module}",
         base_class=base_class,

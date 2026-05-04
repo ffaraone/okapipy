@@ -11,7 +11,7 @@ from pytest_mock import MockerFixture
 from typer.testing import CliRunner
 
 from okapipy.cli import app
-from okapipy.cli.console import LOGGER_NAME, _level_for, setup_logging
+from okapipy.cli.console import LOGGER_NAME, level_for, setup_logging
 from okapipy.parser.errors import NlpModelMissingError
 
 runner = CliRunner()
@@ -176,11 +176,11 @@ def test_spec_parse_renders_summary_table(
 
 
 def test_setup_logging_level_mapping() -> None:
-    """`_level_for` maps verbosity counts to WARNING / INFO / DEBUG."""
-    assert _level_for(0) == logging.WARNING
-    assert _level_for(1) == logging.INFO
-    assert _level_for(2) == logging.DEBUG
-    assert _level_for(5) == logging.DEBUG
+    """`level_for` maps verbosity counts to WARNING / INFO / DEBUG."""
+    assert level_for(0) == logging.WARNING
+    assert level_for(1) == logging.INFO
+    assert level_for(2) == logging.DEBUG
+    assert level_for(5) == logging.DEBUG
 
 
 def test_setup_logging_replaces_handlers_each_call() -> None:

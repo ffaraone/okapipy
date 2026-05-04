@@ -52,7 +52,7 @@ def make_environment(templates_dir: Path | None) -> Environment:
         autoescape=False,
         undefined=StrictUndefined,
     )
-    env.filters["snake_case"] = _snake_case
+    env.filters["snake_case"] = snake_case
     env.filters["pascal_case"] = _pascal_case
     env.filters["kebab_case"] = _kebab_case
     env.filters["tojson"] = _tojson
@@ -140,7 +140,7 @@ def ruff_format(source: str, label: str) -> str:
 _CAMEL_BOUNDARY = re.compile(r"(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])")
 
 
-def _snake_case(value: str) -> str:
+def snake_case(value: str) -> str:
     """Convert PascalCase / camelCase / kebab-case input to snake_case."""
     normalized = value.replace("-", "_").replace(" ", "_")
     return _CAMEL_BOUNDARY.sub("_", normalized).lower()
@@ -148,12 +148,12 @@ def _snake_case(value: str) -> str:
 
 def _pascal_case(value: str) -> str:
     """Convert any casing to PascalCase by routing through snake_case."""
-    return "".join(part.capitalize() for part in _snake_case(value).split("_") if part)
+    return "".join(part.capitalize() for part in snake_case(value).split("_") if part)
 
 
 def _kebab_case(value: str) -> str:
     """Convert any casing to kebab-case (lowercase, hyphen-separated)."""
-    return _snake_case(value).replace("_", "-")
+    return snake_case(value).replace("_", "-")
 
 
 def _tojson(value: Any) -> str:

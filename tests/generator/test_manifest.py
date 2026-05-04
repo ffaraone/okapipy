@@ -12,11 +12,11 @@ from pathlib import Path
 import pytest
 
 from okapipy.generator import generate
+from okapipy.generator.edges import compute_edges
 from okapipy.generator.manifest import (
     GENERATOR_VERSION,
     MANIFEST_FILENAME,
     Edge,
-    compute_edges,
     parse,
 )
 from okapipy.generator.vfs import GeneratedFile

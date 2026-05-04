@@ -24,16 +24,13 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+from okapipy.generator.edges import compute_manifest
 from okapipy.generator.emit.client import emit_client
 from okapipy.generator.emit.project import emit_project_skeleton
 from okapipy.generator.emit.runtime import emit_runtime
 from okapipy.generator.emit.stubs import emit_stubs
 from okapipy.generator.emit.walk import emit_root_init_extension, emit_tree
-from okapipy.generator.manifest import (
-    MANIFEST_FILENAME,
-    compute_manifest,
-    serialize,
-)
+from okapipy.generator.manifest import MANIFEST_FILENAME, serialize
 from okapipy.generator.models import emit_models, public_names
 from okapipy.generator.templating import make_environment
 from okapipy.generator.vfs import GeneratedFile
