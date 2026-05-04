@@ -54,12 +54,14 @@ jobs:
       - name: Run tests
         run: uv run pytest
 
-      - name: Upload coverage report
+      - name: Upload test reports
         if: matrix.python-version == '3.13'
         uses: actions/upload-artifact@v4
         with:
-          name: coverage
-          path: coverage.xml
+          name: reports
+          path: |
+            coverage.xml
+            junit.xml
           if-no-files-found: error
           retention-days: 1
 
@@ -76,10 +78,10 @@ jobs:
           # Sonar needs full history to attribute issues via git blame.
           fetch-depth: 0
 
-      - name: Download coverage report
+      - name: Download test reports
         uses: actions/download-artifact@v4
         with:
-          name: coverage
+          name: reports
 
       - name: SonarCloud scan
         uses: SonarSource/sonarqube-scan-action@v6
