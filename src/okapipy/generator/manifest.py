@@ -17,21 +17,20 @@ generation. It serves two operational purposes:
 Edges are stored *abstractly* — one entry per sync/async pair, not per
 emitted Python class. The drift-warning formatter expands one Edge into the
 two lines (sync + async) the user needs to add.
+
+This module is intentionally narrow: it owns the dataclasses and the
+JSON-on-disk format, and nothing else. The graph-walking logic that produces
+edges from a parsed `APIModel` lives in `okapipy.generator.edges`, kept apart
+so that `manifest.py` does not depend on `emit/stubs.py` (which itself
+depends on `vfs.py`, which depends back on `manifest.py`).
 """
 
 from __future__ import annotations
 
 import json
 from dataclasses import asdict, dataclass
-from datetime import UTC, datetime
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
-from typing import TYPE_CHECKING
-
-from okapipy.parser.model import APIModel, Collection, Namespace, Resource
-
-if TYPE_CHECKING:
-    from okapipy.generator.emit.stubs import ChildWiring
 
 
 def _generator_version() -> str:
@@ -81,44 +80,6 @@ class Manifest:
     edges: list[Edge]
 
 
-def compute_manifest(
-    api: APIModel,
-    package: str,
-    base_files: list[str],
-) -> Manifest:
-    """Build the manifest for the current generation.
-
-    `base_files` is the list of POSIX-style VFS keys that fall inside `base/`.
-    """
-    return Manifest(
-        generator_version=GENERATOR_VERSION,
-        generated_at=datetime.now(tz=UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
-        base_files=sorted(base_files),
-        edges=compute_edges(api, package),
-    )
-
-
-def compute_edges(api: APIModel, package: str) -> list[Edge]:
-    """Walk the parser tree and return one `Edge` per parent → child wiring.
-
-    Mirrors the auto-wiring logic in `emit/stubs.py` so the manifest's
-    `edges` list is exactly the set of `__<factory>__ = ChildClass` lines
-    the stubs emit. Drift detection on a later run computes
-    `current - previous` over this set.
-    """
-    # Local import to break the `vfs → manifest → stubs → vfs` cycle.
-    from okapipy.generator.emit.stubs import client_wirings
-
-    out: list[Edge] = []
-    for w in client_wirings(api, package):
-        out.append(_edge_from_wiring("client.py", w, package))
-    for ns in api.namespaces:
-        _walk_namespace(ns, out, package)
-    for coll in api.collections:
-        _walk_collection(coll, out, package)
-    return out
-
-
 def serialize(manifest: Manifest) -> str:
     """Render the manifest as a deterministic JSON string."""
     payload = asdict(manifest)
@@ -145,77 +106,3 @@ def read_from_disk(manifest_path: Path) -> Manifest | None:
         return parse(manifest_path.read_text(encoding="utf-8"))
     except (json.JSONDecodeError, TypeError, ValueError):
         return None
-
-
-def _edge_from_wiring(
-    parent_module: str,
-    wiring: ChildWiring,
-    package: str,
-) -> Edge:
-    """Translate a `ChildWiring` into a manifest `Edge`.
-
-    Strips the dotted `package.` prefix from `user_module_path` and converts
-    dots to slashes so the stored value matches the user-layer relative path
-    on disk.
-    """
-    rel = wiring.user_module_path.removeprefix(f"{package}.").replace(".", "/")
-    return Edge(
-        parent_module=parent_module,
-        factory_attr=wiring.factory_attr,
-        child_user_class=wiring.user_class,
-        child_user_module=f"{rel}.py",
-    )
-
-
-def _walk_namespace(ns: Namespace, out: list[Edge], package: str) -> None:
-    """Recurse through a namespace, recording outgoing edges."""
-    from okapipy.generator.emit.stubs import namespace_wirings
-
-    parent_module = f"namespaces/{_module_for_ns(ns)}.py"
-    for w in namespace_wirings(ns, package):
-        out.append(_edge_from_wiring(parent_module, w, package))
-    for child in ns.namespaces:
-        _walk_namespace(child, out, package)
-    for coll in ns.collections:
-        _walk_collection(coll, out, package)
-
-
-def _walk_collection(coll: Collection, out: list[Edge], package: str) -> None:
-    """Recurse through a collection, recording outgoing edges."""
-    from okapipy.generator.emit.stubs import collection_wirings
-
-    parent_module = f"collections/{_module_for_coll(coll)}.py"
-    for w in collection_wirings(coll, package):
-        out.append(_edge_from_wiring(parent_module, w, package))
-    if coll.resource is not None:
-        _walk_resource(coll.resource, out, package)
-
-
-def _walk_resource(resource: Resource, out: list[Edge], package: str) -> None:
-    """Recurse through a resource, recording outgoing edges."""
-    from okapipy.generator.emit.stubs import resource_wirings
-
-    parent_module = f"resources/{_module_for_res(resource)}.py"
-    for w in resource_wirings(resource, package):
-        out.append(_edge_from_wiring(parent_module, w, package))
-    for coll in resource.collections:
-        _walk_collection(coll, out, package)
-
-
-# Lazy imports of the snake_case helpers to avoid a circular import at module load.
-def _module_for_ns(ns: Namespace) -> str:
-    from okapipy.generator.emit.walk import namespace_module
-
-    return namespace_module(ns)
-
-
-def _module_for_coll(coll: Collection) -> str:
-    from okapipy.generator.emit.walk import collection_module
-
-    return collection_module(coll)
-
-
-def _module_for_res(resource: Resource) -> str:
-    from okapipy.generator.emit.walk import resource_module
-
-    return resource_module(resource)

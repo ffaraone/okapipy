@@ -10,6 +10,7 @@ Marked `slow` because `uv sync` provisions a venv per test (~5–10 seconds).
 
 from __future__ import annotations
 
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -25,8 +26,18 @@ HOST_PYTHON = f"{sys.version_info.major}.{sys.version_info.minor}"
 
 
 def _run(cmd: list[str], cwd: Path) -> subprocess.CompletedProcess[str]:
-    """Helper: run a command, capture, never raise — caller decides on failure."""
-    return subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, check=False)
+    """Run `cmd` in `cwd` with a clean uv environment scoped to the test project.
+
+    Pins uv to a per-test venv so a child `uv sync` can't reach back and mutate
+    the parent test runner's venv (which would uninstall packages like `rich`
+    and break in-process tests that run later in the suite).
+    """
+    env = os.environ.copy()
+    env.pop("VIRTUAL_ENV", None)
+    env["UV_PROJECT_ENVIRONMENT"] = str(cwd / ".venv")
+    return subprocess.run(
+        cmd, cwd=cwd, env=env, capture_output=True, text=True, check=False
+    )
 
 
 @pytest.mark.parametrize(

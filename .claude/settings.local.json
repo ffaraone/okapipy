@@ -19,7 +19,8 @@
       "Bash(uv version *)",
       "Bash(git -C /app remote -v)",
       "Bash(git -C /app stash)",
-      "Bash(git -C /app stash pop)"
+      "Bash(git -C /app stash pop)",
+      "Bash(grep -c \"^rich$\\\\|^typer$\")"
     ]
   }
 }
