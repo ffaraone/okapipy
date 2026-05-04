@@ -46,7 +46,7 @@ def client_module(tmp_path: Path):
     try:
         if package in sys.modules:
             del sys.modules[package]
-        module = importlib.import_module(package)
+        module = importlib.import_module(f"{package}.base")
         yield module
     finally:
         sys.path.remove(str(out / "src"))
@@ -82,7 +82,7 @@ def test_offset_limit_iteration_walks_all_pages(client_module) -> None:
         {"items": [{"id": "5"}], "total": 5},
     ]
     transport = httpx.MockTransport(_paged_handler(pages))
-    client = client_module.PagClient(
+    client = client_module.PagClientBase(
         "https://api.example.com",
         transport=transport,
         pagination_strategy=client_module.OffsetLimitPagination(),
@@ -100,7 +100,7 @@ def test_first_short_circuits_after_one_page(client_module) -> None:
         {"items": [{"id": "1"}, {"id": "2"}], "total": 100},
     ]
     transport = httpx.MockTransport(_paged_handler(pages))
-    client = client_module.PagClient(
+    client = client_module.PagClientBase(
         "https://api.example.com",
         transport=transport,
         pagination_strategy=client_module.OffsetLimitPagination(),
@@ -123,7 +123,7 @@ def test_count_uses_dedicated_minimal_request(client_module) -> None:
         return httpx.Response(200, json={"items": [{"id": "1"}], "total": 4321})
 
     transport = httpx.MockTransport(handler)
-    client = client_module.PagClient(
+    client = client_module.PagClientBase(
         "https://api.example.com",
         transport=transport,
         pagination_strategy=client_module.OffsetLimitPagination(),
@@ -144,7 +144,7 @@ def test_cursor_pagination_follows_next_token_until_absent(client_module) -> Non
         {"items": [{"id": "3"}], "next_cursor": None},
     ]
     transport = httpx.MockTransport(_paged_handler(pages))
-    client = client_module.PagClient(
+    client = client_module.PagClientBase(
         "https://api.example.com",
         transport=transport,
         pagination_strategy=client_module.CursorPagination(),
@@ -173,7 +173,7 @@ def test_link_header_pagination_follows_rel_next(client_module) -> None:
         return httpx.Response(200, json={"items": [{"id": "2"}]})
 
     transport = httpx.MockTransport(handler)
-    client = client_module.PagClient(
+    client = client_module.PagClientBase(
         "https://api.example.com",
         transport=transport,
         pagination_strategy=client_module.LinkHeaderPagination(),
@@ -196,7 +196,7 @@ def test_with_options_seeds_overrides_for_every_page(client_module) -> None:
         return httpx.Response(200, json={"items": [{"id": "x"}, {"id": "y"}], "total": 2})
 
     transport = httpx.MockTransport(handler)
-    client = client_module.PagClient(
+    client = client_module.PagClientBase(
         "https://api.example.com",
         transport=transport,
         pagination_strategy=client_module.OffsetLimitPagination(),

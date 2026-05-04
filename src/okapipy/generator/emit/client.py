@@ -11,6 +11,7 @@ from okapipy.generator.emit.walk import (
     _collection_attr,
     _collection_class,
     _collection_module,
+    _factory_attr,
     _namespace_class,
     _namespace_module,
     collection_property_docstring,
@@ -35,6 +36,7 @@ def emit_client(
             "attr": _snake_case(ns.name),
             "class_name": _namespace_class(ns),
             "module": _namespace_module(ns),
+            "factory_attr": _factory_attr(_snake_case(ns.name)),
         }
         for ns in api.namespaces
     ]
@@ -43,6 +45,7 @@ def emit_client(
             "attr": _collection_attr(coll),
             "class_name": _collection_class(coll),
             "module": _collection_module(coll),
+            "factory_attr": _factory_attr(_collection_attr(coll)),
             "docstring": collection_property_docstring(coll),
         }
         for coll in api.collections
@@ -53,5 +56,5 @@ def emit_client(
         "top_collections": top_collections,
     }
     return {
-        f"src/{package_path}/client.py": render_python(env, "package/client.py.jinja", ctx),
+        f"src/{package_path}/base/client.py": render_python(env, "package/client.py.jinja", ctx),
     }

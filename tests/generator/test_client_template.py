@@ -40,7 +40,7 @@ def generated_client_module(tmp_path: Path):
     try:
         if package in sys.modules:
             del sys.modules[package]
-        module = importlib.import_module(package)
+        module = importlib.import_module(f"{package}.base")
         yield module
     finally:
         sys.path.remove(str(out / "src"))
@@ -51,7 +51,7 @@ def generated_client_module(tmp_path: Path):
 
 def test_client_class_is_constructable(generated_client_module) -> None:
     """`AcmeClient(base_url=...)` instantiates and exposes shape + base_url."""
-    client = generated_client_module.AcmeClient("https://api.example.com")
+    client = generated_client_module.AcmeClientBase("https://api.example.com")
 
     assert client.base_url == "https://api.example.com"
     assert client.shape == "models"
@@ -61,12 +61,12 @@ def test_client_class_is_constructable(generated_client_module) -> None:
 def test_client_requires_base_url(generated_client_module) -> None:
     """`base_url` is a required positional argument; constructing without it raises."""
     with pytest.raises(TypeError):
-        generated_client_module.AcmeClient()
+        generated_client_module.AcmeClientBase()
 
 
 def test_with_shape_returns_sibling_sharing_transport(generated_client_module) -> None:
     """`with_shape("dicts")` returns a sibling pointing at the same `_http`."""
-    client = generated_client_module.AcmeClient("https://api.example.com")
+    client = generated_client_module.AcmeClientBase("https://api.example.com")
     sibling = client.with_shape("dicts")
 
     assert sibling is not client
@@ -84,7 +84,7 @@ def test_from_response_branches_on_shape(generated_client_module) -> None:
         def model_validate(cls, raw):
             return ("validated", raw)
 
-    client_models = generated_client_module.AcmeClient(
+    client_models = generated_client_module.AcmeClientBase(
         "https://api.example.com", shape="models"
     )
     client_dicts = client_models.with_shape("dicts")
@@ -100,7 +100,7 @@ def test_client_forwards_auth_and_headers(generated_client_module) -> None:
     transport = httpx.MockTransport(
         lambda request: httpx.Response(200, json={"ok": True})
     )
-    client = generated_client_module.AcmeClient(
+    client = generated_client_module.AcmeClientBase(
         "https://api.example.com",
         transport=transport,
         auth=httpx.BasicAuth("u", "p"),
@@ -118,7 +118,7 @@ def test_client_forwards_auth_and_headers(generated_client_module) -> None:
 
 def test_retries_wrap_user_transport(generated_client_module) -> None:
     """`retries=RetryPolicy(...)` wraps the user-supplied transport in `RetryTransport`."""
-    runtime = importlib.import_module("acmecli.transport")
+    runtime = importlib.import_module("acmecli.base.transport")
     calls = {"n": 0}
 
     def handler(request: httpx.Request) -> httpx.Response:
@@ -128,7 +128,7 @@ def test_retries_wrap_user_transport(generated_client_module) -> None:
         return httpx.Response(200, json={"ok": True})
 
     transport = httpx.MockTransport(handler)
-    client = generated_client_module.AcmeClient(
+    client = generated_client_module.AcmeClientBase(
         "https://api.example.com",
         transport=transport,
         retries=runtime.RetryPolicy(total=3, backoff=0.0),
@@ -142,7 +142,7 @@ def test_retries_wrap_user_transport(generated_client_module) -> None:
 
 def test_post_is_never_retried_through_client(generated_client_module) -> None:
     """The GET-only retry rule applies through the templated client too."""
-    runtime = importlib.import_module("acmecli.transport")
+    runtime = importlib.import_module("acmecli.base.transport")
     calls = {"n": 0}
 
     def handler(request: httpx.Request) -> httpx.Response:
@@ -150,7 +150,7 @@ def test_post_is_never_retried_through_client(generated_client_module) -> None:
         return httpx.Response(503)
 
     transport = httpx.MockTransport(handler)
-    client = generated_client_module.AcmeClient(
+    client = generated_client_module.AcmeClientBase(
         "https://api.example.com",
         transport=transport,
         retries=runtime.RetryPolicy(total=5, backoff=0.0),
@@ -164,7 +164,7 @@ def test_post_is_never_retried_through_client(generated_client_module) -> None:
 
 def test_async_client_constructable(generated_client_module) -> None:
     """The async sibling instantiates and exposes the same shape API."""
-    client = generated_client_module.AsyncAcmeClient("https://api.example.com")
+    client = generated_client_module.AsyncAcmeClientBase("https://api.example.com")
 
     assert client.base_url == "https://api.example.com"
     assert client.shape == "models"

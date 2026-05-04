@@ -91,5 +91,5 @@ def test_cli_invocation_writes_files(tmp_path: Path) -> None:
     assert result.returncode == 0, f"CLI failed:\n{result.stderr}"
     assert (out / "pyproject.toml").exists()
     assert (out / "src" / "clitest" / "__init__.py").exists()
-    assert (out / "src" / "clitest" / "models.py").exists()
-    assert (out / "src" / "clitest" / "collections" / "orders.py").exists()
+    assert (out / "src" / "clitest" / "base" / "models.py").exists()
+    assert (out / "src" / "clitest" / "base" / "collections" / "orders.py").exists()
