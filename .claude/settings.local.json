@@ -16,7 +16,8 @@
       "Bash(rm -rf /tmp/gen-nested)",
       "Bash(python3 *)",
       "Bash(tee /tmp/gen-smoke/mpt-warnings.txt)",
-      "Bash(uv version *)"
+      "Bash(uv version *)",
+      "Bash(git -C /app remote -v)"
     ]
   }
 }
