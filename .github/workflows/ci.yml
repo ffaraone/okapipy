@@ -49,7 +49,7 @@ jobs:
         run: uv run ruff format --check src tests
 
       - name: Type-check
-        run: uv run mypy src/okapipy/parser src/okapipy/generator
+        run: uv run mypy src tests
 
       - name: Run tests
         run: uv run pytest

@@ -1,1 +1,60 @@
+<p align="center">
+  <img src="assets/logo.png" alt="okapipy" width="220" />
+</p>
+
 # okapipy
+
+A Python OpenAPI client generator that lifts the flat list of paths in an
+OpenAPI 3.x document into a hierarchical tree of `Namespace → Collection →
+Resource → (Sub-Collection | Action)` and emits a strongly-typed,
+async/sync Pydantic v2 client from it.
+
+## Installation
+
+okapipy requires Python 3.12+ and uses [uv](https://docs.astral.sh/uv/) for
+dependency management.
+
+```bash
+uv add okapipy            # add to an existing project
+# or, for one-off use:
+uvx okapipy --help
+```
+
+The first NLP-dependent run downloads the spaCy `en_core_web_sm` model
+(~12 MB) into `./.spacy/`. To pre-warm it:
+
+```bash
+uv run okapipy nlp fetch en
+```
+
+## Usage
+
+Parse a spec into its structural tree (path or http(s) URL accepted):
+
+```bash
+uv run okapipy spec parse openapi.yaml --output tree.yaml
+```
+
+Generate a full client project:
+
+```bash
+uv run okapipy spec generate openapi.yaml \
+    --output ./my-client \
+    --package acme.commerce \
+    --client-class CommerceClient
+```
+
+This writes a complete Python project under `./my-client` with a
+regeneratable base layer (`src/acme/commerce/base/...`) and a one-shot user
+layer of subclass stubs you can safely customize. Re-running the command
+refreshes the base layer while preserving your edits in the user layer.
+
+Useful flags:
+
+- `--rules path/to/rules.yaml` — project-local overrides for namespace
+  assignment, segment kind, and operation exclusion (mirrors the
+  `x-okapipy-*` extensions; rules-file values win on conflict).
+- `--strip-prefix /api/v1` — drop a base prefix from every path before
+  classification.
+- `--check` — CI dry-run: report drift and stale files, exit non-zero on
+  any change.

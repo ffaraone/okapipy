@@ -67,9 +67,11 @@ STUB_DOCSTRING = (
 class _ChildWiring:
     """One `__<attr>_factory__ = UserClass` line plus the import that supports it."""
 
-    factory_attr: str       # e.g. "__orders_factory__"
-    user_class: str         # sync user class, e.g. "OrdersCollection"; async is "Async..."
-    user_module_path: str   # dotted path to user-layer module, e.g. "p.collections.orders"
+    factory_attr: str  # e.g. "__orders_factory__"
+    user_class: str  # sync user class, e.g. "OrdersCollection"; async is "Async..."
+    user_module_path: (
+        str  # dotted path to user-layer module, e.g. "p.collections.orders"
+    )
 
 
 def emit_stubs(
@@ -152,9 +154,7 @@ def _factory_lines(wirings: list[_ChildWiring], *, async_: bool) -> str:
     if not wirings:
         return "    pass"
     prefix = "Async" if async_ else ""
-    return "\n".join(
-        f"    {w.factory_attr} = {prefix}{w.user_class}" for w in wirings
-    )
+    return "\n".join(f"    {w.factory_attr} = {prefix}{w.user_class}" for w in wirings)
 
 
 # --------------------------------------------------------------------------- #

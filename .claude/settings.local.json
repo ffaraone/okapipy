@@ -15,7 +15,8 @@
       "Bash(mkdir -p tests)",
       "Bash(rm -rf /tmp/gen-nested)",
       "Bash(python3 *)",
-      "Bash(tee /tmp/gen-smoke/mpt-warnings.txt)"
+      "Bash(tee /tmp/gen-smoke/mpt-warnings.txt)",
+      "Bash(uv version *)"
     ]
   }
 }

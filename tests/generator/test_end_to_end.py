@@ -11,6 +11,7 @@ Marked `slow` because `uv sync` provisions a venv per test (~5–10 seconds).
 from __future__ import annotations
 
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -20,6 +21,7 @@ from okapipy.generator.vfs import write_to_disk
 from okapipy.parser.api import parse
 
 FIXTURES = Path(__file__).resolve().parent.parent / "fixtures"
+HOST_PYTHON = f"{sys.version_info.major}.{sys.version_info.minor}"
 
 
 def _run(cmd: list[str], cwd: Path) -> subprocess.CompletedProcess[str]:
@@ -55,6 +57,7 @@ def test_generated_tree_passes_lint_and_typecheck(
         package=package,
         client_class=client_class,
         project_name=f"{package}-test",
+        python_version=HOST_PYTHON,
     )
     write_to_disk(vfs, out)
 

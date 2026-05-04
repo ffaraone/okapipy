@@ -60,9 +60,21 @@ _TOKEN_SPLIT = re.compile(r"[-_]+")
 # (`units-of-measure` = "units"; `rules-and-regulations` = both heads, plural;
 # `point-in-time` = "point", singular). The classifier uses this to override
 # the default head-noun-on-the-right rule.
-_POSTMODIFIER_WORDS = frozenset({
-    "of", "and", "or", "in", "for", "with", "to", "by", "from", "on", "at",
-})
+_POSTMODIFIER_WORDS = frozenset(
+    {
+        "of",
+        "and",
+        "or",
+        "in",
+        "for",
+        "with",
+        "to",
+        "by",
+        "from",
+        "on",
+        "at",
+    }
+)
 
 
 class SegmentInfo(NamedTuple):

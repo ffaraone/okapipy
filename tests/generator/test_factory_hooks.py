@@ -15,14 +15,14 @@ from pathlib import Path
 import pytest
 
 from okapipy.generator import generate
-from okapipy.generator.vfs import write_to_disk
+from okapipy.generator.vfs import GeneratedFile, write_to_disk
 from okapipy.parser.api import parse
 
 FIXTURE = Path(__file__).resolve().parent.parent / "fixtures" / "nested.yaml"
 
 
 @pytest.fixture
-def hooks_vfs(tmp_path: Path) -> dict[str, str]:
+def hooks_vfs(tmp_path: Path) -> dict[str, GeneratedFile]:
     """Generate the nested fixture's tree and return the in-memory VFS."""
     api = parse(FIXTURE)
     return generate(
@@ -63,7 +63,9 @@ def generated_base(tmp_path: Path):
                 del sys.modules[name]
 
 
-def test_client_base_emits_factory_for_top_namespace(hooks_vfs: dict[str, str]) -> None:
+def test_client_base_emits_factory_for_top_namespace(
+    hooks_vfs: dict[str, GeneratedFile],
+) -> None:
     """`ClientBase` declares `__commerce_factory__` typed as `CommerceNamespaceBase`."""
     client_src = hooks_vfs["src/hooks/base/client.py"].content
 
@@ -71,16 +73,20 @@ def test_client_base_emits_factory_for_top_namespace(hooks_vfs: dict[str, str]) 
     assert "self.__commerce_factory__(self)" in client_src
 
 
-def test_namespace_base_emits_factory_for_child_collection(hooks_vfs: dict[str, str]) -> None:
+def test_namespace_base_emits_factory_for_child_collection(
+    hooks_vfs: dict[str, GeneratedFile],
+) -> None:
     """`CommerceNamespaceBase` declares a `__orders_factory__` ClassVar."""
     namespace_src = hooks_vfs["src/hooks/base/namespaces/commerce.py"].content
 
     assert "__orders_factory__: ClassVar[type[OrdersCollectionBase]]" in namespace_src
-    assert "self.__orders_factory__(client=self.client, path_params={})" in namespace_src
+    assert (
+        "self.__orders_factory__(client=self.client, path_params={})" in namespace_src
+    )
 
 
 def test_collection_base_routes_getitem_through_resource_factory(
-    hooks_vfs: dict[str, str],
+    hooks_vfs: dict[str, GeneratedFile],
 ) -> None:
     """A collection with a sub-resource routes `__getitem__` through `__resource_factory__`."""
     collection_src = hooks_vfs["src/hooks/base/collections/orders.py"].content
@@ -89,16 +95,20 @@ def test_collection_base_routes_getitem_through_resource_factory(
     assert "self.__resource_factory__(" in collection_src
 
 
-def test_async_factory_attr_matches_sync(hooks_vfs: dict[str, str]) -> None:
+def test_async_factory_attr_matches_sync(hooks_vfs: dict[str, GeneratedFile]) -> None:
     """The async sibling's factory attribute is typed against the async-base class."""
     namespace_src = hooks_vfs["src/hooks/base/namespaces/commerce.py"].content
 
     # `Async{Class}Base` carries the same attribute name with the async-typed default.
-    assert "__orders_factory__: ClassVar[type[AsyncOrdersCollectionBase]]" in namespace_src
+    assert (
+        "__orders_factory__: ClassVar[type[AsyncOrdersCollectionBase]]" in namespace_src
+    )
     assert "AsyncOrdersCollectionBase" in namespace_src
 
 
-def test_resource_emits_factory_for_action_child(hooks_vfs: dict[str, str]) -> None:
+def test_resource_emits_factory_for_action_child(
+    hooks_vfs: dict[str, GeneratedFile],
+) -> None:
     """A resource with an action declares `__<attr>_factory__` for that action."""
     resource_src = hooks_vfs["src/hooks/base/resources/order.py"].content
 
@@ -118,13 +128,13 @@ def test_user_subclass_can_override_factory_at_runtime(generated_base) -> None:
     CommerceNamespaceBase = generated_base.CommerceNamespaceBase
     FactoryClientBase = generated_base.FactoryClientBase
 
-    class CustomOrders(OrdersCollectionBase):
+    class CustomOrders(OrdersCollectionBase):  # type: ignore[valid-type,misc]
         marker = "user-owned"
 
-    class CustomCommerce(CommerceNamespaceBase):
+    class CustomCommerce(CommerceNamespaceBase):  # type: ignore[valid-type,misc]
         __orders_factory__ = CustomOrders
 
-    class CustomClient(FactoryClientBase):
+    class CustomClient(FactoryClientBase):  # type: ignore[valid-type,misc]
         __commerce_factory__ = CustomCommerce
 
     client = CustomClient("https://api.example.com")

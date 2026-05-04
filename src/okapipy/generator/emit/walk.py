@@ -30,9 +30,9 @@ from okapipy.parser.model import (
 class _ChildRef:
     """Reference to a child node — used in template contexts for property emission."""
 
-    attr: str          # snake_case property name
-    class_name: str    # PascalCase class name including the `Base` suffix
-    module: str        # snake_case module name (no suffix, no extension)
+    attr: str  # snake_case property name
+    class_name: str  # PascalCase class name including the `Base` suffix
+    module: str  # snake_case module name (no suffix, no extension)
     factory_attr: str  # dunder-protected ClassVar hook, e.g. `__orders_factory__`
     docstring: str | None = None  # docstring for the property accessor (indent=8)
 
@@ -72,7 +72,9 @@ def emit_tree(
         out.update(_emit_namespace(env, ns, project_context, package_path, available))
     # Top-level collections.
     for coll in api.collections:
-        out.update(_emit_collection(env, coll, project_context, package_path, available))
+        out.update(
+            _emit_collection(env, coll, project_context, package_path, available)
+        )
     return out
 
 
@@ -141,17 +143,22 @@ def _emit_namespace(
         "child_namespaces": child_namespaces,
         "child_collections": child_collections,
         "class_docstring": build_docstring(
-            ns.summary, ns.description,
+            ns.summary,
+            ns.description,
             fallback=f"Namespace router for `{ns.name}`.",
         ),
     }
-    out[f"src/{package_path}/base/namespaces/{_namespace_module(ns)}.py"] = render_python(
-        env, "package/namespace.py.jinja", ctx
+    out[f"src/{package_path}/base/namespaces/{_namespace_module(ns)}.py"] = (
+        render_python(env, "package/namespace.py.jinja", ctx)
     )
     for child in ns.namespaces:
-        out.update(_emit_namespace(env, child, project_context, package_path, available_models))
+        out.update(
+            _emit_namespace(env, child, project_context, package_path, available_models)
+        )
     for coll in ns.collections:
-        out.update(_emit_collection(env, coll, project_context, package_path, available_models))
+        out.update(
+            _emit_collection(env, coll, project_context, package_path, available_models)
+        )
     return out
 
 
@@ -206,18 +213,21 @@ def _emit_collection(
     # the operation isn't populated, fall back to a generic structural string.
     if fetch_op is not None:
         class_doc = build_docstring(
-            fetch_op.summary, fetch_op.description,
+            fetch_op.summary,
+            fetch_op.description,
             fallback=f"Collection at `{coll.path}`.",
         )
     else:
         class_doc = build_docstring(
-            coll.summary, coll.description,
+            coll.summary,
+            coll.description,
             fallback=f"Collection at `{coll.path}`.",
         )
     create_doc: str | None = None
     if create_op is not None:
         create_doc = build_docstring(
-            create_op.summary, create_op.description,
+            create_op.summary,
+            create_op.description,
             fallback=f"`{create_op.method}` body to {coll.path}.",
             indent=8,
         )
@@ -237,7 +247,9 @@ def _emit_collection(
         "pagination_supported": (
             fetch_op.pagination_supported if fetch_op is not None else False
         ),
-        "filter_supported": fetch_op.filter_supported if fetch_op is not None else False,
+        "filter_supported": fetch_op.filter_supported
+        if fetch_op is not None
+        else False,
         "sort_supported": fetch_op.sort_supported if fetch_op is not None else False,
         "supports_count": (
             fetch_op.pagination_supported if fetch_op is not None else False
@@ -246,15 +258,24 @@ def _emit_collection(
         "class_docstring": class_doc,
         "create_docstring": create_doc,
     }
-    out[f"src/{package_path}/base/collections/{_collection_module(coll)}.py"] = render_python(
-        env, "package/collection.py.jinja", ctx
+    out[f"src/{package_path}/base/collections/{_collection_module(coll)}.py"] = (
+        render_python(env, "package/collection.py.jinja", ctx)
     )
     if coll.resource is not None:
-        out.update(_emit_resource(
-            env, coll, coll.resource, project_context, package_path, available_models
-        ))
+        out.update(
+            _emit_resource(
+                env,
+                coll,
+                coll.resource,
+                project_context,
+                package_path,
+                available_models,
+            )
+        )
     for action in coll.actions:
-        out.update(_emit_action(env, action, project_context, package_path, available_models))
+        out.update(
+            _emit_action(env, action, project_context, package_path, available_models)
+        )
     return out
 
 
@@ -293,10 +314,16 @@ def _emit_resource(
     ]
     model_imports = sorted(
         _collect_model_names(
-            [resource.retrieve, resource.update, resource.partial_update, resource.delete],
+            [
+                resource.retrieve,
+                resource.update,
+                resource.partial_update,
+                resource.delete,
+            ],
             available_models,
         )
     )
+
     def _op_doc(op: Operation | None, suffix: str = "") -> str | None:
         if op is None:
             return None
@@ -315,7 +342,8 @@ def _emit_resource(
         "actions": actions,
         "model_imports": model_imports,
         "class_docstring": build_docstring(
-            resource.summary, resource.description,
+            resource.summary,
+            resource.description,
             fallback=f"Resource at `{resource.path}`.",
         ),
         "retrieve_docstring": _op_doc(resource.retrieve),
@@ -323,13 +351,17 @@ def _emit_resource(
         "patch_docstring": _op_doc(resource.partial_update, " (partial update)"),
         "delete_docstring": _op_doc(resource.delete),
     }
-    out[f"src/{package_path}/base/resources/{_resource_module(resource)}.py"] = render_python(
-        env, "package/resource.py.jinja", ctx
+    out[f"src/{package_path}/base/resources/{_resource_module(resource)}.py"] = (
+        render_python(env, "package/resource.py.jinja", ctx)
     )
     for coll in resource.collections:
-        out.update(_emit_collection(env, coll, project_context, package_path, available_models))
+        out.update(
+            _emit_collection(env, coll, project_context, package_path, available_models)
+        )
     for action in resource.actions:
-        out.update(_emit_action(env, action, project_context, package_path, available_models))
+        out.update(
+            _emit_action(env, action, project_context, package_path, available_models)
+        )
     _ = parent_coll  # parent context kept for future use (e.g. type hints)
     return out
 
@@ -358,7 +390,8 @@ def _emit_action(
     for op in action.operations:
         op_docstrings.append(
             build_docstring(
-                op.summary, op.description,
+                op.summary,
+                op.description,
                 fallback=f"`{op.method} {action.path}`.",
                 indent=8,
             )
@@ -420,12 +453,14 @@ def collection_property_docstring(coll: Collection, indent: int = 8) -> str | No
     fetch = coll.fetch
     if fetch is not None:
         return build_docstring(
-            fetch.summary, fetch.description,
+            fetch.summary,
+            fetch.description,
             fallback=f"Collection at `{coll.path}`.",
             indent=indent,
         )
     return build_docstring(
-        coll.summary, coll.description,
+        coll.summary,
+        coll.description,
         fallback=f"Collection at `{coll.path}`.",
         indent=indent,
     )
@@ -435,14 +470,18 @@ def build_action_docstring(action: Action, indent: int = 4) -> str:
     """Format an action class docstring: single-op uses the op's text, multi-op lists them."""
     if not action.operations:
         return build_docstring(
-            action.summary, action.description,
-            f"Action at `{action.path}`.", indent,
+            action.summary,
+            action.description,
+            f"Action at `{action.path}`.",
+            indent,
         )
     if len(action.operations) == 1:
         op = action.operations[0]
         return build_docstring(
-            op.summary, op.description,
-            f"Action at `{action.path}`.", indent,
+            op.summary,
+            op.description,
+            f"Action at `{action.path}`.",
+            indent,
         )
     header: list[str] = []
     if action.summary and action.summary.strip():

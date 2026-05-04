@@ -37,7 +37,7 @@ jobs:
         run: uv run ruff format --check src tests
 
       - name: Type-check
-        run: uv run mypy src/okapipy/parser src/okapipy/generator
+        run: uv run mypy src tests
 
       - name: Run tests
         run: uv run pytest
@@ -56,6 +56,16 @@ jobs:
         uses: astral-sh/setup-uv@v6
         with:
           python-version: "3.13"
+
+      - name: Resolve version from release tag
+        id: version
+        run: |
+          tag="${GITHUB_REF_NAME}"
+          version="${tag#v}"
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+
+      - name: Pin pyproject.toml to release version
+        run: uv version --frozen "${{ steps.version.outputs.version }}"
 
       - name: Build sdist and wheel
         run: uv build

@@ -44,7 +44,7 @@ def make_environment(templates_dir: Path | None) -> Environment:
     if templates_dir is not None:
         loaders.append(FileSystemLoader(str(templates_dir)))
     loaders.append(PackageLoader("okapipy.generator", "templates"))
-    env = Environment(
+    env = Environment(  # nosec B701 — emits Python source, HTML autoescape would corrupt output
         loader=ChoiceLoader(loaders),
         trim_blocks=True,
         lstrip_blocks=True,

@@ -95,6 +95,7 @@ def emit_models(
                     "pydantic.AliasChoices",
                     "pydantic.Field",
                 ],
+                disable_timestamp=True,
                 formatters=[Formatter.RUFF_FORMAT, Formatter.RUFF_CHECK],
             )
         except Exception as exc:  # dmcg surfaces a wide error set
@@ -186,7 +187,8 @@ def _load_to_dict(raw_spec: dict[str, Any] | str | Path) -> dict[str, Any]:
     local = Path(raw_spec)
     if local.exists():
         return load_spec(local)
-    return json.loads(raw_spec)
+    parsed: dict[str, Any] = json.loads(raw_spec)
+    return parsed
 
 
 def _python_version(version: str) -> PythonVersion:

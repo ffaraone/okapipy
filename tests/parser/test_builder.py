@@ -42,9 +42,14 @@ def test_singularize_leaves_singular_unchanged(english_nlp: Language) -> None:
     assert singularize("commerce", english_nlp) == "commerce"
 
 
-def test_singularize_only_lemmatizes_the_head_of_a_compound(english_nlp: Language) -> None:
+def test_singularize_only_lemmatizes_the_head_of_a_compound(
+    english_nlp: Language,
+) -> None:
     """In `password-recovery-requests` only the trailing `requests` is reduced."""
-    assert singularize("password-recovery-requests", english_nlp) == "password-recovery-request"
+    assert (
+        singularize("password-recovery-requests", english_nlp)
+        == "password-recovery-request"
+    )
 
 
 def test_singularize_handles_propn_lemma_via_wrapper(english_nlp: Language) -> None:
@@ -139,7 +144,12 @@ def test_build_resource_name_for_compound_collection(english_nlp: Language) -> N
             },
             "/password-recovery-requests/{id}": {
                 "parameters": [
-                    {"name": "id", "in": "path", "required": True, "schema": {"type": "string"}}
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": True,
+                        "schema": {"type": "string"},
+                    }
                 ],
                 "get": {"responses": {"200": {"description": "OK"}}},
             },
@@ -346,7 +356,12 @@ def test_build_skips_non_canonical_resource_method_with_warning(
         "paths": {
             "/orders/{id}": {
                 "parameters": [
-                    {"name": "id", "in": "path", "required": True, "schema": {"type": "string"}}
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": True,
+                        "schema": {"type": "string"},
+                    }
                 ],
                 "post": {"responses": {"200": {"description": "OK"}}},
             }
@@ -368,7 +383,12 @@ def test_build_groups_methods_on_action_path(english_nlp: Language) -> None:
         "paths": {
             "/orders/{id}/submit": {
                 "parameters": [
-                    {"name": "id", "in": "path", "required": True, "schema": {"type": "string"}}
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": True,
+                        "schema": {"type": "string"},
+                    }
                 ],
                 "post": {
                     "x-okapipy-kind": "action",
@@ -422,7 +442,12 @@ def test_build_routes_resource_put_to_update_slot(english_nlp: Language) -> None
         "paths": {
             "/orders/{id}": {
                 "parameters": [
-                    {"name": "id", "in": "path", "required": True, "schema": {"type": "string"}}
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": True,
+                        "schema": {"type": "string"},
+                    }
                 ],
                 "put": {"responses": {"200": {"description": "OK"}}},
                 "patch": {"responses": {"200": {"description": "OK"}}},
@@ -468,7 +493,12 @@ def test_build_routes_resource_method_with_action_hint_to_synthetic_action(
         "paths": {
             "/orders/{id}": {
                 "parameters": [
-                    {"name": "id", "in": "path", "required": True, "schema": {"type": "string"}}
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": True,
+                        "schema": {"type": "string"},
+                    }
                 ],
                 "get": {
                     "x-okapipy-kind": "action",
@@ -504,7 +534,9 @@ def test_build_strips_explicit_prefix(english_nlp: Language) -> None:
     assert api.collections[0].path == "/orders"
 
 
-def test_build_strips_explicit_prefix_when_servers_absent(english_nlp: Language) -> None:
+def test_build_strips_explicit_prefix_when_servers_absent(
+    english_nlp: Language,
+) -> None:
     """`strip_prefix` works on its own when the spec has no `servers` declared."""
     spec = {
         "paths": {

@@ -91,7 +91,7 @@ def strip_base_path(
     stripped: dict[str, dict[str, Any]] = {}
     for key, value in paths.items():
         if key.startswith(base):
-            new_key = key[len(base):] or "/"
+            new_key = key[len(base) :] or "/"
             stripped[new_key] = value
         else:
             stripped[key] = value
@@ -104,7 +104,7 @@ def _read(source: str | Path) -> str:
     parsed = urlparse(text)
     if parsed.scheme in {"http", "https"}:
         try:
-            with urlopen(text) as response:  # noqa: S310 — http(s) is the documented surface
+            with urlopen(text) as response:  # noqa: S310  # nosec B310 — http(s) is the documented surface
                 body: bytes = response.read()
         except OSError as exc:
             raise SpecLoadError(f"failed to load spec from {source!r}: {exc}") from exc

@@ -90,16 +90,10 @@ def test_operation_extension_overrides_path_item(english_nlp: Language) -> None:
     assert orders.fetch.pagination_supported is True
 
 
-def test_rules_paginated_wins_over_spec(
-    english_nlp: Language, tmp_path: Path
-) -> None:
+def test_rules_paginated_wins_over_spec(english_nlp: Language, tmp_path: Path) -> None:
     """When rules and spec both set `x-okapipy-paginated`, rules win."""
     rules_file = tmp_path / "side.yaml"
-    rules_file.write_text(
-        "paths:\n"
-        "  /orders:\n"
-        "    x-okapipy-paginated: false\n"
-    )
+    rules_file.write_text("paths:\n  /orders:\n    x-okapipy-paginated: false\n")
     spec = {
         "paths": {
             "/orders": {
@@ -181,7 +175,9 @@ def test_response_model_names_the_envelope_not_the_item(english_nlp: Language) -
                             "description": "OK",
                             "content": {
                                 "application/json": {
-                                    "schema": {"$ref": "#/components/schemas/OrderListResponse"}
+                                    "schema": {
+                                        "$ref": "#/components/schemas/OrderListResponse"
+                                    }
                                 }
                             },
                         }
@@ -222,7 +218,12 @@ def test_paginated_flag_is_true_even_for_resource_get(english_nlp: Language) -> 
         "paths": {
             "/orders/{id}": {
                 "parameters": [
-                    {"name": "id", "in": "path", "required": True, "schema": {"type": "string"}}
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": True,
+                        "schema": {"type": "string"},
+                    }
                 ],
                 "get": {"responses": {"200": {"description": "OK"}}},
             }

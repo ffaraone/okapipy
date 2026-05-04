@@ -110,7 +110,10 @@ def test_strip_base_path_preserves_paths_outside_prefix() -> None:
     """Paths that don't start with the prefix are kept verbatim."""
     paths = {"/api/v1/orders": {"x": 1}, "/healthz": {"y": 2}}
 
-    assert strip_base_path(paths, "/api/v1") == {"/orders": {"x": 1}, "/healthz": {"y": 2}}
+    assert strip_base_path(paths, "/api/v1") == {
+        "/orders": {"x": 1},
+        "/healthz": {"y": 2},
+    }
 
 
 def test_detect_base_path_returns_empty_when_servers_not_a_list() -> None:

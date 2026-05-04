@@ -112,7 +112,9 @@ def test_page_number_pagination_advances_until_short_page() -> None:
 
 def test_cursor_pagination_uses_next_token_field() -> None:
     """`CursorPagination` follows the `next_cursor` field through the response."""
-    strat = CursorPagination(cursor_param="page_token", next_cursor_field="next_page_token")
+    strat = CursorPagination(
+        cursor_param="page_token", next_cursor_field="next_page_token"
+    )
 
     next_params = strat.next(
         _response({"items": [{"id": 1}], "next_page_token": "abc"}),
@@ -191,7 +193,10 @@ def test_key_op_value_filter_accepts_operator_suffix() -> None:
 
     params = KeyOpValueFilter().encode(expr)
 
-    assert params == {"created_at__gte": "2026-01-01", "status__in": ["open", "pending"]}
+    assert params == {
+        "created_at__gte": "2026-01-01",
+        "status__in": ["open", "pending"],
+    }
 
 
 def test_search_filter_strategy_emits_q_param() -> None:

@@ -60,7 +60,9 @@ def test_manifest_is_well_formed_json(vfs: dict[str, GeneratedFile]) -> None:
     assert payload["edges"]
 
 
-def test_base_files_lists_every_emitted_base_file(vfs: dict[str, GeneratedFile]) -> None:
+def test_base_files_lists_every_emitted_base_file(
+    vfs: dict[str, GeneratedFile],
+) -> None:
     """Every VFS path under `<pkg>/base/` is recorded in `base_files`."""
     manifest = parse(vfs[f"src/man/client/base/{MANIFEST_FILENAME}"].content)
     base_paths_in_vfs = {p for p in vfs if "/base/" in p}
@@ -77,7 +79,9 @@ def test_edges_match_compute_edges_directly(vfs: dict[str, GeneratedFile]) -> No
     assert set(manifest.edges) == set(direct)
 
 
-def test_edges_include_top_level_namespace_wiring(vfs: dict[str, GeneratedFile]) -> None:
+def test_edges_include_top_level_namespace_wiring(
+    vfs: dict[str, GeneratedFile],
+) -> None:
     """The Client → top-level namespace edge is present (commerce in nested.yaml)."""
     manifest = parse(vfs[f"src/man/client/base/{MANIFEST_FILENAME}"].content)
 
@@ -90,7 +94,9 @@ def test_edges_include_top_level_namespace_wiring(vfs: dict[str, GeneratedFile])
     assert edge in manifest.edges
 
 
-def test_edges_include_namespace_to_collection_wiring(vfs: dict[str, GeneratedFile]) -> None:
+def test_edges_include_namespace_to_collection_wiring(
+    vfs: dict[str, GeneratedFile],
+) -> None:
     """The Commerce → Orders collection edge is present."""
     manifest = parse(vfs[f"src/man/client/base/{MANIFEST_FILENAME}"].content)
 
@@ -103,7 +109,9 @@ def test_edges_include_namespace_to_collection_wiring(vfs: dict[str, GeneratedFi
     assert edge in manifest.edges
 
 
-def test_edges_include_collection_to_resource_wiring(vfs: dict[str, GeneratedFile]) -> None:
+def test_edges_include_collection_to_resource_wiring(
+    vfs: dict[str, GeneratedFile],
+) -> None:
     """The Orders → Order resource edge uses `__resource_factory__`."""
     manifest = parse(vfs[f"src/man/client/base/{MANIFEST_FILENAME}"].content)
 
@@ -155,12 +163,14 @@ def test_parse_round_trips_a_serialized_manifest() -> None:
 
 def test_parse_tolerates_unknown_keys() -> None:
     """Adding a future field to the manifest doesn't break older readers."""
-    payload = json.dumps({
-        "generator_version": "999.0.0",
-        "generated_at": "ts",
-        "base_files": [],
-        "edges": [],
-        "future_field": "value",
-    })
+    payload = json.dumps(
+        {
+            "generator_version": "999.0.0",
+            "generated_at": "ts",
+            "base_files": [],
+            "edges": [],
+            "future_field": "value",
+        }
+    )
 
     parse(payload)  # must not raise

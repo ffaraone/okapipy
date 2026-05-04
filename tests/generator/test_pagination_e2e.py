@@ -10,7 +10,9 @@ from __future__ import annotations
 
 import importlib
 import sys
+from collections.abc import Callable
 from pathlib import Path
+from typing import Any
 
 import httpx
 import pytest
@@ -55,7 +57,9 @@ def client_module(tmp_path: Path):
                 del sys.modules[name]
 
 
-def _paged_handler(pages: list[dict]) -> callable:  # type: ignore[type-arg]
+def _paged_handler(
+    pages: list[dict[str, Any]],
+) -> Callable[[httpx.Request], httpx.Response]:
     """Build a MockTransport handler that returns `pages[i]` on the i-th call.
 
     Independent of pagination strategy: each test programs the handler to
@@ -138,7 +142,7 @@ def test_count_uses_dedicated_minimal_request(client_module) -> None:
 
 def test_cursor_pagination_follows_next_token_until_absent(client_module) -> None:
     """`CursorPagination` walks until the response yields no `next_cursor`."""
-    pages = [
+    pages: list[dict[str, Any]] = [
         {"items": [{"id": "1"}], "next_cursor": "tok-2"},
         {"items": [{"id": "2"}], "next_cursor": "tok-3"},
         {"items": [{"id": "3"}], "next_cursor": None},
@@ -193,7 +197,9 @@ def test_with_options_seeds_overrides_for_every_page(client_module) -> None:
         seen_headers.append(request.headers.get("X-Trace", ""))
         if len(seen_headers) >= 2:
             return httpx.Response(200, json={"items": [], "total": 2})
-        return httpx.Response(200, json={"items": [{"id": "x"}, {"id": "y"}], "total": 2})
+        return httpx.Response(
+            200, json={"items": [{"id": "x"}, {"id": "y"}], "total": 2}
+        )
 
     transport = httpx.MockTransport(handler)
     client = client_module.PagClientBase(

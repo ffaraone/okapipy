@@ -43,7 +43,12 @@ def test_spec_exclude_method_list_drops_only_those_methods(
         "paths": {
             "/users/{id}": {
                 "parameters": [
-                    {"name": "id", "in": "path", "required": True, "schema": {"type": "string"}}
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": True,
+                        "schema": {"type": "string"},
+                    }
                 ],
                 "x-okapipy-exclude": ["DELETE"],
                 "get": {"responses": {"200": {"description": "OK"}}},
@@ -66,7 +71,12 @@ def test_spec_exclude_method_list_is_case_insensitive(english_nlp: Language) -> 
         "paths": {
             "/users/{id}": {
                 "parameters": [
-                    {"name": "id", "in": "path", "required": True, "schema": {"type": "string"}}
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": True,
+                        "schema": {"type": "string"},
+                    }
                 ],
                 "x-okapipy-exclude": ["delete"],
                 "get": {"responses": {"200": {"description": "OK"}}},
@@ -87,11 +97,7 @@ def test_rules_exclude_star_drops_whole_path(
 ) -> None:
     """A rules-file `x-okapipy-exclude: '*'` removes the path even when spec is silent."""
     rules_file = tmp_path / "side.yaml"
-    rules_file.write_text(
-        "paths:\n"
-        "  /healthz:\n"
-        "    x-okapipy-exclude: '*'\n"
-    )
+    rules_file.write_text("paths:\n  /healthz:\n    x-okapipy-exclude: '*'\n")
     spec = {
         "paths": {
             "/orders": {"get": {"responses": {"200": {"description": "OK"}}}},
@@ -109,16 +115,17 @@ def test_rules_exclude_method_list_filters_methods(
 ) -> None:
     """A rules-file method list filters specific verbs without touching the rest."""
     rules_file = tmp_path / "side.yaml"
-    rules_file.write_text(
-        "paths:\n"
-        "  /users/{id}:\n"
-        "    x-okapipy-exclude: [DELETE]\n"
-    )
+    rules_file.write_text("paths:\n  /users/{id}:\n    x-okapipy-exclude: [DELETE]\n")
     spec = {
         "paths": {
             "/users/{id}": {
                 "parameters": [
-                    {"name": "id", "in": "path", "required": True, "schema": {"type": "string"}}
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": True,
+                        "schema": {"type": "string"},
+                    }
                 ],
                 "get": {"responses": {"200": {"description": "OK"}}},
                 "delete": {"responses": {"204": {"description": "No content"}}},
@@ -139,16 +146,17 @@ def test_rules_exclude_overrides_spec_exclude(
 ) -> None:
     """When both rules and spec declare exclusions for a path, rules win."""
     rules_file = tmp_path / "side.yaml"
-    rules_file.write_text(
-        "paths:\n"
-        "  /users/{id}:\n"
-        "    x-okapipy-exclude: '*'\n"
-    )
+    rules_file.write_text("paths:\n  /users/{id}:\n    x-okapipy-exclude: '*'\n")
     spec = {
         "paths": {
             "/users/{id}": {
                 "parameters": [
-                    {"name": "id", "in": "path", "required": True, "schema": {"type": "string"}}
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": True,
+                        "schema": {"type": "string"},
+                    }
                 ],
                 "x-okapipy-exclude": ["DELETE"],
                 "get": {"responses": {"200": {"description": "OK"}}},
@@ -165,11 +173,7 @@ def test_rules_exclude_overrides_spec_exclude(
 def test_rules_rejects_invalid_exclude_method(tmp_path: Path) -> None:
     """An exclude entry containing a non-HTTP-method string is rejected at load time."""
     rules_file = tmp_path / "side.yaml"
-    rules_file.write_text(
-        "paths:\n"
-        "  /users/{id}:\n"
-        "    x-okapipy-exclude: [BOGUS]\n"
-    )
+    rules_file.write_text("paths:\n  /users/{id}:\n    x-okapipy-exclude: [BOGUS]\n")
 
     with pytest.raises(RulesFormatError, match="BOGUS"):
         load_rules(rules_file)
@@ -178,11 +182,7 @@ def test_rules_rejects_invalid_exclude_method(tmp_path: Path) -> None:
 def test_rules_rejects_non_list_non_star_exclude(tmp_path: Path) -> None:
     """An exclude value that is neither '*' nor a list is rejected at load time."""
     rules_file = tmp_path / "side.yaml"
-    rules_file.write_text(
-        "paths:\n"
-        "  /users/{id}:\n"
-        "    x-okapipy-exclude: 42\n"
-    )
+    rules_file.write_text("paths:\n  /users/{id}:\n    x-okapipy-exclude: 42\n")
 
     with pytest.raises(RulesFormatError):
         load_rules(rules_file)
@@ -192,9 +192,7 @@ def test_rules_accepts_lowercase_methods(tmp_path: Path) -> None:
     """Lowercase method names are accepted and normalized — case-insensitive."""
     rules_file = tmp_path / "side.yaml"
     rules_file.write_text(
-        "paths:\n"
-        "  /users/{id}:\n"
-        "    x-okapipy-exclude: [delete, Patch]\n"
+        "paths:\n  /users/{id}:\n    x-okapipy-exclude: [delete, Patch]\n"
     )
 
     rules = load_rules(rules_file)

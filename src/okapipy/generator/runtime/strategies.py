@@ -136,9 +136,7 @@ class OffsetLimitPagination:
     def extract_items(self, response: httpx.Response) -> list[Any]:
         return _extract_items_from_envelope(response)
 
-    def count_request_params(
-        self, base_params: Mapping[str, Any]
-    ) -> Mapping[str, Any]:
+    def count_request_params(self, base_params: Mapping[str, Any]) -> Mapping[str, Any]:
         params = dict(base_params)
         params[self.offset_param] = 0
         params[self.limit_param] = 1
@@ -203,9 +201,7 @@ class PageNumberPagination:
     def extract_items(self, response: httpx.Response) -> list[Any]:
         return _extract_items_from_envelope(response)
 
-    def count_request_params(
-        self, base_params: Mapping[str, Any]
-    ) -> Mapping[str, Any]:
+    def count_request_params(self, base_params: Mapping[str, Any]) -> Mapping[str, Any]:
         params = dict(base_params)
         params[self.page_param] = self.start_page
         params[self.page_size_param] = 1
@@ -256,9 +252,7 @@ class CursorPagination:
     def extract_items(self, response: httpx.Response) -> list[Any]:
         return _extract_items_from_envelope(response)
 
-    def count_request_params(
-        self, base_params: Mapping[str, Any]
-    ) -> Mapping[str, Any]:
+    def count_request_params(self, base_params: Mapping[str, Any]) -> Mapping[str, Any]:
         params = dict(base_params)
         if self.page_size_param is not None:
             params[self.page_size_param] = 1
@@ -308,9 +302,7 @@ class LinkHeaderPagination:
     def extract_items(self, response: httpx.Response) -> list[Any]:
         return _extract_items_from_envelope(response)
 
-    def count_request_params(
-        self, base_params: Mapping[str, Any]
-    ) -> Mapping[str, Any]:
+    def count_request_params(self, base_params: Mapping[str, Any]) -> Mapping[str, Any]:
         params = dict(base_params)
         if self.page_size_param is not None:
             params[self.page_size_param] = 1
@@ -373,7 +365,10 @@ class KeyValueFilter:
 
     def _iter_and_leaves(self, node: Filter) -> list[Filter]:
         if isinstance(node, AndFilter):
-            return [*self._iter_and_leaves(node.left), *self._iter_and_leaves(node.right)]
+            return [
+                *self._iter_and_leaves(node.left),
+                *self._iter_and_leaves(node.right),
+            ]
         if isinstance(node, (OrFilter, NotFilter)):
             raise UnsupportedFilterError(
                 "KeyValueFilter accepts conjunctive equality only (no OR/NOT)"
@@ -400,7 +395,10 @@ class KeyOpValueFilter:
 
     def _iter_and_leaves(self, node: Filter) -> list[Filter]:
         if isinstance(node, AndFilter):
-            return [*self._iter_and_leaves(node.left), *self._iter_and_leaves(node.right)]
+            return [
+                *self._iter_and_leaves(node.left),
+                *self._iter_and_leaves(node.right),
+            ]
         if isinstance(node, (OrFilter, NotFilter)):
             raise UnsupportedFilterError(
                 "KeyOpValueFilter accepts conjunctive expressions only (no OR/NOT)"

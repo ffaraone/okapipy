@@ -150,7 +150,11 @@ def test_dry_run_reports_pruning_without_deleting(
 
     api = parse(after_spec)
     vfs = generate(
-        api, raw_spec=after_spec, output_dir=out, package="prune", client_class="PruneClient",
+        api,
+        raw_spec=after_spec,
+        output_dir=out,
+        package="prune",
+        client_class="PruneClient",
     )
     report = write_to_disk(vfs, out, dry_run=True)
 
