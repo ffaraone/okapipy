@@ -6,6 +6,34 @@ authors = [{ name = "Francesco Faraone" }]
 readme = { file = "README.md", content-type = "text/markdown" }
 license = { file = "LICENSE" }
 requires-python = ">=3.12,<4"
+keywords = [
+    "openapi",
+    "openapi3",
+    "swagger",
+    "client",
+    "generator",
+    "code-generation",
+    "pydantic",
+    "httpx",
+    "rest",
+    "api",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Code Generators",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Internet :: WWW/HTTP",
+    "Typing :: Typed",
+]
 dependencies = [
     "datamodel-code-generator>=0.26,<1",
     "devtools>=0.12.2,<0.13.0",
@@ -46,6 +74,12 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/okapipy"]
+
+[project.urls]
+Homepage = "https://github.com/ffaraone/okapipy"
+Repository = "https://github.com/ffaraone/okapipy"
+Issues = "https://github.com/ffaraone/okapipy/issues"
+Changelog = "https://github.com/ffaraone/okapipy/releases"
 
 [project.scripts]
 okapipy = "okapipy.app:main"
