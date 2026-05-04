@@ -17,7 +17,9 @@
       "Bash(python3 *)",
       "Bash(tee /tmp/gen-smoke/mpt-warnings.txt)",
       "Bash(uv version *)",
-      "Bash(git -C /app remote -v)"
+      "Bash(git -C /app remote -v)",
+      "Bash(git -C /app stash)",
+      "Bash(git -C /app stash pop)"
     ]
   }
 }

@@ -31,7 +31,7 @@ from typing import TYPE_CHECKING
 from okapipy.parser.model import APIModel, Collection, Namespace, Resource
 
 if TYPE_CHECKING:
-    from okapipy.generator.emit.stubs import _ChildWiring
+    from okapipy.generator.emit.stubs import ChildWiring
 
 
 def _generator_version() -> str:
@@ -107,10 +107,10 @@ def compute_edges(api: APIModel, package: str) -> list[Edge]:
     `current - previous` over this set.
     """
     # Local import to break the `vfs → manifest → stubs → vfs` cycle.
-    from okapipy.generator.emit.stubs import _client_wirings
+    from okapipy.generator.emit.stubs import client_wirings
 
     out: list[Edge] = []
-    for w in _client_wirings(api, package):
+    for w in client_wirings(api, package):
         out.append(_edge_from_wiring("client.py", w, package))
     for ns in api.namespaces:
         _walk_namespace(ns, out, package)
@@ -149,10 +149,10 @@ def read_from_disk(manifest_path: Path) -> Manifest | None:
 
 def _edge_from_wiring(
     parent_module: str,
-    wiring: _ChildWiring,
+    wiring: ChildWiring,
     package: str,
 ) -> Edge:
-    """Translate a `_ChildWiring` into a manifest `Edge`.
+    """Translate a `ChildWiring` into a manifest `Edge`.
 
     Strips the dotted `package.` prefix from `user_module_path` and converts
     dots to slashes so the stored value matches the user-layer relative path
@@ -169,10 +169,10 @@ def _edge_from_wiring(
 
 def _walk_namespace(ns: Namespace, out: list[Edge], package: str) -> None:
     """Recurse through a namespace, recording outgoing edges."""
-    from okapipy.generator.emit.stubs import _namespace_wirings
+    from okapipy.generator.emit.stubs import namespace_wirings
 
     parent_module = f"namespaces/{_module_for_ns(ns)}.py"
-    for w in _namespace_wirings(ns, package):
+    for w in namespace_wirings(ns, package):
         out.append(_edge_from_wiring(parent_module, w, package))
     for child in ns.namespaces:
         _walk_namespace(child, out, package)
@@ -182,10 +182,10 @@ def _walk_namespace(ns: Namespace, out: list[Edge], package: str) -> None:
 
 def _walk_collection(coll: Collection, out: list[Edge], package: str) -> None:
     """Recurse through a collection, recording outgoing edges."""
-    from okapipy.generator.emit.stubs import _collection_wirings
+    from okapipy.generator.emit.stubs import collection_wirings
 
     parent_module = f"collections/{_module_for_coll(coll)}.py"
-    for w in _collection_wirings(coll, package):
+    for w in collection_wirings(coll, package):
         out.append(_edge_from_wiring(parent_module, w, package))
     if coll.resource is not None:
         _walk_resource(coll.resource, out, package)
@@ -193,10 +193,10 @@ def _walk_collection(coll: Collection, out: list[Edge], package: str) -> None:
 
 def _walk_resource(resource: Resource, out: list[Edge], package: str) -> None:
     """Recurse through a resource, recording outgoing edges."""
-    from okapipy.generator.emit.stubs import _resource_wirings
+    from okapipy.generator.emit.stubs import resource_wirings
 
     parent_module = f"resources/{_module_for_res(resource)}.py"
-    for w in _resource_wirings(resource, package):
+    for w in resource_wirings(resource, package):
         out.append(_edge_from_wiring(parent_module, w, package))
     for coll in resource.collections:
         _walk_collection(coll, out, package)
@@ -204,18 +204,18 @@ def _walk_resource(resource: Resource, out: list[Edge], package: str) -> None:
 
 # Lazy imports of the snake_case helpers to avoid a circular import at module load.
 def _module_for_ns(ns: Namespace) -> str:
-    from okapipy.generator.emit.walk import _namespace_module
+    from okapipy.generator.emit.walk import namespace_module
 
-    return _namespace_module(ns)
+    return namespace_module(ns)
 
 
 def _module_for_coll(coll: Collection) -> str:
-    from okapipy.generator.emit.walk import _collection_module
+    from okapipy.generator.emit.walk import collection_module
 
-    return _collection_module(coll)
+    return collection_module(coll)
 
 
 def _module_for_res(resource: Resource) -> str:
-    from okapipy.generator.emit.walk import _resource_module
+    from okapipy.generator.emit.walk import resource_module
 
-    return _resource_module(resource)
+    return resource_module(resource)

@@ -15,7 +15,7 @@ from typing import Any
 
 from jinja2 import Environment
 
-from okapipy.generator.templating import _snake_case, render_python
+from okapipy.generator.templating import render_python, snake_case
 from okapipy.parser.model import (
     Action,
     APIModel,
@@ -37,7 +37,7 @@ class _ChildRef:
     docstring: str | None = None  # docstring for the property accessor (indent=8)
 
 
-def _factory_attr(attr: str) -> str:
+def factory_attr(attr: str) -> str:
     """Return the dunder-protected factory hook name for a child reachable as `attr`.
 
     Dunder-both-sides (`__orders_factory__`) does not trigger Python's name
@@ -89,16 +89,16 @@ def emit_root_init_extension(api: APIModel) -> tuple[list[str], list[str]]:
     import_lines: list[str] = []
     public_names: list[str] = []
     for ns in api.namespaces:
-        cls = _namespace_class(ns)
+        cls = namespace_class(ns)
         import_lines.append(
-            f"from .namespaces.{_namespace_module(ns)} import {cls}, Async{cls}"
+            f"from .namespaces.{namespace_module(ns)} import {cls}, Async{cls}"
         )
         public_names.append(cls)
         public_names.append(f"Async{cls}")
     for coll in api.collections:
-        cls = _collection_class(coll)
+        cls = collection_class(coll)
         import_lines.append(
-            f"from .collections.{_collection_module(coll)} import {cls}, Async{cls}"
+            f"from .collections.{collection_module(coll)} import {cls}, Async{cls}"
         )
         public_names.append(cls)
         public_names.append(f"Async{cls}")
@@ -120,26 +120,26 @@ def _emit_namespace(
     out: dict[str, str] = {}
     child_namespaces: list[_ChildRef] = [
         _ChildRef(
-            attr=_snake_case(child.name),
-            class_name=_namespace_class(child),
-            module=_namespace_module(child),
-            factory_attr=_factory_attr(_snake_case(child.name)),
+            attr=snake_case(child.name),
+            class_name=namespace_class(child),
+            module=namespace_module(child),
+            factory_attr=factory_attr(snake_case(child.name)),
         )
         for child in ns.namespaces
     ]
     child_collections: list[_ChildRef] = [
         _ChildRef(
-            attr=_collection_attr(coll),
-            class_name=_collection_class(coll),
-            module=_collection_module(coll),
-            factory_attr=_factory_attr(_collection_attr(coll)),
+            attr=collection_attr(coll),
+            class_name=collection_class(coll),
+            module=collection_module(coll),
+            factory_attr=factory_attr(collection_attr(coll)),
             docstring=collection_property_docstring(coll),
         )
         for coll in ns.collections
     ]
     ctx = {
         **project_context,
-        "class_name": _namespace_class(ns),
+        "class_name": namespace_class(ns),
         "child_namespaces": child_namespaces,
         "child_collections": child_collections,
         "class_docstring": build_docstring(
@@ -148,7 +148,7 @@ def _emit_namespace(
             fallback=f"Namespace router for `{ns.name}`.",
         ),
     }
-    out[f"src/{package_path}/base/namespaces/{_namespace_module(ns)}.py"] = (
+    out[f"src/{package_path}/base/namespaces/{namespace_module(ns)}.py"] = (
         render_python(env, "package/namespace.py.jinja", ctx)
     )
     for child in ns.namespaces:
@@ -179,17 +179,17 @@ def _emit_collection(
     if coll.resource is not None:
         id_param = _new_path_param(coll.path, coll.resource.path)
         resource_ref = {
-            "class_name": _resource_class(coll.resource),
-            "module": _resource_module(coll.resource),
+            "class_name": resource_class(coll.resource),
+            "module": resource_module(coll.resource),
             "id_param": id_param,
-            "factory_attr": _factory_attr("resource"),
+            "factory_attr": factory_attr("resource"),
         }
     actions = [
         {
-            "attr": _action_attr(action),
-            "class_name": _action_class(action),
-            "module": _action_module(action),
-            "factory_attr": _factory_attr(_action_attr(action)),
+            "attr": action_attr(action),
+            "class_name": action_class(action),
+            "module": action_module(action),
+            "factory_attr": factory_attr(action_attr(action)),
         }
         for action in coll.actions
     ]
@@ -233,7 +233,7 @@ def _emit_collection(
         )
     ctx = {
         **project_context,
-        "class_name": _collection_class(coll),
+        "class_name": collection_class(coll),
         "path_template": coll.path,
         "resource": resource_ref,
         "actions": actions,
@@ -258,7 +258,7 @@ def _emit_collection(
         "class_docstring": class_doc,
         "create_docstring": create_doc,
     }
-    out[f"src/{package_path}/base/collections/{_collection_module(coll)}.py"] = (
+    out[f"src/{package_path}/base/collections/{collection_module(coll)}.py"] = (
         render_python(env, "package/collection.py.jinja", ctx)
     )
     if coll.resource is not None:
@@ -295,20 +295,20 @@ def _emit_resource(
     out: dict[str, str] = {}
     child_collections = [
         _ChildRef(
-            attr=_collection_attr(coll),
-            class_name=_collection_class(coll),
-            module=_collection_module(coll),
-            factory_attr=_factory_attr(_collection_attr(coll)),
+            attr=collection_attr(coll),
+            class_name=collection_class(coll),
+            module=collection_module(coll),
+            factory_attr=factory_attr(collection_attr(coll)),
             docstring=collection_property_docstring(coll),
         )
         for coll in resource.collections
     ]
     actions = [
         _ChildRef(
-            attr=_action_attr(action),
-            class_name=_action_class(action),
-            module=_action_module(action),
-            factory_attr=_factory_attr(_action_attr(action)),
+            attr=action_attr(action),
+            class_name=action_class(action),
+            module=action_module(action),
+            factory_attr=factory_attr(action_attr(action)),
         )
         for action in resource.actions
     ]
@@ -332,7 +332,7 @@ def _emit_resource(
 
     ctx = {
         **project_context,
-        "class_name": _resource_class(resource),
+        "class_name": resource_class(resource),
         "path_template": resource.path,
         "retrieve_op": _op_context(resource.retrieve, available_models),
         "update_op": _op_context(resource.update, available_models),
@@ -351,7 +351,7 @@ def _emit_resource(
         "patch_docstring": _op_doc(resource.partial_update, " (partial update)"),
         "delete_docstring": _op_doc(resource.delete),
     }
-    out[f"src/{package_path}/base/resources/{_resource_module(resource)}.py"] = (
+    out[f"src/{package_path}/base/resources/{resource_module(resource)}.py"] = (
         render_python(env, "package/resource.py.jinja", ctx)
     )
     for coll in resource.collections:
@@ -399,7 +399,7 @@ def _emit_action(
     single_op_docstring = op_docstrings[0] if len(op_docstrings) == 1 else None
     ctx = {
         **project_context,
-        "class_name": _action_class(action),
+        "class_name": action_class(action),
         "path_template": action.path,
         "operations": operations,
         "single_op": single_op,
@@ -409,7 +409,7 @@ def _emit_action(
         "op_docstrings": op_docstrings,
     }
     return {
-        f"src/{package_path}/base/actions/{_action_module(action)}.py": render_python(
+        f"src/{package_path}/base/actions/{action_module(action)}.py": render_python(
             env, "package/action.py.jinja", ctx
         ),
     }
@@ -597,49 +597,49 @@ def _path_segment(path: str) -> str:
     return ""
 
 
-def _namespace_class(ns: Namespace) -> str:
+def namespace_class(ns: Namespace) -> str:
     return f"{_pascal(ns.name)}NamespaceBase"
 
 
-def _namespace_module(ns: Namespace) -> str:
-    return _snake_case(ns.name)
+def namespace_module(ns: Namespace) -> str:
+    return snake_case(ns.name)
 
 
-def _collection_class(coll: Collection) -> str:
+def collection_class(coll: Collection) -> str:
     return f"{coll.name}CollectionBase"
 
 
-def _collection_module(coll: Collection) -> str:
-    return _snake_case(coll.name)
+def collection_module(coll: Collection) -> str:
+    return snake_case(coll.name)
 
 
-def _collection_attr(coll: Collection) -> str:
-    return _snake_case(_path_segment(coll.path))
+def collection_attr(coll: Collection) -> str:
+    return snake_case(_path_segment(coll.path))
 
 
-def _resource_class(resource: Resource) -> str:
+def resource_class(resource: Resource) -> str:
     return f"{resource.name}ResourceBase"
 
 
-def _resource_module(resource: Resource) -> str:
-    return _snake_case(resource.name)
+def resource_module(resource: Resource) -> str:
+    return snake_case(resource.name)
 
 
-def _action_class(action: Action) -> str:
+def action_class(action: Action) -> str:
     return f"{action.name}ActionBase"
 
 
-def _action_module(action: Action) -> str:
-    return _snake_case(action.name)
+def action_module(action: Action) -> str:
+    return snake_case(action.name)
 
 
-def _action_attr(action: Action) -> str:
-    return _snake_case(_path_segment(action.path))
+def action_attr(action: Action) -> str:
+    return snake_case(_path_segment(action.path))
 
 
 def _pascal(value: str) -> str:
     """Local PascalCase helper used by namespace class naming."""
-    return "".join(part.capitalize() for part in _snake_case(value).split("_") if part)
+    return "".join(part.capitalize() for part in snake_case(value).split("_") if part)
 
 
 # Stop the unused-import linter from complaining about `Iterable`; keep the

@@ -37,7 +37,7 @@ def setup_logging(verbosity: int, *, stderr_console: Console | None = None) -> N
         stderr_console: Optional override used by tests to capture rendered output.
     """
     target = stderr_console if stderr_console is not None else stderr
-    level = _level_for(verbosity)
+    level = level_for(verbosity)
     handler = RichHandler(
         console=target,
         show_time=False,
@@ -89,7 +89,7 @@ def write_stream(text: str, *, file: IO[str]) -> None:
     file.flush()
 
 
-def _level_for(verbosity: int) -> int:
+def level_for(verbosity: int) -> int:
     """Map a verbosity count to a stdlib logging level."""
     if verbosity <= 0:
         return logging.WARNING
