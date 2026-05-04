@@ -24,13 +24,17 @@ from okapipy.parser.model import APIModel, Collection, Namespace, Resource
 from okapipy.parser.nlp import DEFAULT_CACHE_DIR, load_pipeline
 from okapipy.parser.rules import load_rules
 
-app = typer.Typer(no_args_is_help=True, help="Inspect and parse OpenAPI specifications.")
+app = typer.Typer(
+    no_args_is_help=True, help="Inspect and parse OpenAPI specifications."
+)
 
 
 @app.command("parse")
 def parse_command(
     ctx: typer.Context,
-    source: str = typer.Argument(..., help="Path or http(s) URL of the OpenAPI document."),
+    source: str = typer.Argument(
+        ..., help="Path or http(s) URL of the OpenAPI document."
+    ),
     rules: Path | None = typer.Option(
         None,
         "--rules",
@@ -183,7 +187,9 @@ def _verbose_from(ctx: typer.Context) -> int:
 @app.command("generate")
 def generate_command(
     ctx: typer.Context,
-    source: str = typer.Argument(..., help="Path or http(s) URL of the OpenAPI document."),
+    source: str = typer.Argument(
+        ..., help="Path or http(s) URL of the OpenAPI document."
+    ),
     output: Path = typer.Option(
         ...,
         "--output",
@@ -298,7 +304,11 @@ def generate_command(
         raise typer.Exit(code=1) from exc
     if not quiet:
         for warning in report.warnings:
-            stderr.print(Panel(warning, border_style="yellow", title="WARNING", title_align="left"))
+            stderr.print(
+                Panel(
+                    warning, border_style="yellow", title="WARNING", title_align="left"
+                )
+            )
     if check:
         if report.would_change or report.warnings:
             stderr.print(

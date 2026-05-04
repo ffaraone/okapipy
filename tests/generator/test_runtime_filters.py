@@ -94,7 +94,7 @@ def test_subclass_can_carry_extra_attributes() -> None:
 
     geo_leaves = list(tree.iter_leaves(GeoFilter))
     assert geo_leaves == [geo]
-    assert geo_leaves[0].within_box == (0.0, 0.0, 1.0, 1.0)
+    assert geo_leaves[0].within_box == (0.0, 0.0, 1.0, 1.0)  # type: ignore[attr-defined]
 
 
 @pytest.mark.parametrize("op", ["and", "or"])

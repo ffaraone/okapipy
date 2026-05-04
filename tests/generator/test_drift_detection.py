@@ -85,7 +85,10 @@ def grown_spec_file(tmp_path: Path) -> Path:
 
 
 def _generate_and_write(
-    spec_path: Path, output_dir: Path, package: str = "drift", client_class: str = "DriftClient"
+    spec_path: Path,
+    output_dir: Path,
+    package: str = "drift",
+    client_class: str = "DriftClient",
 ):
     """Helper: parse, generate, write."""
     api = parse(spec_path)
@@ -99,7 +102,9 @@ def _generate_and_write(
     return write_to_disk(vfs, output_dir)
 
 
-def test_first_generation_emits_no_warnings(simple_spec_file: Path, tmp_path: Path) -> None:
+def test_first_generation_emits_no_warnings(
+    simple_spec_file: Path, tmp_path: Path
+) -> None:
     """With no previous manifest, nothing to drift against — zero warnings."""
     out = tmp_path / "out"
 
@@ -108,7 +113,9 @@ def test_first_generation_emits_no_warnings(simple_spec_file: Path, tmp_path: Pa
     assert report.warnings == []
 
 
-def test_unchanged_spec_emits_no_warnings(simple_spec_file: Path, tmp_path: Path) -> None:
+def test_unchanged_spec_emits_no_warnings(
+    simple_spec_file: Path, tmp_path: Path
+) -> None:
     """Re-running against the same spec is a no-op for drift detection."""
     out = tmp_path / "out"
     _generate_and_write(simple_spec_file, out)
@@ -147,7 +154,9 @@ def test_added_collection_creates_new_user_stub(
     _generate_and_write(grown_spec_file, out)
 
     assert products_stub.exists()
-    assert "class ProductsCollection(ProductsCollectionBase)" in products_stub.read_text()
+    assert (
+        "class ProductsCollection(ProductsCollectionBase)" in products_stub.read_text()
+    )
 
 
 def test_removed_collection_emits_stale_wiring_warning(
@@ -163,8 +172,7 @@ def test_removed_collection_emits_stale_wiring_warning(
     report = _generate_and_write(simple_spec_file, out)
 
     assert any(
-        "__products_factory__" in w and "stale" in w.lower()
-        for w in report.warnings
+        "__products_factory__" in w and "stale" in w.lower() for w in report.warnings
     ), report.warnings
 
 
@@ -189,7 +197,10 @@ def test_user_already_wired_factory_suppresses_new_edge_warning(
     # is still missing, so one warning fires for the async side. Verify the
     # sync line is NOT in any warning.
     for warning in report.warnings:
-        assert "= ProductsCollection\n" not in warning or "AsyncProductsCollection" in warning
+        assert (
+            "= ProductsCollection\n" not in warning
+            or "AsyncProductsCollection" in warning
+        )
 
 
 def test_dry_run_reports_warnings_without_writing(
@@ -217,14 +228,20 @@ def test_dry_run_reports_warnings_without_writing(
     assert not products_stub.exists()
 
 
-def test_dry_run_no_change_returns_clean_report(simple_spec_file: Path, tmp_path: Path) -> None:
+def test_dry_run_no_change_returns_clean_report(
+    simple_spec_file: Path, tmp_path: Path
+) -> None:
     """A dry-run after a no-op regen reports `would_change=False` and no warnings."""
     out = tmp_path / "out"
     _generate_and_write(simple_spec_file, out)
 
     api = parse(simple_spec_file)
     vfs = generate(
-        api, raw_spec=simple_spec_file, output_dir=out, package="drift", client_class="DriftClient",
+        api,
+        raw_spec=simple_spec_file,
+        output_dir=out,
+        package="drift",
+        client_class="DriftClient",
     )
     report = write_to_disk(vfs, out, dry_run=True)
 

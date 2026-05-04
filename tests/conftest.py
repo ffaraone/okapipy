@@ -89,7 +89,9 @@ def served_fixtures(httpserver: object, fixtures_dir: Path) -> object:
     for path in fixtures_dir.iterdir():
         if path.is_file():
             content_type = (
-                "application/yaml" if path.suffix in yaml_suffixes else "application/json"
+                "application/yaml"
+                if path.suffix in yaml_suffixes
+                else "application/json"
             )
             httpserver.expect_request(f"/{path.name}").respond_with_data(
                 path.read_bytes(),

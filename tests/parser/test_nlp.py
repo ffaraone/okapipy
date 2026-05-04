@@ -32,7 +32,9 @@ def test_model_name_for_unknown_language_raises_missing() -> None:
         model_name_for("xx")
 
 
-def test_model_path_returns_package_root_when_no_versioned_subdir(tmp_path: Path) -> None:
+def test_model_path_returns_package_root_when_no_versioned_subdir(
+    tmp_path: Path,
+) -> None:
     """With no versioned subdirectory yet, `model_path` returns the package root."""
     assert model_path("en", tmp_path) == tmp_path / "en_core_web_sm"
 
@@ -52,7 +54,9 @@ def test_load_pipeline_uses_cached_model_without_download(
     """When the model package already exists, no download is attempted."""
     (tmp_path / "en_core_web_sm").mkdir()
     fake_pipeline = mocker.Mock(name="Language")
-    spacy_load = mocker.patch("okapipy.parser.nlp.spacy.load", return_value=fake_pipeline)
+    spacy_load = mocker.patch(
+        "okapipy.parser.nlp.spacy.load", return_value=fake_pipeline
+    )
     download = mocker.patch("okapipy.parser.nlp.fetch_model")
 
     result = load_pipeline("en", cache_dir=tmp_path)
@@ -62,7 +66,9 @@ def test_load_pipeline_uses_cached_model_without_download(
     download.assert_not_called()
 
 
-def test_load_pipeline_downloads_when_missing(mocker: MockerFixture, tmp_path: Path) -> None:
+def test_load_pipeline_downloads_when_missing(
+    mocker: MockerFixture, tmp_path: Path
+) -> None:
     """A cache miss triggers fetch_model exactly once, then loads the result."""
     fake_pipeline = mocker.Mock(name="Language")
     download = mocker.patch(
@@ -82,7 +88,9 @@ def test_load_pipeline_caches_pipeline_per_lang_and_dir(
     """Repeat calls with the same args reuse the in-process pipeline."""
     (tmp_path / "en_core_web_sm").mkdir()
     fake_pipeline = mocker.Mock(name="Language")
-    spacy_load = mocker.patch("okapipy.parser.nlp.spacy.load", return_value=fake_pipeline)
+    spacy_load = mocker.patch(
+        "okapipy.parser.nlp.spacy.load", return_value=fake_pipeline
+    )
 
     load_pipeline("en", cache_dir=tmp_path)
     load_pipeline("en", cache_dir=tmp_path)
@@ -105,7 +113,9 @@ def test_fetch_model_invokes_spacy_download_with_target(
     assert str(tmp_path) in args
 
 
-def test_fetch_model_wraps_subprocess_failure(mocker: MockerFixture, tmp_path: Path) -> None:
+def test_fetch_model_wraps_subprocess_failure(
+    mocker: MockerFixture, tmp_path: Path
+) -> None:
     """A non-zero exit from spacy download surfaces as NlpModelMissingError."""
     mocker.patch(
         "okapipy.parser.nlp.subprocess.run",
@@ -141,7 +151,9 @@ def test_analyze_segment_detects_plural_noun(mocker: MockerFixture) -> None:
     assert info.is_verb_phrase is False
 
 
-def test_analyze_segment_falls_back_to_singular_or_unknown(mocker: MockerFixture) -> None:
+def test_analyze_segment_falls_back_to_singular_or_unknown(
+    mocker: MockerFixture,
+) -> None:
     """Tokens without a verb or plural signal yield the singular-or-unknown bucket."""
     nlp = mocker.Mock(name="Language")
     mocker.patch.object(nlp_mod, "_analyze_token", return_value=(False, False))
@@ -168,7 +180,9 @@ def test_analyze_segment_detects_plural_for_words_spacy_mistags_in_isolation(
     assert info.is_plural is True
 
 
-def test_analyze_segment_keeps_verb_signal_for_action_verbs(english_nlp: object) -> None:
+def test_analyze_segment_keeps_verb_signal_for_action_verbs(
+    english_nlp: object,
+) -> None:
     """A standalone verb like `reset` is still recognized as a verb-phrase."""
     from spacy.language import Language
 
@@ -196,7 +210,9 @@ def test_analyze_segment_treats_compound_with_singular_head_as_verb_phrase(
     assert info.is_verb_phrase is True
 
 
-def test_analyze_segment_keeps_plural_compound_as_collection(english_nlp: object) -> None:
+def test_analyze_segment_keeps_plural_compound_as_collection(
+    english_nlp: object,
+) -> None:
     """`password-recovery-requests` stays a plural collection — its head is plural."""
     from spacy.language import Language
 

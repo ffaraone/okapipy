@@ -77,6 +77,7 @@ OpenAPI fixtures live under `tests/fixtures/`. `pytest-httpserver` (`served_fixt
 ## Style
 
 - `ruff` with `max-line-length = 100`; isort known-first-party = `okapipy`.
-- **No underscore-prefixed "private" functions** in the parser per `parser.md` §9 — module organization handles encapsulation. Genuinely module-internal helpers (e.g. `_attach`, `_route`) are an exception within `builder.py`.
-- **No import aliases** unless strictly necessary. The two existing `from … import X as Y` aliases in `builder.py` exist because both `extension` and `rules` export a same-named exclusion helper.
+- **No underscore-prefixed "private" functions**. Only internals (only used in the same source file) are allowed.
+- **No import aliases** unless strictly necessary.
+- **All the imports must stay at the top** unless strictly necessary.
 - `from __future__ import annotations` everywhere; type hints are mandatory for all parser code.

@@ -14,7 +14,9 @@ def _stub_segment(mocker: MockerFixture, info: SegmentInfo) -> None:
     mocker.patch("okapipy.parser.classifier.analyze_segment", return_value=info)
 
 
-def test_path_parameter_segment_classified_as_resource_id(mocker: MockerFixture) -> None:
+def test_path_parameter_segment_classified_as_resource_id(
+    mocker: MockerFixture,
+) -> None:
     """A segment containing `{` and `}` short-circuits to RESOURCE_ID."""
     nlp = mocker.Mock(name="Language")
 
@@ -115,7 +117,9 @@ def test_singular_unknown_at_root_becomes_namespace(mocker: MockerFixture) -> No
     assert kind is SegmentKind.NAMESPACE
 
 
-def test_singular_unknown_under_collection_becomes_collection(mocker: MockerFixture) -> None:
+def test_singular_unknown_under_collection_becomes_collection(
+    mocker: MockerFixture,
+) -> None:
     """A singular noun nested under a collection is treated as a sub-collection."""
     nlp = mocker.Mock(name="Language")
     _stub_segment(mocker, SegmentInfo("staff", False, False, True))

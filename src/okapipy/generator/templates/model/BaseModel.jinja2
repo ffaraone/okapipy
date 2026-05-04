@@ -16,23 +16,15 @@ class {{ class_name }}({{ base_class }}):{% if comment is defined %}  # {{ comme
     pass
 {%- endif %}
 {%- for field in fields %}
-    {%- if field.alias %}
-    {%- if '| None' in field.type_hint %}
-    {{ field.name }}: {{ field.type_hint }} = Field(
-        default=None,
-        validation_alias=AliasChoices("{{ field.name }}", "{{ field.alias }}"),
-        serialization_alias="{{ field.alias }}",
-    )
-    {%- else %}
-    {{ field.name }}: {{ field.type_hint }} | None = Field(
-        default=None,
-        validation_alias=AliasChoices("{{ field.name }}", "{{ field.alias }}"),
-        serialization_alias="{{ field.alias }}",
-    )
-    {%- endif %}
+    {%- if field.alias and field.field %}
+    {%- set alias_kwarg = "alias='" ~ field.alias ~ "'" %}
+    {%- set alias_repl = "validation_alias=AliasChoices('" ~ field.name ~ "', '" ~ field.alias ~ "'), serialization_alias='" ~ field.alias ~ "'" %}
+    {{ field.name }}: {{ field.type_hint }}{% if "| None" not in field.type_hint %} | None{% endif %} = {{ field.field|replace(alias_kwarg, alias_repl) }}
+    {%- elif field.field %}
+    {{ field.name }}: {{ field.type_hint }}{% if "| None" not in field.type_hint %} | None{% endif %} = {{ field.field }}
     {%- elif field.annotated %}
     {{ field.name }}: {{ field.annotated }} = None
-    {%- elif '| None' in field.type_hint %}
+    {%- elif "| None" in field.type_hint %}
     {{ field.name }}: {{ field.type_hint }} = None
     {%- else %}
     {{ field.name }}: {{ field.type_hint }} | None = None

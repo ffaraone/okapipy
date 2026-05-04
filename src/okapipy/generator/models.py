@@ -1,12 +1,19 @@
 """`datamodel-code-generator` integration.
 
-Writes the raw OpenAPI spec to a temp directory, invokes dmcg with
-`output_model_type=PydanticV2BaseModel`, and reads the resulting `models.py`
-back into the virtual FS. The user-supplied `model_templates_dir` is forwarded
+Loads the OpenAPI spec, runs `flatten_inline_schemas` to hoist anonymous inline
+schemas into `components.schemas` (so dmcg doesn't emit `By` / `By1` / `By2`
+duplicates for structurally identical shapes), writes the preprocessed document
+to a temp directory, invokes dmcg with `output_model_type=PydanticV2BaseModel`,
+and reads the resulting `models.py` back into the virtual FS. The user-supplied
+`model_templates_dir` is forwarded
 to dmcg as `custom_template_dir`; when omitted, the bundled relaxed templates
-under `templates/model/` are used (every field becomes optional with `= None`,
-`extra="allow"`, `populate_by_name=True`) so generated clients tolerate API
-responses that diverge from the spec.
+under `templates/model/` are used: every field is forced optional (`| None`),
+`extra="allow"` and `populate_by_name=True`, and the dmcg-generated `Field(...)`
+call is preserved verbatim so spec-level constraints (`max_length`, `pattern`,
+…) and metadata (`title`, `description`, `examples`) survive. When a field has
+an alias from `snake_case_field=True`, the bare `alias=` kwarg is rewritten to
+`validation_alias=AliasChoices(snake, original), serialization_alias=original`
+so payloads can be sent or received under either name.
 """
 
 from __future__ import annotations
@@ -27,6 +34,8 @@ from datamodel_code_generator import generate as dmcg_generate
 from datamodel_code_generator.format import Formatter
 
 from okapipy.generator.errors import GenerationError
+from okapipy.generator.inline_schemas import flatten_inline_schemas
+from okapipy.parser.loader import load_spec
 
 DEFAULT_MODEL_TEMPLATES_DIR = Path(__file__).parent / "templates" / "model"
 
@@ -58,7 +67,8 @@ def emit_models(
     """
     py_version = _python_version(python_version)
     templates_dir = (
-        model_templates_dir if model_templates_dir is not None
+        model_templates_dir
+        if model_templates_dir is not None
         else DEFAULT_MODEL_TEMPLATES_DIR
     )
     with TemporaryDirectory() as tmp_str:
@@ -72,14 +82,20 @@ def emit_models(
                 output=out_path,
                 output_model_type=DataModelType.PydanticV2BaseModel,
                 target_python_version=py_version,
-                use_standard_collections=True,
+                use_double_quotes=True,
                 use_union_operator=True,
+                use_generic_container_types=True,
+                field_constraints=True,
+                allow_extra_fields=True,
+                force_optional_for_required_fields=True,
+                snake_case_field=True,
                 custom_template_dir=templates_dir,
                 additional_imports=[
                     "pydantic.ConfigDict",
                     "pydantic.AliasChoices",
                     "pydantic.Field",
                 ],
+                disable_timestamp=True,
                 formatters=[Formatter.RUFF_FORMAT, Formatter.RUFF_CHECK],
             )
         except Exception as exc:  # dmcg surfaces a wide error set
@@ -142,32 +158,37 @@ def _run_ruff(args: list[str], stdin: str) -> str:
     except FileNotFoundError as exc:
         raise GenerationError("ruff is not installed") from exc
     if result.returncode != 0:
-        raise GenerationError(
-            f"ruff {args[0]} rejected dmcg output:\n{result.stderr}"
-        )
+        raise GenerationError(f"ruff {args[0]} rejected dmcg output:\n{result.stderr}")
     return result.stdout
 
 
 def _materialize_spec(raw_spec: dict[str, Any] | str | Path, tmp: Path) -> Path:
-    """Return a filesystem path for `raw_spec`, writing it to `tmp` if needed."""
-    if isinstance(raw_spec, Path):
-        return raw_spec
-    if isinstance(raw_spec, str):
-        # CLI passes the source argument verbatim — could be a URL or a path. dmcg
-        # handles URLs natively when given as a path-like, so a `Path(...)` is fine
-        # even for URL strings as long as we don't try to read locally.
-        if raw_spec.startswith(("http://", "https://")):
-            return Path(raw_spec)
-        local = Path(raw_spec)
-        if local.exists():
-            return local
-        # Fallback: treat the string as JSON content.
-        target = tmp / "openapi.json"
-        target.write_text(raw_spec, encoding="utf-8")
-        return target
+    """Load `raw_spec`, run inline-schema flattening, and write the result to `tmp`.
+
+    Always returns a path under `tmp` so dmcg consumes the preprocessed spec rather
+    than the original. URL-string sources are loaded via `okapipy.parser.loader` so
+    we can mutate them in-memory before handing off.
+    """
+    spec = _load_to_dict(raw_spec)
+    spec = flatten_inline_schemas(spec)
     target = tmp / "openapi.json"
-    target.write_text(json.dumps(raw_spec), encoding="utf-8")
+    target.write_text(json.dumps(spec), encoding="utf-8")
     return target
+
+
+def _load_to_dict(raw_spec: dict[str, Any] | str | Path) -> dict[str, Any]:
+    """Coerce a path / URL / dict / raw-JSON-string source to an in-memory dict."""
+    if isinstance(raw_spec, dict):
+        return raw_spec
+    if isinstance(raw_spec, Path):
+        return load_spec(raw_spec)
+    if raw_spec.startswith(("http://", "https://")):
+        return load_spec(raw_spec)
+    local = Path(raw_spec)
+    if local.exists():
+        return load_spec(local)
+    parsed: dict[str, Any] = json.loads(raw_spec)
+    return parsed
 
 
 def _python_version(version: str) -> PythonVersion:

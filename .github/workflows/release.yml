@@ -1,0 +1,74 @@
+name: Release
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  checks:
+    name: Lint, type-check, test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up uv with Python 3.13
+        uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.13"
+          enable-cache: true
+
+      - name: Install dependencies
+        run: uv sync --locked
+
+      - name: Cache spaCy model
+        uses: actions/cache@v4
+        with:
+          path: .spacy
+          key: spacy-en_core_web_sm-${{ runner.os }}
+
+      - name: Pre-download spaCy model
+        run: uv run okapipy nlp fetch en
+
+      - name: Lint
+        run: uv run ruff check src tests
+
+      - name: Format check
+        run: uv run ruff format --check src tests
+
+      - name: Type-check
+        run: uv run mypy src tests
+
+      - name: Run tests
+        run: uv run pytest
+
+  publish:
+    name: Build and publish to PyPI
+    needs: checks
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up uv with Python 3.13
+        uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.13"
+
+      - name: Resolve version from release tag
+        id: version
+        run: |
+          tag="${GITHUB_REF_NAME}"
+          version="${tag#v}"
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+
+      - name: Pin pyproject.toml to release version
+        run: uv version --frozen "${{ steps.version.outputs.version }}"
+
+      - name: Build sdist and wheel
+        run: uv build
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1

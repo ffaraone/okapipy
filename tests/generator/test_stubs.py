@@ -59,7 +59,9 @@ def test_namespace_stub_emitted(stubs_vfs) -> None:
 
     assert ns_stub.one_shot is True
     assert "class CommerceNamespace(CommerceNamespaceBase):" in ns_stub.content
-    assert "class AsyncCommerceNamespace(AsyncCommerceNamespaceBase):" in ns_stub.content
+    assert (
+        "class AsyncCommerceNamespace(AsyncCommerceNamespaceBase):" in ns_stub.content
+    )
 
 
 def test_collection_stub_emitted(stubs_vfs) -> None:
@@ -135,7 +137,11 @@ def test_user_subclass_is_on_the_wire_by_default(tmp_path: Path) -> None:
     out = tmp_path / "out"
     api = parse(FIXTURE)
     vfs = generate(
-        api, raw_spec=FIXTURE, output_dir=out, package=package, client_class="AutoClient",
+        api,
+        raw_spec=FIXTURE,
+        output_dir=out,
+        package=package,
+        client_class="AutoClient",
     )
     write_to_disk(vfs, out)
     sys.path.insert(0, str(out / "src"))
@@ -203,7 +209,11 @@ def test_write_to_disk_skips_existing_one_shot_files(tmp_path: Path) -> None:
 
     # First generation: write everything.
     vfs1 = generate(
-        api, raw_spec=FIXTURE, output_dir=out, package="rerun", client_class="Rerun",
+        api,
+        raw_spec=FIXTURE,
+        output_dir=out,
+        package="rerun",
+        client_class="Rerun",
     )
     write_to_disk(vfs1, out)
 
@@ -214,7 +224,11 @@ def test_write_to_disk_skips_existing_one_shot_files(tmp_path: Path) -> None:
 
     # Second generation: re-run.
     vfs2 = generate(
-        api, raw_spec=FIXTURE, output_dir=out, package="rerun", client_class="Rerun",
+        api,
+        raw_spec=FIXTURE,
+        output_dir=out,
+        package="rerun",
+        client_class="Rerun",
     )
     write_to_disk(vfs2, out)
 
@@ -228,7 +242,11 @@ def test_write_to_disk_overwrites_base_files(tmp_path: Path) -> None:
     out = tmp_path / "out"
 
     vfs1 = generate(
-        api, raw_spec=FIXTURE, output_dir=out, package="rerun2", client_class="Rerun2",
+        api,
+        raw_spec=FIXTURE,
+        output_dir=out,
+        package="rerun2",
+        client_class="Rerun2",
     )
     write_to_disk(vfs1, out)
 
@@ -236,7 +254,11 @@ def test_write_to_disk_overwrites_base_files(tmp_path: Path) -> None:
     base_file.write_text("# stale", encoding="utf-8")
 
     vfs2 = generate(
-        api, raw_spec=FIXTURE, output_dir=out, package="rerun2", client_class="Rerun2",
+        api,
+        raw_spec=FIXTURE,
+        output_dir=out,
+        package="rerun2",
+        client_class="Rerun2",
     )
     write_to_disk(vfs2, out)
 
@@ -254,7 +276,11 @@ def test_user_subclass_is_a_runtime_drop_in(tmp_path: Path) -> None:
     out = tmp_path / "out"
     api = parse(FIXTURE)
     vfs = generate(
-        api, raw_spec=FIXTURE, output_dir=out, package=package, client_class="DropClient",
+        api,
+        raw_spec=FIXTURE,
+        output_dir=out,
+        package=package,
+        client_class="DropClient",
     )
     write_to_disk(vfs, out)
     sys.path.insert(0, str(out / "src"))
@@ -291,7 +317,11 @@ def test_new_collection_added_between_runs_creates_new_stub(tmp_path: Path) -> N
     simple = Path(__file__).resolve().parent.parent / "fixtures" / "simple.yaml"
     api1 = parse(simple)
     vfs1 = generate(
-        api1, raw_spec=simple, output_dir=out, package=package, client_class="GrowClient",
+        api1,
+        raw_spec=simple,
+        output_dir=out,
+        package=package,
+        client_class="GrowClient",
     )
     write_to_disk(vfs1, out)
 
@@ -300,7 +330,11 @@ def test_new_collection_added_between_runs_creates_new_stub(tmp_path: Path) -> N
     # Second generation: switch to the nested fixture (more collections).
     api2 = parse(FIXTURE)
     vfs2 = generate(
-        api2, raw_spec=FIXTURE, output_dir=out, package=package, client_class="GrowClient",
+        api2,
+        raw_spec=FIXTURE,
+        output_dir=out,
+        package=package,
+        client_class="GrowClient",
     )
     write_to_disk(vfs2, out)
 

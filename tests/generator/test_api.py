@@ -11,7 +11,7 @@ from okapipy.parser.model import APIModel
 FIXTURE = Path(__file__).resolve().parent.parent / "fixtures" / "simple.yaml"
 
 
-def _generate_skeleton(tmp_path: Path) -> dict[str, str]:
+def _generate_skeleton(tmp_path: Path) -> dict[str, GeneratedFile]:
     """Helper: render the full skeleton against an empty APIModel + a real spec.
 
     `raw_spec` must be a real OpenAPI document because Phase 4 invokes

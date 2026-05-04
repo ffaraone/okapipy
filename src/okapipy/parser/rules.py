@@ -29,9 +29,7 @@ class OperationRules(BaseModel):
     model_config = ConfigDict(populate_by_name=True, extra="ignore")
 
     x_okapipy_kind: str | None = Field(default=None, alias="x-okapipy-kind")
-    x_okapipy_paginated: bool | None = Field(
-        default=None, alias="x-okapipy-paginated"
-    )
+    x_okapipy_paginated: bool | None = Field(default=None, alias="x-okapipy-paginated")
 
 
 class PathRules(BaseModel):
@@ -43,9 +41,7 @@ class PathRules(BaseModel):
     x_okapipy_exclude: str | list[str] | None = Field(
         default=None, alias="x-okapipy-exclude"
     )
-    x_okapipy_paginated: bool | None = Field(
-        default=None, alias="x-okapipy-paginated"
-    )
+    x_okapipy_paginated: bool | None = Field(default=None, alias="x-okapipy-paginated")
     get: OperationRules | None = None
     post: OperationRules | None = None
     put: OperationRules | None = None
@@ -164,7 +160,9 @@ def _parse_text(text: str, path: Path) -> dict[str, Any]:
         try:
             data = yaml.safe_load(text)
         except yaml.YAMLError as exc:
-            raise RulesFormatError(f"rules at {path} is not valid JSON or YAML: {exc}") from exc
+            raise RulesFormatError(
+                f"rules at {path} is not valid JSON or YAML: {exc}"
+            ) from exc
     if not isinstance(data, dict):
         raise RulesFormatError(f"rules at {path} must be a mapping at the root")
     return data

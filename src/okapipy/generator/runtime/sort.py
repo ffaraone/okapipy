@@ -46,9 +46,7 @@ class Sort:
         return result
 
     def __repr__(self) -> str:
-        rendered = ", ".join(
-            f"{'-' if d == 'desc' else ''}{f}" for f, d in self.terms
-        )
+        rendered = ", ".join(f"{'-' if d == 'desc' else ''}{f}" for f, d in self.terms)
         return f"Sort({rendered})"
 
     def __bool__(self) -> bool:

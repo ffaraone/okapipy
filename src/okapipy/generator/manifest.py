@@ -24,12 +24,31 @@ from __future__ import annotations
 import json
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
+from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from okapipy.parser.model import APIModel, Collection, Namespace, Resource
 
-GENERATOR_VERSION = "0.1.0"
-"""Version string written into every manifest. Bump on schema changes."""
+if TYPE_CHECKING:
+    from okapipy.generator.emit.stubs import _ChildWiring
+
+
+def _generator_version() -> str:
+    """Return the installed okapipy version, falling back to `0.0.0+unknown`.
+
+    Resolved at import time from package metadata so the manifest always carries
+    the version of the okapipy that produced it. The fallback covers running
+    against a source tree that hasn't been installed (e.g. some packaging tests).
+    """
+    try:
+        return version("okapipy")
+    except PackageNotFoundError:
+        return "0.0.0+unknown"
+
+
+GENERATOR_VERSION = _generator_version()
+"""Version string written into every manifest. Sourced from package metadata."""
 
 MANIFEST_FILENAME = "_manifest.json"
 """Filename inside `<package>/base/` where the manifest is stored."""
@@ -128,7 +147,11 @@ def read_from_disk(manifest_path: Path) -> Manifest | None:
         return None
 
 
-def _edge_from_wiring(parent_module: str, wiring, package: str) -> Edge:
+def _edge_from_wiring(
+    parent_module: str,
+    wiring: _ChildWiring,
+    package: str,
+) -> Edge:
     """Translate a `_ChildWiring` into a manifest `Edge`.
 
     Strips the dotted `package.` prefix from `user_module_path` and converts

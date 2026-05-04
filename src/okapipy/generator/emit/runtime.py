@@ -51,7 +51,9 @@ def emit_runtime(
     for name in RUNTIME_FILES:
         source = (runtime_root / name).read_text(encoding="utf-8")
         out[f"src/{package_path}/base/{name}"] = BANNER + source
-    init_text = _runtime_init(client_class, extra_imports or [], extra_public_names or [])
+    init_text = _runtime_init(
+        client_class, extra_imports or [], extra_public_names or []
+    )
     out[f"src/{package_path}/base/__init__.py"] = _polish(init_text)
     return out
 
@@ -78,7 +80,9 @@ def _run_ruff(args: list[str], stdin: str) -> str:
     except FileNotFoundError as exc:
         raise GenerationError("ruff is not installed") from exc
     if result.returncode != 0:
-        raise GenerationError(f"ruff {args[0]} rejected runtime __init__.py:\n{result.stderr}")
+        raise GenerationError(
+            f"ruff {args[0]} rejected runtime __init__.py:\n{result.stderr}"
+        )
     return result.stdout
 
 

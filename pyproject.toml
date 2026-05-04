@@ -98,6 +98,8 @@ max-line-length = 100
 [tool.mypy]
 warn_no_return = false
 ignore_missing_imports = true
+explicit_package_bases = true
+mypy_path = "src"
 cache_dir = ".cache/mypy"
 plugins = ["pydantic.mypy"]
 
@@ -108,3 +110,21 @@ strict = true
 [[tool.mypy.overrides]]
 module = "okapipy.generator.*"
 strict = true
+
+[[tool.mypy.overrides]]
+module = ["tests.*"]
+disallow_untyped_defs = false
+disallow_any_generics = false
+disallow_untyped_calls = false
+disallow_incomplete_defs = false
+warn_return_any = false
+
+[tool.bandit]
+exclude_dirs = [
+    ".venv",
+    ".cache",
+    ".spacy",
+    "dist",
+    "htmlcov",
+    "tests",
+]

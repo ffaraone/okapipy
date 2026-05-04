@@ -56,5 +56,7 @@ def emit_client(
         "top_collections": top_collections,
     }
     return {
-        f"src/{package_path}/base/client.py": render_python(env, "package/client.py.jinja", ctx),
+        f"src/{package_path}/base/client.py": render_python(
+            env, "package/client.py.jinja", ctx
+        ),
     }

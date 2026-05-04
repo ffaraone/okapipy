@@ -6,6 +6,7 @@ import asyncio
 import importlib
 import sys
 from pathlib import Path
+from typing import Any
 
 import httpx
 import pytest
@@ -110,7 +111,7 @@ def test_async_count_returns_envelope_total(async_client_module) -> None:
 def test_async_resource_retrieve(async_client_module) -> None:
     """`async with client: ...; await client.orders[id].retrieve()` works."""
 
-    async def run() -> dict:
+    async def run() -> Any:
         transport = httpx.MockTransport(
             lambda r: httpx.Response(200, json={"id": "42", "total": 99.99}),
         )

@@ -47,7 +47,9 @@ class RetryTransport(httpx.BaseTransport):
     ) -> None:
         self.wrapped = wrapped
         self.policy = policy
-        self._sleep: Callable[[float], None] = sleep if sleep is not None else time.sleep
+        self._sleep: Callable[[float], None] = (
+            sleep if sleep is not None else time.sleep
+        )
 
     def handle_request(self, request: httpx.Request) -> httpx.Response:
         if request.method.upper() != "GET" or self.policy.total <= 0:

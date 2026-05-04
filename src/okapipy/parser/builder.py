@@ -318,7 +318,9 @@ def _attach(
                 f"resource id {segment!r} must follow a collection, found {type(cursor).__name__}"
             )
         if cursor.resource is None:
-            resource_name = "".join(breadcrumb) if breadcrumb else _pascal_case(cursor.name)
+            resource_name = (
+                "".join(breadcrumb) if breadcrumb else _pascal_case(cursor.name)
+            )
             cursor.resource = Resource(name=resource_name, path=cumulative_path)
         return cursor.resource, breadcrumb
     if kind is SegmentKind.ACTION:
@@ -498,7 +500,9 @@ def _build_operation(
     summary = op_data.get("summary")
     description = op_data.get("description")
     request_content_type, request_model = _request_info(op_data)
-    response_content_type, response_model, item_model, response_headers = _response_info(op_data)
+    response_content_type, response_model, item_model, response_headers = (
+        _response_info(op_data)
+    )
     return Operation(
         method=method.upper(),
         summary=summary if isinstance(summary, str) else None,
@@ -555,7 +559,12 @@ def _response_info(
     content_type = next(iter(content))
     entry = content.get(content_type)
     schema = entry.get("schema") if isinstance(entry, dict) else None
-    return content_type, _name_from_schema(schema), _item_name_from_schema(schema), headers
+    return (
+        content_type,
+        _name_from_schema(schema),
+        _item_name_from_schema(schema),
+        headers,
+    )
 
 
 _ENVELOPE_DATA_KEYS = ("items", "data", "results", "records", "entries")
