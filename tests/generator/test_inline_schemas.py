@@ -63,7 +63,9 @@ def test_structurally_identical_inline_schemas_collapse_to_one_component() -> No
     schemas = flat["components"]["schemas"]
     assert sum(1 for k in schemas if k.lower().startswith("by")) == 1
     for parent in ("Created", "Updated", "Deleted"):
-        assert schemas[parent]["properties"]["by"] == {"$ref": "#/components/schemas/By"}
+        assert schemas[parent]["properties"]["by"] == {
+            "$ref": "#/components/schemas/By"
+        }
 
 
 def test_title_wins_over_breadcrumb_for_extracted_name() -> None:
@@ -108,7 +110,10 @@ def test_distinct_shapes_with_same_property_name_get_qualified_names() -> None:
                 "properties": {
                     "by": {
                         "type": "object",
-                        "properties": {"id": {"type": "string"}, "ip": {"type": "string"}},
+                        "properties": {
+                            "id": {"type": "string"},
+                            "ip": {"type": "string"},
+                        },
                     },
                 },
             },
@@ -148,8 +153,13 @@ def test_inline_enum_is_hoisted_to_named_component() -> None:
     flat = flatten_inline_schemas(spec)
 
     schemas = flat["components"]["schemas"]
-    assert schemas["Owner"]["properties"]["kind"] == schemas["Reviewer"]["properties"]["kind"]
-    assert schemas["Owner"]["properties"]["kind"]["$ref"].startswith("#/components/schemas/")
+    assert (
+        schemas["Owner"]["properties"]["kind"]
+        == schemas["Reviewer"]["properties"]["kind"]
+    )
+    assert schemas["Owner"]["properties"]["kind"]["$ref"].startswith(
+        "#/components/schemas/"
+    )
 
 
 def test_existing_top_level_components_are_left_alone() -> None:
@@ -206,9 +216,9 @@ def test_request_body_inline_object_is_extracted() -> None:
 
     flat = flatten_inline_schemas(spec)
 
-    body_schema = flat["paths"]["/widgets"]["post"]["requestBody"]["content"]["application/json"][
-        "schema"
-    ]
+    body_schema = flat["paths"]["/widgets"]["post"]["requestBody"]["content"][
+        "application/json"
+    ]["schema"]
     assert body_schema == {"$ref": "#/components/schemas/WidgetCreate"}
     assert flat["components"]["schemas"]["WidgetCreate"]["properties"] == {
         "name": {"type": "string"},
@@ -367,5 +377,5 @@ def test_collision_across_distinct_shapes_falls_back_to_hash_suffix() -> None:
     new_ref = flat["components"]["schemas"]["Audit"]["properties"]["by"]["$ref"]
     name = new_ref.rsplit("/", 1)[-1]
     assert name not in {"By", "AuditBy"}
-    # Hash suffix format: <Base>_<8 hex chars>
-    assert "_" in name and len(name.rsplit("_", 1)[-1]) == 8
+    assert "_" in name
+    assert len(name.rsplit("_", 1)[-1]) == 8

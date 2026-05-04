@@ -67,7 +67,8 @@ def emit_models(
     """
     py_version = _python_version(python_version)
     templates_dir = (
-        model_templates_dir if model_templates_dir is not None
+        model_templates_dir
+        if model_templates_dir is not None
         else DEFAULT_MODEL_TEMPLATES_DIR
     )
     with TemporaryDirectory() as tmp_str:
@@ -156,9 +157,7 @@ def _run_ruff(args: list[str], stdin: str) -> str:
     except FileNotFoundError as exc:
         raise GenerationError("ruff is not installed") from exc
     if result.returncode != 0:
-        raise GenerationError(
-            f"ruff {args[0]} rejected dmcg output:\n{result.stderr}"
-        )
+        raise GenerationError(f"ruff {args[0]} rejected dmcg output:\n{result.stderr}")
     return result.stdout
 
 

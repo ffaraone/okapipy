@@ -185,13 +185,17 @@ def _walk_schema(
     if isinstance(properties, dict):
         for pname, pschema in properties.items():
             if isinstance(pschema, dict):
-                yield from _maybe_extract(properties, pname, pschema, breadcrumb + (pname,))
+                yield from _maybe_extract(
+                    properties, pname, pschema, breadcrumb + (pname,)
+                )
     items = schema.get("items")
     if isinstance(items, dict):
         yield from _maybe_extract(schema, "items", items, breadcrumb)
     additional = schema.get("additionalProperties")
     if isinstance(additional, dict):
-        yield from _maybe_extract(schema, "additionalProperties", additional, breadcrumb)
+        yield from _maybe_extract(
+            schema, "additionalProperties", additional, breadcrumb
+        )
     for comp_key in ("allOf", "oneOf", "anyOf"):
         members = schema.get(comp_key)
         if isinstance(members, list):

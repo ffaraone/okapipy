@@ -172,26 +172,13 @@ bandit.json
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 .idea/
 
-# vscode
-.devcontainer/
-
-# Postgres data
-pg_data/
-test_pg_data/
-
-# Default OpenAPI spec file
-ffc_operations_openapi_spec.yml
-
-# local dev tools configs
-taplo.toml
 
 # MacOS
 .DS_Store
 
-.identity
-.ziti-home
 
 # Ignore dynaconf secret files
 .secrets.*
 
-snapshot_report.html
+# Language files
+.spacy/
