@@ -4,9 +4,13 @@ Writes the raw OpenAPI spec to a temp directory, invokes dmcg with
 `output_model_type=PydanticV2BaseModel`, and reads the resulting `models.py`
 back into the virtual FS. The user-supplied `model_templates_dir` is forwarded
 to dmcg as `custom_template_dir`; when omitted, the bundled relaxed templates
-under `templates/model/` are used (every field becomes optional with `= None`,
-`extra="allow"`, `populate_by_name=True`) so generated clients tolerate API
-responses that diverge from the spec.
+under `templates/model/` are used: every field is forced optional (`| None`),
+`extra="allow"` and `populate_by_name=True`, and the dmcg-generated `Field(...)`
+call is preserved verbatim so spec-level constraints (`max_length`, `pattern`,
+…) and metadata (`title`, `description`, `examples`) survive. When a field has
+an alias from `snake_case_field=True`, the bare `alias=` kwarg is rewritten to
+`validation_alias=AliasChoices(snake, original), serialization_alias=original`
+so payloads can be sent or received under either name.
 """
 
 from __future__ import annotations
@@ -72,8 +76,13 @@ def emit_models(
                 output=out_path,
                 output_model_type=DataModelType.PydanticV2BaseModel,
                 target_python_version=py_version,
-                use_standard_collections=True,
+                use_double_quotes=True,
                 use_union_operator=True,
+                use_generic_container_types=True,
+                field_constraints=True,
+                allow_extra_fields=True,
+                force_optional_for_required_fields=True,
+                snake_case_field=True,
                 custom_template_dir=templates_dir,
                 additional_imports=[
                     "pydantic.ConfigDict",
