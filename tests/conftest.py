@@ -57,6 +57,18 @@ def pagination_spec_path(fixtures_dir: Path) -> Path:
     return fixtures_dir / "pagination.yaml"
 
 
+@pytest.fixture
+def root_actions_spec_path(fixtures_dir: Path) -> Path:
+    """Path to a spec with verb endpoints at the root and under a namespace."""
+    return fixtures_dir / "root_actions.yaml"
+
+
+@pytest.fixture
+def singletons_spec_path(fixtures_dir: Path) -> Path:
+    """Path to a spec with root, namespace, and resource-level singletons."""
+    return fixtures_dir / "singletons.yaml"
+
+
 @pytest.fixture(scope="session")
 def english_nlp() -> Language:
     """A loaded English spaCy pipeline reused across tests for speed."""

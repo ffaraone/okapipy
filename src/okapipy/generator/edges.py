@@ -24,14 +24,16 @@ from okapipy.generator.emit.stubs import (
     collection_wirings,
     namespace_wirings,
     resource_wirings,
+    singleton_wirings,
 )
 from okapipy.generator.emit.walk import (
     collection_module,
     namespace_module,
     resource_module,
+    singleton_module,
 )
 from okapipy.generator.manifest import GENERATOR_VERSION, Edge, Manifest
-from okapipy.parser.model import APIModel, Collection, Namespace, Resource
+from okapipy.parser.model import APIModel, Collection, Namespace, Resource, Singleton
 
 
 def compute_manifest(
@@ -62,6 +64,8 @@ def compute_edges(api: APIModel, package: str) -> list[Edge]:
         walk_namespace(ns, out, package)
     for coll in api.collections:
         walk_collection(coll, out, package)
+    for sing in api.singletons:
+        walk_singleton(sing, out, package)
     return out
 
 
@@ -94,6 +98,8 @@ def walk_namespace(ns: Namespace, out: list[Edge], package: str) -> None:
         walk_namespace(child, out, package)
     for coll in ns.collections:
         walk_collection(coll, out, package)
+    for sing in ns.singletons:
+        walk_singleton(sing, out, package)
 
 
 def walk_collection(coll: Collection, out: list[Edge], package: str) -> None:
@@ -112,3 +118,16 @@ def walk_resource(resource: Resource, out: list[Edge], package: str) -> None:
         out.append(edge_from_wiring(parent_module, w, package))
     for coll in resource.collections:
         walk_collection(coll, out, package)
+    for sing in resource.singletons:
+        walk_singleton(sing, out, package)
+
+
+def walk_singleton(singleton: Singleton, out: list[Edge], package: str) -> None:
+    """Recurse through a singleton, recording outgoing edges."""
+    parent_module = f"singletons/{singleton_module(singleton)}.py"
+    for w in singleton_wirings(singleton, package):
+        out.append(edge_from_wiring(parent_module, w, package))
+    for coll in singleton.collections:
+        walk_collection(coll, out, package)
+    for sub in singleton.singletons:
+        walk_singleton(sub, out, package)

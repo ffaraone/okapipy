@@ -114,3 +114,21 @@ def test_load_rules_rejects_unknown_per_method_hint(tmp_path: Path) -> None:
 
     with pytest.raises(RulesFormatError, match="post"):
         load_rules(target)
+
+
+def test_load_rules_accepts_singleton_hint(tmp_path: Path) -> None:
+    """`singleton` is a legal `x-okapipy-kind` value at both path and operation level."""
+    target = tmp_path / "rules.yaml"
+    target.write_text(
+        "paths:\n"
+        "  /me:\n"
+        "    x-okapipy-kind: singleton\n"
+        "  /users/{id}/avatar:\n"
+        "    get:\n"
+        "      x-okapipy-kind: singleton\n"
+    )
+
+    rules = load_rules(target)
+
+    assert path_item_hint(rules, "/me") == "singleton"
+    assert operation_hint(rules, "/users/{id}/avatar", "GET") == "singleton"

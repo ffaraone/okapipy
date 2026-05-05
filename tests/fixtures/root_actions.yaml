@@ -1,0 +1,68 @@
+openapi: 3.0.0
+info:
+  title: Root Actions API
+  version: 1.0.0
+x-okapipy-ns:
+  - auth
+paths:
+  /login:
+    post:
+      summary: Authenticate and obtain a token
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+  /logout:
+    post:
+      summary: Invalidate the current session
+      responses:
+        '204':
+          description: No Content
+  /password-reset:
+    post:
+      summary: Trigger a password reset email
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasswordResetRequest'
+      responses:
+        '202':
+          description: Accepted
+  /auth/refresh:
+    post:
+      summary: Refresh an existing token
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+components:
+  schemas:
+    LoginRequest:
+      type: object
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+    LoginResponse:
+      type: object
+      properties:
+        token:
+          type: string
+    PasswordResetRequest:
+      type: object
+      properties:
+        email:
+          type: string

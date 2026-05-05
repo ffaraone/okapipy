@@ -33,6 +33,7 @@ from okapipy.parser.model import (
     Namespace,
     Operation,
     Resource,
+    Singleton,
 )
 from okapipy.parser.nlp import analyze_segment, lemma_in_context
 from okapipy.parser.rules import (
@@ -53,7 +54,7 @@ HTTP_METHODS = ("get", "post", "put", "patch", "delete")
 
 EXCLUDE_ALL = "*"
 
-type ContainerNode = APIModel | Namespace | Collection | Resource | Action
+type ContainerNode = APIModel | Namespace | Collection | Resource | Singleton | Action
 
 
 def build(
@@ -87,10 +88,12 @@ def build(
     base = strip_prefix if strip_prefix is not None else detect_base_path(spec)
     paths = strip_base_path(paths_obj, base)
     ns_registry = root_namespaces(spec) | extra_namespaces(rules)
+    spec_path_kinds = _collect_spec_path_kinds(paths)
     log.debug(
-        "builder starting: %d paths, %d namespace hints, base=%r",
+        "builder starting: %d paths, %d namespace hints, %d path-kind hints, base=%r",
         len(paths),
         len(ns_registry),
+        len(spec_path_kinds),
         base,
     )
     for path, path_item in paths.items():
@@ -110,11 +113,32 @@ def build(
                 rules=rules,
                 nlp=nlp,
                 ns_registry=ns_registry,
+                spec_path_kinds=spec_path_kinds,
                 excluded_methods=excluded_methods,
             )
         except InvalidStructureError as exc:
             log.warning("skipping path %s: %s", path, exc)
     return api
+
+
+def _collect_spec_path_kinds(paths: dict[str, dict[str, Any]]) -> dict[str, str]:
+    """Index path-item-level `x-okapipy-kind` hints by cumulative path.
+
+    Keyed by the path **without** a leading slash, matching the cumulative-path
+    form the classifier compares against. The map propagates a path-item-level
+    hint (e.g. `x-okapipy-kind: singleton` on `/me`) to every other path that
+    walks through the same prefix (e.g. `/me/refresh`), so intermediate
+    segments resolve to the right kind.
+    """
+    collected: dict[str, str] = {}
+    for raw_path, path_item in paths.items():
+        if not isinstance(path_item, dict):
+            continue
+        hint = path_item_extension(path_item)
+        if hint is None:
+            continue
+        collected[raw_path.lstrip("/")] = hint
+    return collected
 
 
 def _all_operations_deprecated(
@@ -218,6 +242,7 @@ def _walk_path(
     rules: Rules,
     nlp: Language,
     ns_registry: set[str],
+    spec_path_kinds: dict[str, str],
     excluded_methods: set[str],
 ) -> None:
     """Walk a single OpenAPI path and attach its operations to the tree."""
@@ -246,7 +271,10 @@ def _walk_path(
         if is_last:
             hint = full_path_hint
         else:
-            hint = path_item_hint(rules, "/" + cumulative_path)
+            hint = _merge_hint(
+                path_item_hint(rules, "/" + cumulative_path),
+                spec_path_kinds.get(cumulative_path),
+            )
         kind = classify_segment(
             segment=segment,
             cumulative_path=cumulative_path,
@@ -323,12 +351,21 @@ def _attach(
             )
             cursor.resource = Resource(name=resource_name, path=cumulative_path)
         return cursor.resource, breadcrumb
-    if kind is SegmentKind.ACTION:
-        if isinstance(cursor, (APIModel, Namespace)):
+    if kind is SegmentKind.SINGLETON:
+        if not isinstance(cursor, (APIModel, Namespace, Resource, Singleton)):
             raise InvalidStructureError(
-                f"action {segment!r} cannot live directly under a namespace at {cumulative_path!r}"
+                f"singleton {segment!r} cannot be attached under {type(cursor).__name__}"
             )
-        if not isinstance(cursor, (Collection, Resource)):
+        name = contextual_name(breadcrumb, segment)
+        existing_sing = next((s for s in cursor.singletons if s.name == name), None)
+        if existing_sing is None:
+            existing_sing = Singleton(name=name, path=cumulative_path)
+            cursor.singletons.append(existing_sing)
+        return existing_sing, breadcrumb
+    if kind is SegmentKind.ACTION:
+        if not isinstance(
+            cursor, (APIModel, Namespace, Collection, Resource, Singleton)
+        ):
             raise InvalidStructureError(
                 f"action {segment!r} cannot be attached under {type(cursor).__name__}"
             )
@@ -416,10 +453,14 @@ def _route(
 ) -> None:
     """Place a single Operation on the terminal node based on its kind and method."""
     if isinstance(cursor, (APIModel, Namespace)):
-        raise InvalidStructureError(
-            f"cannot attach {method.upper()} to namespace at {action_path!r}; "
-            "namespace-level actions are not allowed"
+        log.warning(
+            "skipping %s %s: a bare namespace path has no operation slot. "
+            "Mark it with x-okapipy-kind to expose it as a collection, singleton, "
+            "or action.",
+            method.upper(),
+            action_path,
         )
+        return
     if terminal_kind is SegmentKind.ACTION and isinstance(cursor, Action):
         cursor.operations.append(operation)
         return
@@ -441,7 +482,7 @@ def _route(
                 cursor.name,
             )
         return
-    if isinstance(cursor, Resource):
+    if isinstance(cursor, (Resource, Singleton)):
         if is_action_method:
             _attach_synthetic_action(cursor, action_path, operation)
             return
@@ -454,18 +495,21 @@ def _route(
         elif method == "delete":
             cursor.delete = operation
         else:
+            kind_label = "resource" if isinstance(cursor, Resource) else "singleton"
             log.warning(
-                "skipping %s %s: method has no canonical slot on resource %r and "
-                "the operation does not fit the namespace/collection/resource/action "
-                "hierarchy. Mark it with x-okapipy-kind: action to keep it.",
+                "skipping %s %s: method has no canonical slot on %s %r and "
+                "the operation does not fit the namespace/collection/resource/"
+                "singleton/action hierarchy. Mark it with x-okapipy-kind: action "
+                "to keep it.",
                 method.upper(),
                 action_path,
+                kind_label,
                 cursor.name,
             )
 
 
 def _attach_synthetic_action(
-    parent: Collection | Resource,
+    parent: Collection | Resource | Singleton,
     path: str,
     operation: Operation,
 ) -> None:

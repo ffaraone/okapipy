@@ -25,6 +25,7 @@ import json
 import re
 from collections.abc import Iterator
 from dataclasses import dataclass
+from datetime import date, datetime
 from typing import Any
 
 _HTTP_METHODS = ("get", "post", "put", "patch", "delete", "head", "options", "trace")
@@ -224,9 +225,29 @@ def _is_extractable(schema: dict[str, Any]) -> bool:
 
 
 def _structural_hash(schema: dict[str, Any]) -> str:
-    """SHA-256 over canonical JSON of the schema. Used to dedupe identical shapes."""
-    canonical = json.dumps(schema, sort_keys=True, separators=(",", ":"))
+    """SHA-256 over canonical JSON of the schema. Used to dedupe identical shapes.
+
+    Falls back to ISO strings for `datetime.date` / `datetime.datetime` values
+    that PyYAML's `safe_load` produces from ISO literals in the spec — JSON has
+    no native date type, so OpenAPI represents these as strings on the wire
+    anyway.
+    """
+    canonical = json.dumps(
+        schema, sort_keys=True, separators=(",", ":"), default=_hash_default
+    )
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
+def _hash_default(value: object) -> str:
+    """JSON `default` hook covering YAML-parsed date / datetime scalars."""
+    if isinstance(value, datetime):
+        return value.isoformat()
+    if isinstance(value, date):
+        return value.isoformat()
+    raise TypeError(
+        f"schema contains a value of type {type(value).__name__} "
+        "that cannot be encoded as JSON"
+    )
 
 
 def _choose_name(group: list[_Occurrence], digest: str, used: set[str]) -> str:

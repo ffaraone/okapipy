@@ -6,10 +6,10 @@ Sync and async client base classes for `{{ project_name }}`.
 from __future__ import annotations
 
 from collections.abc import Mapping
-{% if top_namespaces %}
+{% if top_namespaces or top_singletons %}
 from functools import cached_property
 {% endif %}
-{% if top_namespaces or top_collections %}
+{% if top_namespaces or top_collections or top_singletons or top_actions %}
 from typing import Any, ClassVar, Literal
 {% else %}
 from typing import Any, Literal
@@ -34,6 +34,12 @@ from .namespaces.{{ ns.module }} import {{ ns.class_name }}, Async{{ ns.class_na
 {% for coll in top_collections %}
 from .collections.{{ coll.module }} import {{ coll.class_name }}, Async{{ coll.class_name }}
 {% endfor %}
+{% for sing in top_singletons %}
+from .singletons.{{ sing.module }} import {{ sing.class_name }}, Async{{ sing.class_name }}
+{% endfor %}
+{% for act in top_actions %}
+from .actions.{{ act.module }} import {{ act.class_name }}, Async{{ act.class_name }}
+{% endfor %}
 
 class {{ client_class }}Base:
     """Synchronous client base for `{{ project_name }}`."""
@@ -43,6 +49,12 @@ class {{ client_class }}Base:
 {% endfor %}
 {% for coll in top_collections %}
     {{ coll.factory_attr }}: ClassVar[type[{{ coll.class_name }}]] = {{ coll.class_name }}
+{% endfor %}
+{% for sing in top_singletons %}
+    {{ sing.factory_attr }}: ClassVar[type[{{ sing.class_name }}]] = {{ sing.class_name }}
+{% endfor %}
+{% for act in top_actions %}
+    {{ act.factory_attr }}: ClassVar[type[{{ act.class_name }}]] = {{ act.class_name }}
 {% endfor %}
 
     def __init__(
@@ -138,6 +150,18 @@ class {{ client_class }}Base:
         return self.{{ coll.factory_attr }}(client=self, path_params={})
 
 {% endfor %}
+{% for sing in top_singletons %}
+    @cached_property
+    def {{ sing.attr }}(self) -> {{ sing.class_name }}:
+        return self.{{ sing.factory_attr }}(client=self)
+
+{% endfor %}
+{% for act in top_actions %}
+    @property
+    def {{ act.attr }}(self) -> {{ act.class_name }}:
+        return self.{{ act.factory_attr }}(client=self)
+
+{% endfor %}
 
 
 class Async{{ client_class }}Base:
@@ -148,6 +172,12 @@ class Async{{ client_class }}Base:
 {% endfor %}
 {% for coll in top_collections %}
     {{ coll.factory_attr }}: ClassVar[type[Async{{ coll.class_name }}]] = Async{{ coll.class_name }}
+{% endfor %}
+{% for sing in top_singletons %}
+    {{ sing.factory_attr }}: ClassVar[type[Async{{ sing.class_name }}]] = Async{{ sing.class_name }}
+{% endfor %}
+{% for act in top_actions %}
+    {{ act.factory_attr }}: ClassVar[type[Async{{ act.class_name }}]] = Async{{ act.class_name }}
 {% endfor %}
 
     def __init__(
@@ -239,5 +269,17 @@ class Async{{ client_class }}Base:
     def {{ coll.attr }}(self) -> Async{{ coll.class_name }}:
 {{ coll.docstring }}
         return self.{{ coll.factory_attr }}(client=self, path_params={})
+
+{% endfor %}
+{% for sing in top_singletons %}
+    @cached_property
+    def {{ sing.attr }}(self) -> Async{{ sing.class_name }}:
+        return self.{{ sing.factory_attr }}(client=self)
+
+{% endfor %}
+{% for act in top_actions %}
+    @property
+    def {{ act.attr }}(self) -> Async{{ act.class_name }}:
+        return self.{{ act.factory_attr }}(client=self)
 
 {% endfor %}

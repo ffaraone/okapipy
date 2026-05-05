@@ -18,11 +18,18 @@ log = logging.getLogger(__name__)
 
 
 class SegmentKind(StrEnum):
-    """The four roles a path segment can play in the structural tree."""
+    """The five roles a path segment can play in the structural tree.
+
+    `SINGLETON` is reachable only via an explicit `x-okapipy-kind: singleton`
+    hint (in the spec or rules). NLP cannot reliably distinguish a singleton
+    (`/me`, `/health`) from a singular-noun namespace, so the classifier never
+    derives `SINGLETON` from heuristics.
+    """
 
     NAMESPACE = "namespace"
     COLLECTION = "collection"
     ACTION = "action"
+    SINGLETON = "singleton"
     RESOURCE_ID = "resource_id"
 
 
@@ -45,7 +52,7 @@ def classify_segment(
         nlp: A loaded spaCy pipeline used for POS and morphology.
         ns_registry: The union of namespace paths declared by the spec and rules.
         extension_hint: A pre-merged `x-okapipy-kind` hint with rules precedence; one of
-            the four kind names, or None.
+            the five kind names, or None.
 
     Returns:
         The classified `SegmentKind`.

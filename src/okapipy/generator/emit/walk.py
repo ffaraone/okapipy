@@ -23,6 +23,7 @@ from okapipy.parser.model import (
     Namespace,
     Operation,
     Resource,
+    Singleton,
 )
 
 
@@ -75,6 +76,12 @@ def emit_tree(
         out.update(
             _emit_collection(env, coll, project_context, package_path, available)
         )
+    # Top-level singletons.
+    for sing in api.singletons:
+        out.update(_emit_singleton(env, sing, project_context, package_path, available))
+    # Top-level actions.
+    for action in api.actions:
+        out.update(_emit_action(env, action, project_context, package_path, available))
     return out
 
 
@@ -99,6 +106,20 @@ def emit_root_init_extension(api: APIModel) -> tuple[list[str], list[str]]:
         cls = collection_class(coll)
         import_lines.append(
             f"from .collections.{collection_module(coll)} import {cls}, Async{cls}"
+        )
+        public_names.append(cls)
+        public_names.append(f"Async{cls}")
+    for sing in api.singletons:
+        cls = singleton_class(sing)
+        import_lines.append(
+            f"from .singletons.{singleton_module(sing)} import {cls}, Async{cls}"
+        )
+        public_names.append(cls)
+        public_names.append(f"Async{cls}")
+    for action in api.actions:
+        cls = action_class(action)
+        import_lines.append(
+            f"from .actions.{action_module(action)} import {cls}, Async{cls}"
         )
         public_names.append(cls)
         public_names.append(f"Async{cls}")
@@ -137,11 +158,31 @@ def _emit_namespace(
         )
         for coll in ns.collections
     ]
+    child_singletons: list[_ChildRef] = [
+        _ChildRef(
+            attr=singleton_attr(sing),
+            class_name=singleton_class(sing),
+            module=singleton_module(sing),
+            factory_attr=factory_attr(singleton_attr(sing)),
+        )
+        for sing in ns.singletons
+    ]
+    child_actions: list[_ChildRef] = [
+        _ChildRef(
+            attr=action_attr(action),
+            class_name=action_class(action),
+            module=action_module(action),
+            factory_attr=factory_attr(action_attr(action)),
+        )
+        for action in ns.actions
+    ]
     ctx = {
         **project_context,
         "class_name": namespace_class(ns),
         "child_namespaces": child_namespaces,
         "child_collections": child_collections,
+        "child_singletons": child_singletons,
+        "child_actions": child_actions,
         "class_docstring": build_docstring(
             ns.summary,
             ns.description,
@@ -158,6 +199,14 @@ def _emit_namespace(
     for coll in ns.collections:
         out.update(
             _emit_collection(env, coll, project_context, package_path, available_models)
+        )
+    for sing in ns.singletons:
+        out.update(
+            _emit_singleton(env, sing, project_context, package_path, available_models)
+        )
+    for action in ns.actions:
+        out.update(
+            _emit_action(env, action, project_context, package_path, available_models)
         )
     return out
 
@@ -303,6 +352,15 @@ def _emit_resource(
         )
         for coll in resource.collections
     ]
+    child_singletons = [
+        _ChildRef(
+            attr=singleton_attr(sing),
+            class_name=singleton_class(sing),
+            module=singleton_module(sing),
+            factory_attr=factory_attr(singleton_attr(sing)),
+        )
+        for sing in resource.singletons
+    ]
     actions = [
         _ChildRef(
             attr=action_attr(action),
@@ -312,8 +370,10 @@ def _emit_resource(
         )
         for action in resource.actions
     ]
+    # Resource methods type their `body` parameter as `Any`, so request-model
+    # imports would be unreferenced. Pull only response_model names here.
     model_imports = sorted(
-        _collect_model_names(
+        _collect_response_model_names(
             [
                 resource.retrieve,
                 resource.update,
@@ -339,6 +399,7 @@ def _emit_resource(
         "patch_op": _op_context(resource.partial_update, available_models),
         "delete_op": _op_context(resource.delete, available_models),
         "child_collections": child_collections,
+        "child_singletons": child_singletons,
         "actions": actions,
         "model_imports": model_imports,
         "class_docstring": build_docstring(
@@ -358,11 +419,116 @@ def _emit_resource(
         out.update(
             _emit_collection(env, coll, project_context, package_path, available_models)
         )
+    for sing in resource.singletons:
+        out.update(
+            _emit_singleton(env, sing, project_context, package_path, available_models)
+        )
     for action in resource.actions:
         out.update(
             _emit_action(env, action, project_context, package_path, available_models)
         )
     _ = parent_coll  # parent context kept for future use (e.g. type hints)
+    return out
+
+
+# --------------------------------------------------------------------------- #
+# Singleton                                                                   #
+# --------------------------------------------------------------------------- #
+
+
+def _emit_singleton(
+    env: Environment,
+    singleton: Singleton,
+    project_context: Mapping[str, Any],
+    package_path: str,
+    available_models: set[str] | None,
+) -> dict[str, str]:
+    out: dict[str, str] = {}
+    child_collections = [
+        _ChildRef(
+            attr=collection_attr(coll),
+            class_name=collection_class(coll),
+            module=collection_module(coll),
+            factory_attr=factory_attr(collection_attr(coll)),
+            docstring=collection_property_docstring(coll),
+        )
+        for coll in singleton.collections
+    ]
+    child_singletons = [
+        _ChildRef(
+            attr=singleton_attr(sub),
+            class_name=singleton_class(sub),
+            module=singleton_module(sub),
+            factory_attr=factory_attr(singleton_attr(sub)),
+        )
+        for sub in singleton.singletons
+    ]
+    actions = [
+        _ChildRef(
+            attr=action_attr(action),
+            class_name=action_class(action),
+            module=action_module(action),
+            factory_attr=factory_attr(action_attr(action)),
+        )
+        for action in singleton.actions
+    ]
+    # Singleton methods type their `body` parameter as `Any`, so request-model
+    # imports would be unreferenced. Pull only response_model names here.
+    model_imports = sorted(
+        _collect_response_model_names(
+            [
+                singleton.retrieve,
+                singleton.update,
+                singleton.partial_update,
+                singleton.delete,
+            ],
+            available_models,
+        )
+    )
+
+    def _op_doc(op: Operation | None, suffix: str = "") -> str | None:
+        if op is None:
+            return None
+        fallback = f"`{op.method} {singleton.path}`{suffix}."
+        return build_docstring(op.summary, op.description, fallback=fallback, indent=8)
+
+    ctx = {
+        **project_context,
+        "class_name": singleton_class(singleton),
+        "path_template": singleton.path,
+        "retrieve_op": _op_context(singleton.retrieve, available_models),
+        "update_op": _op_context(singleton.update, available_models),
+        "patch_op": _op_context(singleton.partial_update, available_models),
+        "delete_op": _op_context(singleton.delete, available_models),
+        "child_collections": child_collections,
+        "child_singletons": child_singletons,
+        "actions": actions,
+        "model_imports": model_imports,
+        "class_docstring": build_docstring(
+            singleton.summary,
+            singleton.description,
+            fallback=f"Singleton at `{singleton.path}`.",
+        ),
+        "retrieve_docstring": _op_doc(singleton.retrieve),
+        "update_docstring": _op_doc(singleton.update, " (full replacement)"),
+        "patch_docstring": _op_doc(singleton.partial_update, " (partial update)"),
+        "delete_docstring": _op_doc(singleton.delete),
+    }
+    out[f"src/{package_path}/base/singletons/{singleton_module(singleton)}.py"] = (
+        render_python(env, "package/singleton.py.jinja", ctx)
+    )
+    for coll in singleton.collections:
+        out.update(
+            _emit_collection(env, coll, project_context, package_path, available_models)
+        )
+    for sub in singleton.singletons:
+        out.update(
+            _emit_singleton(env, sub, project_context, package_path, available_models)
+        )
+    for action in singleton.actions:
+        out.update(
+            _emit_action(env, action, project_context, package_path, available_models)
+        )
     return out
 
 
@@ -381,7 +547,11 @@ def _emit_action(
     operations = [_op_context(op, available_models) for op in action.operations]
     operations = [op for op in operations if op is not None]
     single_op = operations[0] if len(operations) == 1 else None
-    model_imports = sorted(_collect_model_names(action.operations, available_models))
+    # Action methods type their `body` parameter as `Any`, so request-model
+    # imports would be unreferenced. Pull only response_model names here.
+    model_imports = sorted(
+        _collect_response_model_names(action.operations, available_models)
+    )
     # Single op: class doc and the (sole) method's doc share the same source per
     # generator.md §11. Multi-op: class doc lists all operations; per-method docs
     # come from each operation individually.
@@ -514,6 +684,28 @@ def _build_docstring_from_body(body: str, indent: int) -> str:
     return "\n".join(out_lines)
 
 
+def _collect_response_model_names(
+    operations: Sequence[Operation | None],
+    available_models: set[str] | None,
+) -> set[str]:
+    """Return the set of `response_model` names referenced by `operations`.
+
+    Used by emitters whose generated code only references response_model in
+    `from_response` calls and types `body` as `Any` — pulling request_model
+    too would produce unused-import (F401) lint failures. Names not in
+    `available_models` are filtered out, matching `_collect_model_names`.
+    """
+    names: set[str] = set()
+    for op in operations:
+        if op is None:
+            continue
+        if op.response_model:
+            names.add(op.response_model)
+    if available_models is not None:
+        names &= available_models
+    return names
+
+
 def _collect_model_names(
     operations: Sequence[Operation | None],
     available_models: set[str] | None,
@@ -623,6 +815,18 @@ def resource_class(resource: Resource) -> str:
 
 def resource_module(resource: Resource) -> str:
     return snake_case(resource.name)
+
+
+def singleton_class(singleton: Singleton) -> str:
+    return f"{singleton.name}SingletonBase"
+
+
+def singleton_module(singleton: Singleton) -> str:
+    return snake_case(singleton.name)
+
+
+def singleton_attr(singleton: Singleton) -> str:
+    return snake_case(_path_segment(singleton.path))
 
 
 def action_class(action: Action) -> str:

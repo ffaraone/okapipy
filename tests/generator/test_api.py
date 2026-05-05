@@ -78,3 +78,159 @@ def test_skeleton_substitutes_context_variables() -> None:
 def test_generation_error_is_exported() -> None:
     """`GenerationError` is the documented base class for generator failures."""
     assert issubclass(GenerationError, Exception)
+
+
+def test_with_models_false_skips_models_file() -> None:
+    """`with_models=False` produces a project with no `base/models.py`.
+
+    Drives the `--no-models` / `--without-models` CLI flow: the skeleton is
+    still emitted, but dmcg is not invoked and the models file is absent from
+    the virtual FS. The walker's model-import filter then sees an empty set
+    and elides every `from ..models import ...` line.
+    """
+    vfs = generate(
+        APIModel(),
+        raw_spec=FIXTURE,
+        output_dir=Path("/tmp"),
+        package="acme.client",
+        client_class="AcmeClient",
+        with_models=False,
+    )
+
+    assert "src/acme/client/base/models.py" not in vfs
+    # Skeleton + runtime + client base must still be present.
+    assert "pyproject.toml" in vfs
+    assert "src/acme/client/base/__init__.py" in vfs
+    assert "src/acme/client/base/client.py" in vfs
+
+
+def test_singletons_fixture_emits_singleton_files(tmp_path: Path) -> None:
+    """Parsing `singletons.yaml` and generating produces `base/singletons/*.py`.
+
+    Covers root singletons (`/me`, `/health`) and a sub-singleton under a
+    Resource (`/users/{id}/avatar` → singleton named `UserAvatar`). Each
+    should land at `src/<package>/base/singletons/<snake_name>.py` with both
+    sync and async classes carrying CRUD methods.
+    """
+    from okapipy.parser.api import parse
+
+    fixture = Path(__file__).resolve().parent.parent / "fixtures" / "singletons.yaml"
+    api = parse(fixture, nlp_cache_dir=Path(__file__).resolve().parents[2] / ".spacy")
+
+    vfs = generate(
+        api,
+        raw_spec=fixture,
+        output_dir=tmp_path / "out",
+        package="acme.client",
+        client_class="AcmeClient",
+    )
+
+    assert "src/acme/client/base/singletons/me.py" in vfs
+    assert "src/acme/client/base/singletons/health.py" in vfs
+    assert "src/acme/client/base/singletons/user_avatar.py" in vfs
+    me = vfs["src/acme/client/base/singletons/me.py"].content
+    assert "class MeSingletonBase" in me
+    assert "class AsyncMeSingletonBase" in me
+    assert "def retrieve" in me
+    assert "def patch" in me
+    avatar = vfs["src/acme/client/base/singletons/user_avatar.py"].content
+    assert "class UserAvatarSingletonBase" in avatar
+    assert "def update" in avatar
+    assert "def delete" in avatar
+
+
+def test_singletons_fixture_wires_client_and_resource(tmp_path: Path) -> None:
+    """Generated client exposes `me` and `health` properties; User resource exposes `avatar`.
+
+    Top-level singletons attach as `cached_property` on the client, and a
+    sub-singleton attaches as a property on its parent resource via the
+    factory-hook pattern used by the rest of the tree.
+    """
+    from okapipy.parser.api import parse
+
+    fixture = Path(__file__).resolve().parent.parent / "fixtures" / "singletons.yaml"
+    api = parse(fixture, nlp_cache_dir=Path(__file__).resolve().parents[2] / ".spacy")
+
+    vfs = generate(
+        api,
+        raw_spec=fixture,
+        output_dir=tmp_path / "out",
+        package="acme.client",
+        client_class="AcmeClient",
+    )
+
+    client_src = vfs["src/acme/client/base/client.py"].content
+    assert "MeSingletonBase" in client_src
+    assert "HealthSingletonBase" in client_src
+    assert ".singletons.me" in client_src
+    assert ".singletons.health" in client_src
+    assert "def me(self) -> MeSingletonBase" in client_src
+    assert "def health(self) -> HealthSingletonBase" in client_src
+    user_resource = vfs["src/acme/client/base/resources/user.py"].content
+    assert "UserAvatarSingletonBase" in user_resource
+    assert "..singletons.user_avatar" in user_resource
+    assert "def avatar(self) -> UserAvatarSingletonBase" in user_resource
+
+
+def test_root_actions_fixture_emits_action_files(tmp_path: Path) -> None:
+    """Root and namespace-level actions land in `base/actions/` and the client/namespace wires them.
+
+    `/login`, `/logout`, `/password-reset` attach to the client root;
+    `/auth/refresh` attaches to the auth namespace. All four produce
+    `*ActionBase` files and corresponding properties on their parent.
+    """
+    from okapipy.parser.api import parse
+
+    fixture = Path(__file__).resolve().parent.parent / "fixtures" / "root_actions.yaml"
+    api = parse(fixture, nlp_cache_dir=Path(__file__).resolve().parents[2] / ".spacy")
+
+    vfs = generate(
+        api,
+        raw_spec=fixture,
+        output_dir=tmp_path / "out",
+        package="acme.client",
+        client_class="AcmeClient",
+    )
+
+    assert "src/acme/client/base/actions/login.py" in vfs
+    assert "src/acme/client/base/actions/logout.py" in vfs
+    assert "src/acme/client/base/actions/password_reset.py" in vfs
+    assert "src/acme/client/base/actions/refresh.py" in vfs
+    client_src = vfs["src/acme/client/base/client.py"].content
+    assert "def login(self) -> LoginActionBase" in client_src
+    assert "def password_reset(self) -> PasswordResetActionBase" in client_src
+    auth_ns = vfs["src/acme/client/base/namespaces/auth.py"].content
+    assert "RefreshActionBase" in auth_ns
+    assert "..actions.refresh" in auth_ns
+    assert "def refresh(self) -> RefreshActionBase" in auth_ns
+
+
+def test_with_models_false_drops_model_imports_from_generated_nodes(
+    tmp_path: Path,
+) -> None:
+    """With models disabled, generated collection/resource/action files have no
+    `from ..models import ...` line — all model references are filtered out.
+
+    The fixture exposes `/orders` (collection) and `/orders/{id}` (resource)
+    that would normally pull `Order` / `OrderList` model imports; with
+    `with_models=False` those imports must vanish so the generated package
+    stays compilable in the absence of `models.py`.
+    """
+    from okapipy.parser.api import parse  # local import to avoid cycle at module load
+
+    api = parse(FIXTURE, nlp_cache_dir=Path(__file__).resolve().parents[2] / ".spacy")
+
+    vfs = generate(
+        api,
+        raw_spec=FIXTURE,
+        output_dir=tmp_path / "out",
+        package="acme.client",
+        client_class="AcmeClient",
+        with_models=False,
+    )
+
+    for path, file in vfs.items():
+        if not path.startswith("src/acme/client/base/"):
+            continue
+        assert "from ..models import" not in file.content, path
+        assert "from .base.models import" not in file.content, path

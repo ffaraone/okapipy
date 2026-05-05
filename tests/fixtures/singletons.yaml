@@ -1,0 +1,139 @@
+openapi: 3.0.0
+info:
+  title: Singletons API
+  version: 1.0.0
+paths:
+  /me:
+    x-okapipy-kind: singleton
+    get:
+      summary: Return the current user
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+    patch:
+      summary: Update the current user
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserUpdate'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+  /health:
+    x-okapipy-kind: singleton
+    get:
+      summary: Liveness probe
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Health'
+  /users:
+    get:
+      summary: List users
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserList'
+  /users/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      summary: Retrieve user
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+  /users/{id}/avatar:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+    x-okapipy-kind: singleton
+    get:
+      summary: Retrieve the user's avatar
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Avatar'
+    put:
+      summary: Replace the user's avatar
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AvatarInput'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Avatar'
+    delete:
+      summary: Remove the user's avatar
+      responses:
+        '204':
+          description: No Content
+components:
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+    UserUpdate:
+      type: object
+      properties:
+        email:
+          type: string
+    UserList:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/User'
+    Avatar:
+      type: object
+      properties:
+        url:
+          type: string
+    AvatarInput:
+      type: object
+      properties:
+        data:
+          type: string
+    Health:
+      type: object
+      properties:
+        status:
+          type: string

@@ -180,13 +180,14 @@ def test_classifier_logs_warning_when_no_signal_is_set(
         ("namespace", SegmentKind.NAMESPACE),
         ("collection", SegmentKind.COLLECTION),
         ("action", SegmentKind.ACTION),
+        ("singleton", SegmentKind.SINGLETON),
         ("resource_id", SegmentKind.RESOURCE_ID),
     ],
 )
 def test_extension_hint_recognizes_each_kind(
     hint: str, expected: SegmentKind, mocker: MockerFixture
 ) -> None:
-    """Each of the four legal hint strings maps to the matching SegmentKind."""
+    """Each of the five legal hint strings maps to the matching SegmentKind."""
     nlp = mocker.Mock(name="Language")
     _stub_segment(mocker, SegmentInfo("anything", False, False, True))
 
@@ -200,3 +201,27 @@ def test_extension_hint_recognizes_each_kind(
     )
 
     assert kind is expected
+
+
+def test_singleton_kind_only_reachable_via_explicit_hint(
+    mocker: MockerFixture,
+) -> None:
+    """Without a `singleton` hint, a singular-noun segment falls back to NAMESPACE.
+
+    NLP cannot disambiguate `/me` from a singular-noun namespace, so the
+    classifier never derives SINGLETON from heuristics; users must opt in via
+    `x-okapipy-kind: singleton`.
+    """
+    nlp = mocker.Mock(name="Language")
+    _stub_segment(mocker, SegmentInfo("me", False, False, True))
+
+    kind = classify_segment(
+        segment="me",
+        cumulative_path="me",
+        parent_kind=None,
+        nlp=nlp,
+        ns_registry=set(),
+        extension_hint=None,
+    )
+
+    assert kind is SegmentKind.NAMESPACE

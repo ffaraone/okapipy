@@ -7,10 +7,10 @@ Project: `{{ project_name }}`.
 
 from __future__ import annotations
 
-{% if child_namespaces %}
+{% if child_namespaces or child_singletons %}
 from functools import cached_property
 {% endif %}
-{% if child_namespaces or child_collections %}
+{% if child_namespaces or child_collections or child_singletons or child_actions %}
 from typing import TYPE_CHECKING, ClassVar
 {% else %}
 from typing import TYPE_CHECKING
@@ -21,6 +21,12 @@ from .{{ child.module }} import {{ child.class_name }}, Async{{ child.class_name
 {% endfor %}
 {% for child in child_collections %}
 from ..collections.{{ child.module }} import {{ child.class_name }}, Async{{ child.class_name }}
+{% endfor %}
+{% for child in child_singletons %}
+from ..singletons.{{ child.module }} import {{ child.class_name }}, Async{{ child.class_name }}
+{% endfor %}
+{% for child in child_actions %}
+from ..actions.{{ child.module }} import {{ child.class_name }}, Async{{ child.class_name }}
 {% endfor %}
 
 if TYPE_CHECKING:
@@ -50,6 +56,22 @@ class {{ class_name }}:
         return self.{{ child.factory_attr }}(client=self.client, path_params={})
 
 {% endfor %}
+{% for child in child_singletons %}
+    {{ child.factory_attr }}: ClassVar[type[{{ child.class_name }}]] = {{ child.class_name }}
+
+    @cached_property
+    def {{ child.attr }}(self) -> {{ child.class_name }}:
+        return self.{{ child.factory_attr }}(client=self.client)
+
+{% endfor %}
+{% for child in child_actions %}
+    {{ child.factory_attr }}: ClassVar[type[{{ child.class_name }}]] = {{ child.class_name }}
+
+    @property
+    def {{ child.attr }}(self) -> {{ child.class_name }}:
+        return self.{{ child.factory_attr }}(client=self.client)
+
+{% endfor %}
 
 
 class Async{{ class_name }}:
@@ -73,5 +95,21 @@ class Async{{ class_name }}:
     def {{ child.attr }}(self) -> Async{{ child.class_name }}:
 {{ child.docstring }}
         return self.{{ child.factory_attr }}(client=self.client, path_params={})
+
+{% endfor %}
+{% for child in child_singletons %}
+    {{ child.factory_attr }}: ClassVar[type[Async{{ child.class_name }}]] = Async{{ child.class_name }}
+
+    @cached_property
+    def {{ child.attr }}(self) -> Async{{ child.class_name }}:
+        return self.{{ child.factory_attr }}(client=self.client)
+
+{% endfor %}
+{% for child in child_actions %}
+    {{ child.factory_attr }}: ClassVar[type[Async{{ child.class_name }}]] = Async{{ child.class_name }}
+
+    @property
+    def {{ child.attr }}(self) -> Async{{ child.class_name }}:
+        return self.{{ child.factory_attr }}(client=self.client)
 
 {% endfor %}
