@@ -1,8 +1,8 @@
 """Pydantic models that describe the parsed OpenAPI structural tree.
 
-The tree has four node kinds — Namespace, Collection, Resource, Action — and one leaf
-container, Operation. Models are mutable on purpose: the builder appends to the lists
-during construction.
+The tree has five node kinds — Namespace, Collection, Resource, Singleton, Action —
+and one leaf container, Operation. Models are mutable on purpose: the builder appends
+to the lists during construction.
 """
 
 from __future__ import annotations
@@ -45,13 +45,39 @@ class Operation(BaseModel):
 
 
 class Action(BaseModel):
-    """A non-CRUD endpoint identified by a verb-phrase path segment."""
+    """A non-CRUD endpoint identified by a verb-phrase path segment.
+
+    Actions may attach at the root of the API, under a Namespace, under a
+    Collection, under a Resource, or under a Singleton.
+    """
 
     name: str
     path: str
     summary: str | None = None
     description: str | None = None
     operations: list[Operation] = Field(default_factory=list)
+
+
+class Singleton(BaseModel):
+    """A resourceful endpoint with no enclosing collection.
+
+    Examples: `/me`, `/health`, `/version`, or sub-singletons like
+    `/users/{id}/avatar`. Carries the same CRUD slots as Resource and may host
+    sub-collections, sub-singletons, and actions. Has no `resource` slot — a
+    Singleton *is* the resource.
+    """
+
+    name: str
+    path: str
+    summary: str | None = None
+    description: str | None = None
+    retrieve: Operation | None = None
+    update: Operation | None = None
+    partial_update: Operation | None = None
+    delete: Operation | None = None
+    actions: list[Action] = Field(default_factory=list)
+    collections: list[Collection] = Field(default_factory=list)
+    singletons: list[Singleton] = Field(default_factory=list)
 
 
 class Resource(BaseModel):
@@ -67,6 +93,7 @@ class Resource(BaseModel):
     delete: Operation | None = None
     actions: list[Action] = Field(default_factory=list)
     collections: list[Collection] = Field(default_factory=list)
+    singletons: list[Singleton] = Field(default_factory=list)
 
 
 class Collection(BaseModel):
@@ -83,28 +110,39 @@ class Collection(BaseModel):
 
 
 class Namespace(BaseModel):
-    """A folder-like grouping of sub-namespaces and collections."""
+    """A folder-like grouping of sub-namespaces, collections, singletons, and actions.
+
+    Namespace-level actions (e.g. `/auth/login`) and namespace-level singletons
+    (e.g. `/admin/health`) are valid: real APIs commonly host verb endpoints and
+    singleton resources directly under a folder prefix.
+    """
 
     name: str
     summary: str | None = None
     description: str | None = None
     namespaces: list[Namespace] = Field(default_factory=list)
     collections: list[Collection] = Field(default_factory=list)
+    singletons: list[Singleton] = Field(default_factory=list)
+    actions: list[Action] = Field(default_factory=list)
 
 
 class APIModel(BaseModel):
     """The root of the parsed structural tree.
 
-    The root holds both namespaces and top-level collections. The latter exists
-    because real-world OpenAPI documents commonly expose collections directly under
-    `/`, with no folder-style namespace prefix (e.g. `/orders`, `/users`).
+    The root holds top-level namespaces, collections, singletons, and actions.
+    Real-world OpenAPI documents commonly expose all four directly under `/` —
+    e.g. `/orders` (collection), `/me` (singleton), `/login` (action) — with no
+    namespace prefix.
     """
 
     namespaces: list[Namespace] = Field(default_factory=list)
     collections: list[Collection] = Field(default_factory=list)
+    singletons: list[Singleton] = Field(default_factory=list)
+    actions: list[Action] = Field(default_factory=list)
 
 
 Resource.model_rebuild()
+Singleton.model_rebuild()
 Collection.model_rebuild()
 Namespace.model_rebuild()
 APIModel.model_rebuild()

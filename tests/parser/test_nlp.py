@@ -222,3 +222,46 @@ def test_analyze_segment_keeps_plural_compound_as_collection(
 
     assert info.is_plural is True
     assert info.is_verb_phrase is False
+
+
+@pytest.mark.parametrize(
+    "verb",
+    ["login", "logout", "refresh", "ping", "subscribe", "verify"],
+)
+def test_analyze_segment_uses_english_verb_action_registry(
+    english_nlp: object, verb: str
+) -> None:
+    """Common API verbs that the small spaCy model mistags as nouns are caught.
+
+    `en_core_web_sm` returns `NOUN`/`PROPN` for tokens like `login` and `refresh`;
+    the language-specific verb-action registry restores the verb signal so root
+    paths like `/login` classify as actions without an explicit `x-okapipy-kind`.
+    """
+    from spacy.language import Language
+
+    assert isinstance(english_nlp, Language)
+
+    info = analyze_segment(english_nlp, verb)
+
+    assert info.is_verb_phrase is True
+
+
+def test_verb_action_registry_is_language_scoped(mocker: MockerFixture) -> None:
+    """A pipeline whose `lang` has no registry entry falls back to spaCy alone.
+
+    Other languages currently rely on spaCy verb tagging or `x-okapipy-kind:
+    action`; the English-only registry must not bleed into them.
+    """
+    nlp = mocker.Mock(name="Language")
+    nlp.lang = "fr"
+    bare_token = mocker.Mock()
+    bare_token.pos_ = "NOUN"
+    bare_token.morph.get.return_value = []
+    bare_doc = mocker.MagicMock()
+    bare_doc.__len__.return_value = 1
+    bare_doc.__getitem__.return_value = bare_token
+    nlp.return_value = bare_doc
+
+    from okapipy.parser.nlp import _is_registered_verb
+
+    assert _is_registered_verb(nlp, "login") is False

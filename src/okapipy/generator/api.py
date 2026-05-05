@@ -50,6 +50,7 @@ def generate(
     license: str = "Proprietary",
     templates_dir: Path | None = None,
     model_templates_dir: Path | None = None,
+    with_models: bool = True,
 ) -> dict[str, GeneratedFile]:
     """Build the virtual FS for the generated client project.
 
@@ -70,6 +71,11 @@ def generate(
             packaged defaults (ChoiceLoader).
         model_templates_dir: optional directory of `datamodel-code-generator`
             templates. Forwarded as dmcg's `custom_template_dir`.
+        with_models: when False, skip emitting `base/models.py` and drop every
+            model reference from the generated client (operations end up
+            untyped, returning raw dicts). Useful for specs whose schemas can't
+            be processed by dmcg or for clients that prefer to bring their own
+            types.
 
     Returns:
         A `dict[str, GeneratedFile]` mapping POSIX-style relative paths to
@@ -98,10 +104,15 @@ def generate(
     # Vendor the runtime + build base/__init__.py (re-exports `*Base` classes).
     runtime = emit_runtime(package_path, client_class, extra_imports, extra_public)
     _wrap(vfs, runtime, one_shot=False)
-    # Models from dmcg, regenerated.
-    models_source = emit_models(raw_spec, model_templates_dir, python_version)
-    vfs[f"src/{package_path}/base/models.py"] = GeneratedFile(models_source)
-    available_models = public_names(models_source)
+    # Models from dmcg, regenerated. Skipped entirely when `with_models=False`;
+    # the walker then drops every `from ..models import ...` line and replaces
+    # response/request model types with `None`/dict in the generated client.
+    if with_models:
+        models_source = emit_models(raw_spec, model_templates_dir, python_version)
+        vfs[f"src/{package_path}/base/models.py"] = GeneratedFile(models_source)
+        available_models = public_names(models_source)
+    else:
+        available_models = set()
     # Sync + async client base classes.
     client_files = emit_client(env, project_context, package_path, api)
     _wrap(vfs, client_files, one_shot=False)
@@ -110,7 +121,7 @@ def generate(
     _wrap(vfs, tree_files, one_shot=False)
     # Empty markers on each populated base subdirectory so `from ..namespaces`
     # imports resolve.
-    for subdir in ("namespaces", "collections", "resources", "actions"):
+    for subdir in ("namespaces", "collections", "resources", "singletons", "actions"):
         if any(p.startswith(f"src/{package_path}/base/{subdir}/") for p in vfs):
             path = f"src/{package_path}/base/{subdir}/__init__.py"
             vfs.setdefault(path, GeneratedFile(""))

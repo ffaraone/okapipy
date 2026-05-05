@@ -162,3 +162,11 @@ exclude_dirs = [
     "htmlcov",
     "tests",
 ]
+# B404: importing `subprocess` triggers a blanket warning.
+# B603: subprocess call without `shell=True` — bandit can't statically prove
+#       the argv is safe, but every call site here uses a hardcoded list whose
+#       first element is a literal program name and whose remaining args come
+#       from internal sources (sys.executable, hardcoded LANG_TO_MODEL keys).
+# B607: partial executable path — we deliberately resolve `ruff` via PATH so
+#       the developer's venv copy is picked up.
+skips = ["B404", "B603", "B607"]

@@ -68,7 +68,7 @@ def render(env: Environment, template_name: str, context: Mapping[str, Any]) -> 
     except TemplateError as exc:
         raise UnknownTemplateError(f"template not found: {template_name}") from exc
     try:
-        return template.render(**context)
+        return str(template.render(**context))
     except TemplateError as exc:
         raise TemplateRenderError(template_name, str(exc)) from exc
 

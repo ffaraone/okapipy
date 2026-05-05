@@ -8,6 +8,9 @@ from typing import Any
 from jinja2 import Environment
 
 from okapipy.generator.emit.walk import (
+    action_attr,
+    action_class,
+    action_module,
     collection_attr,
     collection_class,
     collection_module,
@@ -15,6 +18,9 @@ from okapipy.generator.emit.walk import (
     factory_attr,
     namespace_class,
     namespace_module,
+    singleton_attr,
+    singleton_class,
+    singleton_module,
 )
 from okapipy.generator.templating import render_python, snake_case
 from okapipy.parser.model import APIModel
@@ -50,10 +56,30 @@ def emit_client(
         }
         for coll in api.collections
     ]
+    top_singletons = [
+        {
+            "attr": singleton_attr(sing),
+            "class_name": singleton_class(sing),
+            "module": singleton_module(sing),
+            "factory_attr": factory_attr(singleton_attr(sing)),
+        }
+        for sing in api.singletons
+    ]
+    top_actions = [
+        {
+            "attr": action_attr(action),
+            "class_name": action_class(action),
+            "module": action_module(action),
+            "factory_attr": factory_attr(action_attr(action)),
+        }
+        for action in api.actions
+    ]
     ctx = {
         **project_context,
         "top_namespaces": top_namespaces,
         "top_collections": top_collections,
+        "top_singletons": top_singletons,
+        "top_actions": top_actions,
     }
     return {
         f"src/{package_path}/base/client.py": render_python(

@@ -45,3 +45,6 @@ known-first-party = ["{{ top_package }}"]
 [tool.mypy]
 strict = true
 ignore_missing_imports = true
+mypy_path = "src"
+namespace_packages = true
+explicit_package_bases = true

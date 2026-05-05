@@ -252,6 +252,17 @@ def generate_command(
         "--model-templates-dir",
         help="Directory of datamodel-code-generator templates for models.py.",
     ),
+    no_models: bool = typer.Option(
+        False,
+        "--no-models",
+        "--without-models",
+        help=(
+            "Skip emitting `base/models.py`. Generated operations become "
+            "untyped (raw dicts in / out); useful when dmcg can't process "
+            "the spec's schemas or when the consumer wants to bring their "
+            "own model layer."
+        ),
+    ),
     check: bool = typer.Option(
         False,
         "--check",
@@ -295,6 +306,7 @@ def generate_command(
                 license=license_id,
                 templates_dir=templates_dir,
                 model_templates_dir=model_templates_dir,
+                with_models=not no_models,
             )
         action = "Checking" if check else f"Writing {len(vfs)} files to {output}"
         with _phase(action):

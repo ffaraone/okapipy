@@ -21,6 +21,7 @@ from __future__ import annotations
 import ast
 import json
 import subprocess
+from datetime import date, datetime
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Any
@@ -172,8 +173,26 @@ def _materialize_spec(raw_spec: dict[str, Any] | str | Path, tmp: Path) -> Path:
     spec = _load_to_dict(raw_spec)
     spec = flatten_inline_schemas(spec)
     target = tmp / "openapi.json"
-    target.write_text(json.dumps(spec), encoding="utf-8")
+    target.write_text(json.dumps(spec, default=_json_default), encoding="utf-8")
     return target
+
+
+def _json_default(value: object) -> str:
+    """Coerce non-JSON-native scalars (notably YAML-parsed dates) to ISO strings.
+
+    PyYAML's safe_load auto-parses ISO 8601 date / datetime literals into Python
+    `datetime.date` / `datetime.datetime` instances, which `json.dumps` rejects.
+    OpenAPI represents these values as strings on the wire, so emitting their
+    `isoformat()` is the round-trip-safe fallback.
+    """
+    if isinstance(value, datetime):
+        return value.isoformat()
+    if isinstance(value, date):
+        return value.isoformat()
+    raise TypeError(
+        f"OpenAPI spec contains a value of type {type(value).__name__} "
+        "that cannot be encoded as JSON"
+    )
 
 
 def _load_to_dict(raw_spec: dict[str, Any] | str | Path) -> dict[str, Any]:

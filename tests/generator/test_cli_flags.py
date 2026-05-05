@@ -151,3 +151,32 @@ def test_warnings_visible_without_quiet(
 
     assert result.exit_code == 0
     assert "WARNING" in result.stderr
+
+
+def test_no_models_flag_skips_models_file(before_spec: Path, tmp_path: Path) -> None:
+    """`--no-models` produces a project tree with no `base/models.py` on disk.
+
+    Drives the same code path as `--without-models`. The collections file
+    that would otherwise import from `..models` is still emitted but free of
+    the import, since the walker sees an empty available-models set.
+    """
+    out = tmp_path / "out"
+
+    result = runner.invoke(app, _generate_args(before_spec, out) + ["--no-models"])
+
+    assert result.exit_code == 0, result.output
+    assert not (out / "src" / "cli" / "base" / "models.py").exists()
+    orders = (out / "src" / "cli" / "base" / "collections" / "orders.py").read_text(
+        encoding="utf-8"
+    )
+    assert "from ..models import" not in orders
+
+
+def test_without_models_alias_works(before_spec: Path, tmp_path: Path) -> None:
+    """`--without-models` is accepted as an alias for `--no-models`."""
+    out = tmp_path / "out"
+
+    result = runner.invoke(app, _generate_args(before_spec, out) + ["--without-models"])
+
+    assert result.exit_code == 0, result.output
+    assert not (out / "src" / "cli" / "base" / "models.py").exists()

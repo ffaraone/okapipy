@@ -46,6 +46,8 @@ def _run(cmd: list[str], cwd: Path) -> subprocess.CompletedProcess[str]:
         ("simple.yaml", "simplecli", "SimpleClient"),
         ("nested.yaml", "nestedcli", "NestedClient"),
         ("pagination.yaml", "pagedcli", "PagedClient"),
+        ("singletons.yaml", "singletoncli", "SingletonClient"),
+        ("root_actions.yaml", "rootactionscli", "RootActionsClient"),
     ],
 )
 def test_generated_tree_passes_lint_and_typecheck(

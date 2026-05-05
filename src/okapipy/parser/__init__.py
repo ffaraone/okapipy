@@ -1,7 +1,7 @@
 """Structural OpenAPI parser: turns flat OpenAPI paths into a hierarchical tree.
 
-The tree has four node kinds — Namespace, Collection, Resource, Action — plus a leaf
-Operation container. The single public entry is `parse`.
+The tree has five node kinds — Namespace, Collection, Resource, Singleton, Action —
+plus a leaf Operation container. The single public entry is `parse`.
 """
 
 from okapipy.parser.api import DEFAULT_NLP_CACHE_DIR, parse
@@ -19,6 +19,7 @@ from okapipy.parser.model import (
     Namespace,
     Operation,
     Resource,
+    Singleton,
 )
 
 __all__ = [
@@ -33,6 +34,7 @@ __all__ = [
     "ParserError",
     "Resource",
     "RulesFormatError",
+    "Singleton",
     "SpecLoadError",
     "parse",
 ]

@@ -290,13 +290,14 @@ def test_build_strips_server_base_path(english_nlp: Language) -> None:
     assert [c.path for c in api.collections] == ["/orders"]
 
 
-def test_build_rejects_namespace_level_action(
-    english_nlp: Language, caplog: pytest.LogCaptureFixture
+def test_build_attaches_namespace_level_action(
+    english_nlp: Language,
 ) -> None:
-    """A path whose terminal segment is forced to action under a namespace is skipped.
+    """A verb-phrase segment under a namespace becomes a namespace-level Action.
 
-    The parser logs a warning and continues — one malformed path should not abort
-    the whole build.
+    `/commerce/ping` POST attaches as an Action directly on the `commerce`
+    Namespace. Namespaces don't enter the breadcrumb, so the Action's name is
+    just `Ping`.
     """
     spec = {
         "x-okapipy-ns": ["commerce"],
@@ -310,12 +311,43 @@ def test_build_rejects_namespace_level_action(
         },
     }
 
+    api = build(spec, Rules(), english_nlp)
+
+    commerce = next(ns for ns in api.namespaces if ns.name == "commerce")
+    assert commerce.collections == []
+    assert len(commerce.actions) == 1
+    ping = commerce.actions[0]
+    assert ping.name == "Ping"
+    assert ping.path == "/commerce/ping"
+    assert [op.method for op in ping.operations] == ["POST"]
+
+
+def test_build_drops_op_on_bare_namespace_path_with_warning(
+    english_nlp: Language, caplog: pytest.LogCaptureFixture
+) -> None:
+    """A GET on a path that resolves to a Namespace itself is dropped, not coerced.
+
+    A namespace is a folder, not an endpoint. When the terminal segment is the
+    namespace and no `x-okapipy-kind` re-classifies it, the parser logs a
+    warning and skips the operation.
+    """
+    spec = {
+        "x-okapipy-ns": ["commerce"],
+        "paths": {
+            "/commerce": {
+                "get": {"responses": {"200": {"description": "OK"}}},
+            }
+        },
+    }
+
     with caplog.at_level("WARNING"):
         api = build(spec, Rules(), english_nlp)
 
     commerce = next(ns for ns in api.namespaces if ns.name == "commerce")
     assert commerce.collections == []
-    assert "namespace-level actions are not allowed" in caplog.text
+    assert commerce.actions == []
+    assert "GET /commerce" in caplog.text
+    assert "bare namespace path" in caplog.text
 
 
 def test_build_skips_non_canonical_collection_method_with_warning(
@@ -561,6 +593,229 @@ def test_build_skips_paths_with_only_a_root_segment(english_nlp: Language) -> No
 
     assert api.namespaces == []
     assert api.collections == []
+
+
+def test_build_attaches_root_level_action(english_nlp: Language) -> None:
+    """A verb path at the root (`/login`) becomes a root-level Action on APIModel.
+
+    The breadcrumb is empty so the Action's name is just the PascalCase of the
+    segment, and the POST method is appended to its operations.
+    """
+    spec = {
+        "paths": {
+            "/login": {
+                "post": {"responses": {"200": {"description": "OK"}}},
+            }
+        }
+    }
+
+    api = build(spec, Rules(), english_nlp)
+
+    assert len(api.actions) == 1
+    login = api.actions[0]
+    assert login.name == "Login"
+    assert login.path == "/login"
+    assert [op.method for op in login.operations] == ["POST"]
+
+
+def test_build_attaches_root_action_for_kebab_verb_phrase(
+    english_nlp: Language,
+) -> None:
+    """`/password-reset` at the root attaches as Action `PasswordReset`."""
+    spec = {
+        "paths": {
+            "/password-reset": {
+                "post": {"responses": {"202": {"description": "Accepted"}}},
+            }
+        }
+    }
+
+    api = build(spec, Rules(), english_nlp)
+
+    assert [a.name for a in api.actions] == ["PasswordReset"]
+
+
+def test_build_attaches_singleton_at_root(english_nlp: Language) -> None:
+    """`/me` with `x-okapipy-kind: singleton` becomes a root Singleton.
+
+    GET maps to `retrieve` and PATCH maps to `partial_update`, the same CRUD
+    routing used for Resource. The breadcrumb is empty so the name is `Me`.
+    """
+    spec = {
+        "paths": {
+            "/me": {
+                "x-okapipy-kind": "singleton",
+                "get": {"responses": {"200": {"description": "OK"}}},
+                "patch": {"responses": {"200": {"description": "OK"}}},
+            }
+        }
+    }
+
+    api = build(spec, Rules(), english_nlp)
+
+    assert len(api.singletons) == 1
+    me = api.singletons[0]
+    assert me.name == "Me"
+    assert me.path == "/me"
+    assert me.retrieve is not None
+    assert me.partial_update is not None
+    assert me.update is None
+    assert me.delete is None
+
+
+def test_build_attaches_singleton_under_namespace(english_nlp: Language) -> None:
+    """A namespace-scoped singleton (`/admin/health`) attaches under the namespace.
+
+    Namespaces don't enter the breadcrumb, so the Singleton's name remains
+    `Health` — disambiguation by namespace is left to downstream generators.
+    """
+    spec = {
+        "x-okapipy-ns": ["admin"],
+        "paths": {
+            "/admin/health": {
+                "x-okapipy-kind": "singleton",
+                "get": {"responses": {"200": {"description": "OK"}}},
+            }
+        },
+    }
+
+    api = build(spec, Rules(), english_nlp)
+
+    admin = _find_namespace(api, "admin")
+    assert len(admin.singletons) == 1
+    health = admin.singletons[0]
+    assert health.name == "Health"
+    assert health.path == "/admin/health"
+    assert health.retrieve is not None
+
+
+def test_build_attaches_sub_singleton_under_resource(english_nlp: Language) -> None:
+    """`/users/{id}/avatar` with singleton hint attaches under the User resource.
+
+    The breadcrumb at the avatar segment is `[User]`, so the name is
+    `UserAvatar`. PUT/DELETE route to `update`/`delete` on the Singleton.
+    """
+    spec = {
+        "paths": {
+            "/users/{id}/avatar": {
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": True,
+                        "schema": {"type": "string"},
+                    }
+                ],
+                "x-okapipy-kind": "singleton",
+                "get": {"responses": {"200": {"description": "OK"}}},
+                "put": {"responses": {"200": {"description": "OK"}}},
+                "delete": {"responses": {"204": {"description": "No Content"}}},
+            }
+        }
+    }
+
+    api = build(spec, Rules(), english_nlp)
+
+    users = api.collections[0]
+    assert users.resource is not None
+    assert len(users.resource.singletons) == 1
+    avatar = users.resource.singletons[0]
+    assert avatar.name == "UserAvatar"
+    assert avatar.path == "/users/{id}/avatar"
+    assert avatar.retrieve is not None
+    assert avatar.update is not None
+    assert avatar.delete is not None
+
+
+def test_build_skips_non_canonical_singleton_method_with_warning(
+    english_nlp: Language, caplog: pytest.LogCaptureFixture
+) -> None:
+    """A bare POST on a singleton path (no `x-okapipy-kind: action`) is dropped.
+
+    Singletons accept the same CRUD verbs as resources; POST has no slot, and
+    coercing it into an action without an explicit opt-in would be surprising.
+    """
+    spec = {
+        "paths": {
+            "/me": {
+                "x-okapipy-kind": "singleton",
+                "post": {"responses": {"200": {"description": "OK"}}},
+            }
+        }
+    }
+
+    with caplog.at_level("WARNING"):
+        api = build(spec, Rules(), english_nlp)
+
+    assert api.singletons[0].name == "Me"
+    assert api.singletons[0].actions == []
+    assert "POST /me" in caplog.text
+    assert "singleton" in caplog.text
+
+
+def test_build_action_under_singleton(english_nlp: Language) -> None:
+    """An action segment under a singleton (`/me/refresh`) attaches as a Singleton action.
+
+    Combined with `x-okapipy-kind: singleton` on `/me`, a POST to
+    `/me/refresh` lands as an Action on the Me singleton.
+    """
+    spec = {
+        "paths": {
+            "/me": {
+                "x-okapipy-kind": "singleton",
+                "get": {"responses": {"200": {"description": "OK"}}},
+            },
+            "/me/refresh": {
+                "post": {
+                    "x-okapipy-kind": "action",
+                    "responses": {"200": {"description": "OK"}},
+                }
+            },
+        }
+    }
+
+    api = build(spec, Rules(), english_nlp)
+
+    me = api.singletons[0]
+    assert me.name == "Me"
+    assert len(me.actions) == 1
+    refresh = me.actions[0]
+    assert refresh.name == "Refresh"
+    assert refresh.path == "/me/refresh"
+    assert [op.method for op in refresh.operations] == ["POST"]
+
+
+def test_build_root_actions_fixture(
+    root_actions_spec_path: Path, english_nlp: Language
+) -> None:
+    """End-to-end: parsing `root_actions.yaml` yields the expected tree shape."""
+    spec = load_spec(root_actions_spec_path)
+
+    api = build(spec, Rules(), english_nlp)
+
+    assert sorted(a.name for a in api.actions) == ["Login", "Logout", "PasswordReset"]
+    auth = _find_namespace(api, "auth")
+    assert [a.name for a in auth.actions] == ["Refresh"]
+
+
+def test_build_singletons_fixture(
+    singletons_spec_path: Path, english_nlp: Language
+) -> None:
+    """End-to-end: `singletons.yaml` yields a root singleton, sub-singleton, and collection."""
+    spec = load_spec(singletons_spec_path)
+
+    api = build(spec, Rules(), english_nlp)
+
+    assert {s.name for s in api.singletons} == {"Me", "Health"}
+    me = next(s for s in api.singletons if s.name == "Me")
+    assert me.retrieve is not None
+    assert me.partial_update is not None
+    users = next(c for c in api.collections if c.name == "Users")
+    assert users.resource is not None
+    assert [s.name for s in users.resource.singletons] == ["UserAvatar"]
+    avatar = users.resource.singletons[0]
+    assert avatar.update is not None
+    assert avatar.delete is not None
 
 
 def _find_namespace(api: APIModel | Namespace, name: str) -> Namespace:

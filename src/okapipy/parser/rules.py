@@ -19,7 +19,7 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from okapipy.parser.errors import RulesFormatError
 
-ALLOWED_HINTS = {"namespace", "collection", "action", "resource"}
+ALLOWED_HINTS = {"namespace", "collection", "action", "singleton", "resource"}
 EXCLUDABLE_METHODS = {"GET", "POST", "PUT", "PATCH", "DELETE"}
 
 

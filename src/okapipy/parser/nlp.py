@@ -51,6 +51,45 @@ PLURAL_CONTEXT: dict[str, str] = {
     "nl": "de {}",
 }
 
+# Common API verb endpoints that small spaCy models mistag as nouns or proper
+# nouns. A bare token whose lowercase form appears here is treated as a verb,
+# in addition to whatever spaCy returns. The list is conservative on purpose:
+# only words that are overwhelmingly used as verbs in REST URLs (where the
+# noun reading would be a stretch). Other languages currently fall through to
+# spaCy alone — non-English specs can still mark verb endpoints with
+# `x-okapipy-kind: action`.
+VERB_ACTION_REGISTRY: dict[str, frozenset[str]] = {
+    "en": frozenset(
+        {
+            "login",
+            "logout",
+            "signin",
+            "signout",
+            "signup",
+            "register",
+            "unregister",
+            "deregister",
+            "subscribe",
+            "unsubscribe",
+            "refresh",
+            "revoke",
+            "verify",
+            "activate",
+            "deactivate",
+            "enable",
+            "disable",
+            "archive",
+            "unarchive",
+            "publish",
+            "unpublish",
+            "ping",
+            "approve",
+            "reject",
+            "impersonate",
+        }
+    )
+}
+
 _PIPELINE_CACHE: dict[tuple[str, str], Language] = {}
 
 _TOKEN_SPLIT = re.compile(r"[-_]+")
@@ -249,14 +288,24 @@ def _analyze_token(nlp: Language, token: str) -> tuple[bool, bool]:
     Uses two analyses to work around small spaCy models tagging bare tokens as PROPN
     with `Number=Sing`: the **bare** form gives a reliable VERB signal (verbs like
     `reset` or `submit` are infinitives in isolation), while a **definite-article
-    context** like `"the tokens"` gives a reliable plural signal.
+    context** like `"the tokens"` gives a reliable plural signal. A small
+    language-specific registry covers common API verb endpoints (`login`,
+    `refresh`, `ping`, ...) that small spaCy models otherwise mistag as nouns.
     """
     bare_doc = nlp(token)
     if not len(bare_doc):
         return False, False
-    is_verb = bare_doc[0].pos_ == "VERB"
+    is_verb = bare_doc[0].pos_ == "VERB" or _is_registered_verb(nlp, token)
     is_plural = _detect_plural(nlp, token, fallback=bare_doc[0])
     return is_verb, is_plural
+
+
+def _is_registered_verb(nlp: Language, token: str) -> bool:
+    """Return True when `token` appears in the language's verb-action registry."""
+    registry = VERB_ACTION_REGISTRY.get(nlp.lang or "")
+    if registry is None:
+        return False
+    return token.lower() in registry
 
 
 def _detect_plural(nlp: Language, token: str, fallback: Any) -> bool:

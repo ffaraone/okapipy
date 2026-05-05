@@ -42,6 +42,9 @@ from okapipy.generator.emit.walk import (
     namespace_module,
     resource_class,
     resource_module,
+    singleton_attr,
+    singleton_class,
+    singleton_module,
 )
 from okapipy.generator.templating import snake_case
 from okapipy.generator.vfs import GeneratedFile
@@ -51,6 +54,7 @@ from okapipy.parser.model import (
     Collection,
     Namespace,
     Resource,
+    Singleton,
 )
 
 STUB_DOCSTRING = (
@@ -93,7 +97,11 @@ def emit_stubs(
         _walk_namespace(ns, out, package, package_path)
     for coll in api.collections:
         _walk_collection(coll, out, package, package_path)
-    for subdir in ("namespaces", "collections", "resources", "actions"):
+    for sing in api.singletons:
+        _walk_singleton(sing, out, package, package_path)
+    for action in api.actions:
+        _walk_action(action, out, package, package_path)
+    for subdir in ("namespaces", "collections", "resources", "singletons", "actions"):
         if any(p.startswith(f"src/{package_path}/{subdir}/") for p in out):
             out.setdefault(f"src/{package_path}/{subdir}/__init__.py", _stub(""))
     return out
@@ -163,22 +171,30 @@ def _factory_lines(wirings: list[ChildWiring], *, async_: bool) -> str:
 
 
 def client_wirings(api: APIModel, package: str) -> list[ChildWiring]:
-    """Children of the top-level client: top-level namespaces + collections."""
+    """Children of the top-level client: namespaces, collections, singletons, actions."""
     out: list[ChildWiring] = []
     for ns in api.namespaces:
         out.append(_namespace_child_wiring(ns, package))
     for coll in api.collections:
         out.append(_collection_child_wiring(coll, package))
+    for sing in api.singletons:
+        out.append(_singleton_child_wiring(sing, package))
+    for action in api.actions:
+        out.append(_action_child_wiring(action, package))
     return out
 
 
 def namespace_wirings(ns: Namespace, package: str) -> list[ChildWiring]:
-    """Children of a namespace: sub-namespaces + collections."""
+    """Children of a namespace: sub-namespaces, collections, singletons, actions."""
     out: list[ChildWiring] = []
     for child in ns.namespaces:
         out.append(_namespace_child_wiring(child, package))
     for coll in ns.collections:
         out.append(_collection_child_wiring(coll, package))
+    for sing in ns.singletons:
+        out.append(_singleton_child_wiring(sing, package))
+    for action in ns.actions:
+        out.append(_action_child_wiring(action, package))
     return out
 
 
@@ -193,11 +209,25 @@ def collection_wirings(coll: Collection, package: str) -> list[ChildWiring]:
 
 
 def resource_wirings(resource: Resource, package: str) -> list[ChildWiring]:
-    """Children of a resource: sub-collections + actions."""
+    """Children of a resource: sub-collections, sub-singletons, actions."""
     out: list[ChildWiring] = []
     for coll in resource.collections:
         out.append(_collection_child_wiring(coll, package))
+    for sing in resource.singletons:
+        out.append(_singleton_child_wiring(sing, package))
     for action in resource.actions:
+        out.append(_action_child_wiring(action, package))
+    return out
+
+
+def singleton_wirings(singleton: Singleton, package: str) -> list[ChildWiring]:
+    """Children of a singleton: sub-collections, sub-singletons, actions."""
+    out: list[ChildWiring] = []
+    for coll in singleton.collections:
+        out.append(_collection_child_wiring(coll, package))
+    for sub in singleton.singletons:
+        out.append(_singleton_child_wiring(sub, package))
+    for action in singleton.actions:
         out.append(_action_child_wiring(action, package))
     return out
 
@@ -238,6 +268,15 @@ def _action_child_wiring(action: Action, package: str) -> ChildWiring:
     )
 
 
+def _singleton_child_wiring(singleton: Singleton, package: str) -> ChildWiring:
+    base = singleton_class(singleton)
+    return ChildWiring(
+        factory_attr=factory_attr(singleton_attr(singleton)),
+        user_class=base.removesuffix("Base"),
+        user_module_path=f"{package}.singletons.{singleton_module(singleton)}",
+    )
+
+
 # --------------------------------------------------------------------------- #
 # Walkers                                                                     #
 # --------------------------------------------------------------------------- #
@@ -263,6 +302,10 @@ def _walk_namespace(
         _walk_namespace(child, out, package, package_path)
     for coll in ns.collections:
         _walk_collection(coll, out, package, package_path)
+    for sing in ns.singletons:
+        _walk_singleton(sing, out, package, package_path)
+    for action in ns.actions:
+        _walk_action(action, out, package, package_path)
 
 
 def _walk_collection(
@@ -293,7 +336,7 @@ def _walk_resource(
     package: str,
     package_path: str,
 ) -> None:
-    """Emit a resource stub and recurse into sub-collections and actions."""
+    """Emit a resource stub and recurse into sub-collections, sub-singletons, and actions."""
     base_class = resource_class(resource)
     user_class = base_class.removesuffix("Base")
     module = resource_module(resource)
@@ -305,7 +348,33 @@ def _walk_resource(
     )
     for coll in resource.collections:
         _walk_collection(coll, out, package, package_path)
+    for sing in resource.singletons:
+        _walk_singleton(sing, out, package, package_path)
     for action in resource.actions:
+        _walk_action(action, out, package, package_path)
+
+
+def _walk_singleton(
+    singleton: Singleton,
+    out: dict[str, GeneratedFile],
+    package: str,
+    package_path: str,
+) -> None:
+    """Emit a singleton stub and recurse into children."""
+    base_class = singleton_class(singleton)
+    user_class = base_class.removesuffix("Base")
+    module = singleton_module(singleton)
+    out[f"src/{package_path}/singletons/{module}.py"] = _stub_pair(
+        from_module=f"{package}.base.singletons.{module}",
+        base_class=base_class,
+        user_class=user_class,
+        wirings=singleton_wirings(singleton, package),
+    )
+    for coll in singleton.collections:
+        _walk_collection(coll, out, package, package_path)
+    for sub in singleton.singletons:
+        _walk_singleton(sub, out, package, package_path)
+    for action in singleton.actions:
         _walk_action(action, out, package, package_path)
 
 

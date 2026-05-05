@@ -4,12 +4,13 @@ from __future__ import annotations
 
 import importlib.util
 import sys
+from datetime import date, datetime
 from pathlib import Path
 
 import pytest
 from pydantic import ValidationError
 
-from okapipy.generator.models import emit_models
+from okapipy.generator.models import _materialize_spec, emit_models
 
 FIXTURE = Path(__file__).resolve().parent.parent / "fixtures" / "simple.yaml"
 
@@ -54,6 +55,47 @@ def test_generated_models_round_trip(tmp_path: Path) -> None:
             module.Order.model_validate({"id": 42, "total": "not a number"})
     finally:
         sys.modules.pop(spec.name, None)
+
+
+def test_materialize_spec_handles_yaml_parsed_dates(tmp_path: Path) -> None:
+    """Date / datetime values produced by PyYAML's safe_load survive JSON serialization.
+
+    PyYAML auto-parses ISO 8601 literals into `datetime.date` / `datetime.datetime`
+    instances. OpenAPI represents these as strings on the wire, so the spec
+    materializer falls back to `isoformat()` rather than crashing with a
+    TypeError. Without the fallback, any spec with a date default / example /
+    metadata field would fail `okapipy spec generate`.
+    """
+    spec = {
+        "openapi": "3.0.0",
+        "info": {"title": "API", "version": "1.0.0"},
+        "components": {
+            "schemas": {
+                "Event": {
+                    "type": "object",
+                    "properties": {
+                        "scheduled_for": {
+                            "type": "string",
+                            "format": "date",
+                            "default": date(2026, 5, 5),
+                        },
+                        "created_at": {
+                            "type": "string",
+                            "format": "date-time",
+                            "example": datetime(2026, 5, 5, 12, 0, 0),
+                        },
+                    },
+                }
+            }
+        },
+        "paths": {},
+    }
+
+    target = _materialize_spec(spec, tmp_path)
+
+    text = target.read_text(encoding="utf-8")
+    assert '"2026-05-05"' in text
+    assert '"2026-05-05T12:00:00"' in text
 
 
 def test_model_templates_dir_is_honored(tmp_path: Path) -> None:
