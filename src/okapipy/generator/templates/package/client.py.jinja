@@ -21,7 +21,7 @@ from .strategies import (
     CommaSignedSort,
     FilterStrategy,
     KeyValueFilter,
-    OffsetLimitPagination,
+    LimitOffsetPagination,
     PaginationStrategy,
     SortStrategy,
 )
@@ -67,16 +67,16 @@ class {{ client_class }}Base:
         transport: httpx.BaseTransport | None = None,
         headers: Mapping[str, str] | None = None,
         shape: Literal["models", "dicts"] = "models",
-        default_page_size: int | None = None,
         pagination_strategy: PaginationStrategy | None = None,
         filter_strategy: FilterStrategy | None = None,
         sort_strategy: SortStrategy | None = None,
     ) -> None:
         self._base_url = base_url
         self._shape = shape
-        self.default_page_size = default_page_size
         self.pagination_strategy: PaginationStrategy = (
-            pagination_strategy if pagination_strategy is not None else OffsetLimitPagination()
+            pagination_strategy
+            if pagination_strategy is not None
+            else LimitOffsetPagination(default_page_size=100)
         )
         self.filter_strategy: FilterStrategy = (
             filter_strategy if filter_strategy is not None else KeyValueFilter()
@@ -125,7 +125,6 @@ class {{ client_class }}Base:
         sibling._http = self._http
         sibling._base_url = self._base_url
         sibling._shape = shape
-        sibling.default_page_size = self.default_page_size
         sibling.pagination_strategy = self.pagination_strategy
         sibling.filter_strategy = self.filter_strategy
         sibling.sort_strategy = self.sort_strategy
@@ -199,7 +198,9 @@ class Async{{ client_class }}Base:
         self._shape = shape
         self.default_page_size = default_page_size
         self.pagination_strategy: PaginationStrategy = (
-            pagination_strategy if pagination_strategy is not None else OffsetLimitPagination()
+            pagination_strategy
+            if pagination_strategy is not None
+            else LimitOffsetPagination(default_page_size=100)
         )
         self.filter_strategy: FilterStrategy = (
             filter_strategy if filter_strategy is not None else KeyValueFilter()
@@ -247,7 +248,6 @@ class Async{{ client_class }}Base:
         sibling._http = self._http
         sibling._base_url = self._base_url
         sibling._shape = shape
-        sibling.default_page_size = self.default_page_size
         sibling.pagination_strategy = self.pagination_strategy
         sibling.filter_strategy = self.filter_strategy
         sibling.sort_strategy = self.sort_strategy
