@@ -11,9 +11,7 @@
 	"workspaceFolder": "/app",
 	"mounts": [
 		"source=${localWorkspaceFolder},target=/app,type=bind,consistency=cached",
-		"source=${localEnv:HOME}/.ssh,target=/root/.ssh,type=bind",
-		"source=${localEnv:HOME}/.claude,target=/root/.claude,type=bind",
-		"source=${localEnv:HOME}/.claude.json,target=/root/.claude.json,type=bind"
+                "source=claude-state-${devcontainerId},target=/root/.claude,type=volume"
 	],
 
 	"customizations": {

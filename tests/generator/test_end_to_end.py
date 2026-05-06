@@ -84,6 +84,48 @@ def test_generated_tree_passes_lint_and_typecheck(
     assert mypy.returncode == 0, f"mypy failed:\n{mypy.stdout}\n{mypy.stderr}"
 
 
+@pytest.mark.parametrize(
+    ("fixture_name", "package", "client_class"),
+    [
+        ("simple.yaml", "simpletests", "SimpleTestClient"),
+        ("nested.yaml", "nestedtests", "NestedTestClient"),
+        ("singletons.yaml", "singletontests", "SingletonTestClient"),
+        ("root_actions.yaml", "rootactionstests", "RootActionsTestClient"),
+    ],
+)
+def test_generated_tests_pass_against_pytest_httpx(
+    tmp_path: Path, fixture_name: str, package: str, client_class: str
+) -> None:
+    """Generated `tests/` suite passes when run inside the generated project.
+
+    Confirms the emitted conftest + per-node test modules work end-to-end with
+    `pytest-httpx` mocking the HTTP transport — the contract `pytest spec
+    generate` promises out of the box.
+    """
+    fixture = FIXTURES / fixture_name
+    api = parse(fixture)
+    out = tmp_path / "out"
+
+    vfs = generate(
+        api,
+        raw_spec=fixture,
+        output_dir=out,
+        package=package,
+        client_class=client_class,
+        project_name=f"{package}-test",
+        python_version=HOST_PYTHON,
+    )
+    write_to_disk(vfs, out)
+
+    sync = _run(["uv", "sync"], cwd=out)
+    assert sync.returncode == 0, f"uv sync failed:\n{sync.stderr}"
+
+    pytest_run = _run(["uv", "run", "pytest", "--no-cov", "-q"], cwd=out)
+    assert pytest_run.returncode == 0, (
+        f"generated pytest suite failed:\n{pytest_run.stdout}\n{pytest_run.stderr}"
+    )
+
+
 def test_cli_invocation_writes_files(tmp_path: Path) -> None:
     """`okapipy spec generate` end-to-end: invoke via `uv run okapipy`, verify files."""
     out = tmp_path / "out"
