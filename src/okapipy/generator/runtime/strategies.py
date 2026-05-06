@@ -7,6 +7,21 @@ strategies walk the user's `Filter` / `Sort` tree and produce wire parameters.
 
 Strategies are duck-typed against the Protocols below — users do not have to
 inherit from them.
+
+Pagination strategies own their default page size: each built-in *requires* a
+`default_page_size` argument that seeds `initial(...)` when the per-call
+`page_size` is `None`. The client no longer holds a `default_page_size` — it
+is a property of the wire dialect, which is exactly what the strategy models.
+Making it required (rather than `int | None`) is deliberate: a `None` would
+fall back to whatever default the backend chooses, leaving the client unable
+to tell what page size each request actually carries. Users can still
+override per-call via `.page_size(n)`.
+
+Filter strategies return a `FilterEncoding` object rather than a bare params
+dict. `FilterEncoding` carries both ordinary key/value `params` and an optional
+`raw_query` fragment for dialects whose expression must be emitted verbatim
+into the query string instead of as `key=value` pairs (e.g. RQL:
+`/path/to/coll?and(eq(f1,v1),eq(f2,v2))&limit=100&offset=0`).
 """
 
 from __future__ import annotations
@@ -25,6 +40,24 @@ from .exceptions import (
 )
 from .filters import AndFilter, Filter, NotFilter, OrFilter, Search
 from .sort import Sort
+
+
+@dataclass(frozen=True)
+class FilterEncoding:
+    """The wire form of a `Filter` tree as produced by a `FilterStrategy`.
+
+    `params` are merged into the request's `params=` argument (key/value pairs
+    that httpx URL-encodes). `raw_query` is a query-string fragment appended
+    verbatim — required for expression-language filters like RQL where the
+    operators (`and(...)`, `eq(...)`) carry parentheses and commas that must
+    not be split into separate parameters.
+    """
+
+    params: Mapping[str, Any] = field(default_factory=dict)
+    raw_query: str | None = None
+
+    def __bool__(self) -> bool:
+        return bool(self.params) or bool(self.raw_query)
 
 
 @runtime_checkable
@@ -51,9 +84,9 @@ class PaginationStrategy(Protocol):
 
 @runtime_checkable
 class FilterStrategy(Protocol):
-    """Renders a `Filter` tree into request parameters."""
+    """Renders a `Filter` tree into a `FilterEncoding`."""
 
-    def encode(self, f: Filter | None) -> Mapping[str, Any]: ...
+    def encode(self, f: Filter | None) -> FilterEncoding: ...
 
 
 @runtime_checkable
@@ -95,10 +128,35 @@ def _parse_content_range_total(value: str) -> int | None:
     return int(total) if total.isdigit() else None
 
 
-@dataclass
-class OffsetLimitPagination:
-    """`?offset=&limit=` pagination with configurable count source."""
+def _read_dotted_path(body: Any, path: str) -> Any:
+    """Walk a dotted path through nested mappings; return `None` on miss.
 
+    `path="total"` reads `body["total"]`; `path="meta.pagination.total"` reads
+    `body["meta"]["pagination"]["total"]`. Returns `None` if any intermediate
+    key is missing or any intermediate value is not a mapping — callers should
+    treat that as "no total available" rather than raising.
+    """
+    current: Any = body
+    for segment in path.split("."):
+        if not isinstance(current, Mapping) or segment not in current:
+            return None
+        current = current[segment]
+    return current
+
+
+@dataclass
+class LimitOffsetPagination:
+    """`?offset=&limit=` pagination with configurable count source.
+
+    `default_page_size` is required — it seeds `limit` when the caller did not
+    invoke `.page_size(...)`. The per-call value passed to `initial` always
+    wins when present.
+
+    `total_field` accepts a dotted path for envelopes that nest the total
+    (e.g. `"meta.pagination.total"` reads `body["meta"]["pagination"]["total"]`).
+    """
+
+    default_page_size: int
     offset_param: str = "offset"
     limit_param: str = "limit"
     total_field: str | None = "total"
@@ -114,10 +172,12 @@ class OffsetLimitPagination:
         )
 
     def initial(self, page_size: int | None) -> Mapping[str, Any]:
-        params: dict[str, Any] = {self.offset_param: 0}
-        if page_size is not None:
-            params[self.limit_param] = page_size
-        return params
+        return {
+            self.offset_param: 0,
+            self.limit_param: page_size
+            if page_size is not None
+            else self.default_page_size,
+        }
 
     def next(
         self, response: httpx.Response, last_params: Mapping[str, Any]
@@ -146,15 +206,15 @@ class OffsetLimitPagination:
         total = self._read_total(response)
         if total is None:
             raise ConfigurationError(
-                "OffsetLimitPagination has no count source configured"
+                "LimitOffsetPagination has no count source configured"
             )
         return total
 
     def _read_total(self, response: httpx.Response) -> int | None:
         if self.total_field is not None:
-            body = response.json()
-            if isinstance(body, dict) and self.total_field in body:
-                return int(body[self.total_field])
+            value = _read_dotted_path(response.json(), self.total_field)
+            if value is not None:
+                return int(value)
         if self.total_header is not None:
             value = response.headers.get(self.total_header)
             if value is not None and value.isdigit():
@@ -168,8 +228,13 @@ class OffsetLimitPagination:
 
 @dataclass
 class PageNumberPagination:
-    """`?page=&page_size=` pagination."""
+    """`?page=&page_size=` pagination.
 
+    `total_field` accepts a dotted path for envelopes that nest the total
+    (e.g. `"meta.pagination.total"` reads `body["meta"]["pagination"]["total"]`).
+    """
+
+    default_page_size: int
     page_param: str = "page"
     page_size_param: str = "page_size"
     start_page: int = 1
@@ -181,10 +246,12 @@ class PageNumberPagination:
         return self.total_field is not None or self.total_header is not None
 
     def initial(self, page_size: int | None) -> Mapping[str, Any]:
-        params: dict[str, Any] = {self.page_param: self.start_page}
-        if page_size is not None:
-            params[self.page_size_param] = page_size
-        return params
+        return {
+            self.page_param: self.start_page,
+            self.page_size_param: page_size
+            if page_size is not None
+            else self.default_page_size,
+        }
 
     def next(
         self, response: httpx.Response, last_params: Mapping[str, Any]
@@ -209,9 +276,9 @@ class PageNumberPagination:
 
     def extract_count(self, response: httpx.Response) -> int:
         if self.total_field is not None:
-            body = response.json()
-            if isinstance(body, dict) and self.total_field in body:
-                return int(body[self.total_field])
+            value = _read_dotted_path(response.json(), self.total_field)
+            if value is not None:
+                return int(value)
         if self.total_header is not None:
             value = response.headers.get(self.total_header)
             if value is not None and value.isdigit():
@@ -221,8 +288,13 @@ class PageNumberPagination:
 
 @dataclass
 class CursorPagination:
-    """Opaque-cursor pagination: `?cursor=...` + a next-cursor field in the response."""
+    """Opaque-cursor pagination: `?cursor=...` + a next-cursor field in the response.
 
+    `page_size_param=None` opts out of sending any size hint at all; otherwise
+    `default_page_size` is used when the caller did not invoke `.page_size(...)`.
+    """
+
+    default_page_size: int
     cursor_param: str = "cursor"
     next_cursor_field: str = "next_cursor"
     page_size_param: str | None = "page_size"
@@ -233,10 +305,13 @@ class CursorPagination:
         return self.content_range
 
     def initial(self, page_size: int | None) -> Mapping[str, Any]:
-        params: dict[str, Any] = {}
-        if page_size is not None and self.page_size_param is not None:
-            params[self.page_size_param] = page_size
-        return params
+        if self.page_size_param is None:
+            return {}
+        return {
+            self.page_size_param: page_size
+            if page_size is not None
+            else self.default_page_size,
+        }
 
     def next(
         self, response: httpx.Response, last_params: Mapping[str, Any]
@@ -272,8 +347,13 @@ class CursorPagination:
 
 @dataclass
 class LinkHeaderPagination:
-    """RFC 5988 `Link: <…>; rel="next"` pagination."""
+    """RFC 5988 `Link: <…>; rel="next"` pagination.
 
+    `page_size_param=None` opts out of sending any size hint at all; otherwise
+    `default_page_size` is used when the caller did not invoke `.page_size(...)`.
+    """
+
+    default_page_size: int
     page_size_param: str | None = "limit"
     content_range: bool = True
     total_header: str | None = "X-Total-Count"
@@ -283,10 +363,13 @@ class LinkHeaderPagination:
         return self.content_range or self.total_header is not None
 
     def initial(self, page_size: int | None) -> Mapping[str, Any]:
-        params: dict[str, Any] = {}
-        if page_size is not None and self.page_size_param is not None:
-            params[self.page_size_param] = page_size
-        return params
+        if self.page_size_param is None:
+            return {}
+        return {
+            self.page_size_param: page_size
+            if page_size is not None
+            else self.default_page_size,
+        }
 
     def next(
         self, response: httpx.Response, last_params: Mapping[str, Any]
@@ -342,15 +425,26 @@ class LinkHeaderPagination:
 # --------------------------------------------------------------------------- #
 
 
+def _and_leaves(node: Filter, label: str) -> list[Filter]:
+    """Flatten `&`-composed leaves; raise on `|`/`~` because `label` rejects them."""
+    if isinstance(node, AndFilter):
+        return [*_and_leaves(node.left, label), *_and_leaves(node.right, label)]
+    if isinstance(node, (OrFilter, NotFilter)):
+        raise UnsupportedFilterError(
+            f"{label} accepts conjunctive expressions only (no OR/NOT)"
+        )
+    return [node]
+
+
 @dataclass
 class KeyValueFilter:
     """Equality-only conjunctive filter: `?status=open&customer_id=42`."""
 
-    def encode(self, f: Filter | None) -> Mapping[str, Any]:
+    def encode(self, f: Filter | None) -> FilterEncoding:
         if f is None:
-            return {}
+            return FilterEncoding()
         params: dict[str, Any] = {}
-        for leaf in self._iter_and_leaves(f):
+        for leaf in _and_leaves(f, "KeyValueFilter"):
             if isinstance(leaf, Search):
                 raise UnsupportedFilterError(
                     "KeyValueFilter does not support Search leaves"
@@ -361,49 +455,25 @@ class KeyValueFilter:
                         f"KeyValueFilter does not support operator suffix: {key!r}"
                     )
                 params[key] = value
-        return params
-
-    def _iter_and_leaves(self, node: Filter) -> list[Filter]:
-        if isinstance(node, AndFilter):
-            return [
-                *self._iter_and_leaves(node.left),
-                *self._iter_and_leaves(node.right),
-            ]
-        if isinstance(node, (OrFilter, NotFilter)):
-            raise UnsupportedFilterError(
-                "KeyValueFilter accepts conjunctive equality only (no OR/NOT)"
-            )
-        return [node]
+        return FilterEncoding(params=params)
 
 
 @dataclass
 class KeyOpValueFilter:
     """Django-style operator-suffix filter: `?created_at__gte=…&status__in=…`."""
 
-    def encode(self, f: Filter | None) -> Mapping[str, Any]:
+    def encode(self, f: Filter | None) -> FilterEncoding:
         if f is None:
-            return {}
+            return FilterEncoding()
         params: dict[str, Any] = {}
-        for leaf in self._iter_and_leaves(f):
+        for leaf in _and_leaves(f, "KeyOpValueFilter"):
             if isinstance(leaf, Search):
                 raise UnsupportedFilterError(
                     "KeyOpValueFilter does not support Search leaves"
                 )
             for key, value in leaf.kwargs.items():
                 params[key] = value
-        return params
-
-    def _iter_and_leaves(self, node: Filter) -> list[Filter]:
-        if isinstance(node, AndFilter):
-            return [
-                *self._iter_and_leaves(node.left),
-                *self._iter_and_leaves(node.right),
-            ]
-        if isinstance(node, (OrFilter, NotFilter)):
-            raise UnsupportedFilterError(
-                "KeyOpValueFilter accepts conjunctive expressions only (no OR/NOT)"
-            )
-        return [node]
+        return FilterEncoding(params=params)
 
 
 @dataclass
@@ -412,15 +482,15 @@ class SearchFilterStrategy:
 
     param: str = "q"
 
-    def encode(self, f: Filter | None) -> Mapping[str, Any]:
+    def encode(self, f: Filter | None) -> FilterEncoding:
         if f is None:
-            return {}
+            return FilterEncoding()
         leaves = list(f.iter_leaves())
         if len(leaves) != 1 or not isinstance(leaves[0], Search):
             raise UnsupportedFilterError(
                 "SearchFilterStrategy accepts a single Search(...) leaf only"
             )
-        return {self.param: leaves[0].query}
+        return FilterEncoding(params={self.param: leaves[0].query})
 
 
 @dataclass
@@ -429,10 +499,10 @@ class JsonFilterStrategy:
 
     param: str = "filter"
 
-    def encode(self, f: Filter | None) -> Mapping[str, Any]:
+    def encode(self, f: Filter | None) -> FilterEncoding:
         if f is None:
-            return {}
-        return {self.param: json.dumps(self._to_json(f))}
+            return FilterEncoding()
+        return FilterEncoding(params={self.param: json.dumps(self._to_json(f))})
 
     def _to_json(self, node: Filter) -> Any:
         if isinstance(node, AndFilter):

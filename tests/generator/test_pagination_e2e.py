@@ -29,7 +29,7 @@ def client_module(tmp_path: Path):
     """Generate the client + write to disk + import the package.
 
     Yields the imported module (not the client class) so tests can also fetch
-    runtime types like `OffsetLimitPagination` from `module.<runtime>`. Cleans
+    runtime types like `LimitOffsetPagination` from `module.<runtime>`. Cleans
     sys.modules / sys.path on teardown to keep tests independent.
     """
     package = "pagcli"
@@ -79,7 +79,7 @@ def _paged_handler(
 
 
 def test_offset_limit_iteration_walks_all_pages(client_module) -> None:
-    """`OffsetLimitPagination` walks pages until `offset >= total`."""
+    """`LimitOffsetPagination` walks pages until `offset >= total`."""
     pages = [
         {"items": [{"id": "1"}, {"id": "2"}], "total": 5},
         {"items": [{"id": "3"}, {"id": "4"}], "total": 5},
@@ -89,7 +89,7 @@ def test_offset_limit_iteration_walks_all_pages(client_module) -> None:
     client = client_module.PagClientBase(
         "https://api.example.com",
         transport=transport,
-        pagination_strategy=client_module.OffsetLimitPagination(),
+        pagination_strategy=client_module.LimitOffsetPagination(default_page_size=100),
     )
 
     items = list(client.orders.page_size(2))
@@ -107,7 +107,7 @@ def test_first_short_circuits_after_one_page(client_module) -> None:
     client = client_module.PagClientBase(
         "https://api.example.com",
         transport=transport,
-        pagination_strategy=client_module.OffsetLimitPagination(),
+        pagination_strategy=client_module.LimitOffsetPagination(default_page_size=100),
     )
 
     first = client.orders.first()
@@ -130,7 +130,7 @@ def test_count_uses_dedicated_minimal_request(client_module) -> None:
     client = client_module.PagClientBase(
         "https://api.example.com",
         transport=transport,
-        pagination_strategy=client_module.OffsetLimitPagination(),
+        pagination_strategy=client_module.LimitOffsetPagination(default_page_size=100),
     )
 
     total = client.orders.count()
@@ -151,7 +151,7 @@ def test_cursor_pagination_follows_next_token_until_absent(client_module) -> Non
     client = client_module.PagClientBase(
         "https://api.example.com",
         transport=transport,
-        pagination_strategy=client_module.CursorPagination(),
+        pagination_strategy=client_module.CursorPagination(default_page_size=10),
     )
 
     items = list(client.orders)
@@ -180,12 +180,112 @@ def test_link_header_pagination_follows_rel_next(client_module) -> None:
     client = client_module.PagClientBase(
         "https://api.example.com",
         transport=transport,
-        pagination_strategy=client_module.LinkHeaderPagination(),
+        pagination_strategy=client_module.LinkHeaderPagination(default_page_size=10),
     )
 
     items = list(client.orders)
 
     assert [item["id"] for item in items] == ["1", "2"]
+    client.close()
+
+
+def test_filter_strategy_default_page_size_seeds_limit_param(client_module) -> None:
+    """`LimitOffsetPagination(default_page_size=...)` seeds `limit` without `.page_size(...)`."""
+    seen_limits: list[str | None] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen_limits.append(request.url.params.get("limit"))
+        return httpx.Response(200, json={"items": [], "total": 0})
+
+    transport = httpx.MockTransport(handler)
+    client = client_module.PagClientBase(
+        "https://api.example.com",
+        transport=transport,
+        pagination_strategy=client_module.LimitOffsetPagination(default_page_size=42),
+    )
+
+    list(client.orders)
+
+    assert seen_limits == ["42"]
+    client.close()
+
+
+def test_raw_query_filter_strategy_appends_to_url(client_module) -> None:
+    """Filter strategy emitting `raw_query` is appended verbatim to the request URL.
+
+    Mirrors RQL: `/orders?and(eq(field1,value1))&offset=0&limit=2`. The raw
+    fragment must not be URL-encoded as a key=value param.
+    """
+    captured: list[httpx.URL] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        captured.append(request.url)
+        return httpx.Response(200, json={"items": [], "total": 0})
+
+    transport = httpx.MockTransport(handler)
+    Filter = client_module.Filter
+    FilterEncoding = client_module.FilterEncoding
+
+    class RqlLike:
+        def encode(self, f):
+            if f is None:
+                return FilterEncoding()
+            terms = [f"eq({k},{v})" for k, v in f.kwargs.items()]
+            return FilterEncoding(raw_query="and(" + ",".join(terms) + ")")
+
+    client = client_module.PagClientBase(
+        "https://api.example.com",
+        transport=transport,
+        pagination_strategy=client_module.LimitOffsetPagination(default_page_size=100),
+        filter_strategy=RqlLike(),
+    )
+
+    list(client.orders.filter(Filter(field1="value1", field2="value2")).page_size(2))
+
+    assert len(captured) == 1
+    url = captured[0]
+    raw_query = url.raw_path.decode("ascii")
+    # Path + query is something like
+    # `/orders?and(eq(field1,value1),eq(field2,value2))&offset=0&limit=2`.
+    assert raw_query.startswith("/orders?and(eq(field1,value1),eq(field2,value2))")
+    assert "offset=0" in raw_query
+    assert "limit=2" in raw_query
+    client.close()
+
+
+def test_raw_query_filter_strategy_count_request(client_module) -> None:
+    """`count()` also routes the filter-strategy raw fragment into the request URL."""
+    captured: list[httpx.URL] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        captured.append(request.url)
+        return httpx.Response(200, json={"items": [{"id": "1"}], "total": 17})
+
+    transport = httpx.MockTransport(handler)
+    Filter = client_module.Filter
+    FilterEncoding = client_module.FilterEncoding
+
+    class RqlLike:
+        def encode(self, f):
+            if f is None:
+                return FilterEncoding()
+            terms = [f"eq({k},{v})" for k, v in f.kwargs.items()]
+            return FilterEncoding(raw_query="and(" + ",".join(terms) + ")")
+
+    client = client_module.PagClientBase(
+        "https://api.example.com",
+        transport=transport,
+        pagination_strategy=client_module.LimitOffsetPagination(default_page_size=100),
+        filter_strategy=RqlLike(),
+    )
+
+    total = client.orders.filter(Filter(status="open")).count()
+
+    assert total == 17
+    raw_query = captured[0].raw_path.decode("ascii")
+    assert raw_query.startswith("/orders?and(eq(status,open))")
+    assert "limit=1" in raw_query
+    assert "offset=0" in raw_query
     client.close()
 
 
@@ -205,7 +305,7 @@ def test_with_options_seeds_overrides_for_every_page(client_module) -> None:
     client = client_module.PagClientBase(
         "https://api.example.com",
         transport=transport,
-        pagination_strategy=client_module.OffsetLimitPagination(),
+        pagination_strategy=client_module.LimitOffsetPagination(default_page_size=100),
     )
 
     items = list(client.orders.with_options(headers={"X-Trace": "abc"}).page_size(2))

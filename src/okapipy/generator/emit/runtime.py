@@ -96,6 +96,7 @@ RUNTIME_PUBLIC_NAMES: tuple[str, ...] = (
     "ConfigurationError",
     "CursorPagination",
     "Filter",
+    "FilterEncoding",
     "FilterStrategy",
     "JsonApiSort",
     "JsonFilterStrategy",
@@ -104,7 +105,7 @@ RUNTIME_PUBLIC_NAMES: tuple[str, ...] = (
     "KeyValueFilter",
     "LinkHeaderPagination",
     "NotFilter",
-    "OffsetLimitPagination",
+    "LimitOffsetPagination",
     "OrFilter",
     "PageNumberPagination",
     "PaginationStrategy",
@@ -168,6 +169,7 @@ def _runtime_init(
         + "from .strategies import (\n"
         + "    CommaSignedSort,\n"
         + "    CursorPagination,\n"
+        + "    FilterEncoding,\n"
         + "    FilterStrategy,\n"
         + "    JsonApiSort,\n"
         + "    JsonFilterStrategy,\n"
@@ -175,7 +177,7 @@ def _runtime_init(
         + "    KeyOpValueFilter,\n"
         + "    KeyValueFilter,\n"
         + "    LinkHeaderPagination,\n"
-        + "    OffsetLimitPagination,\n"
+        + "    LimitOffsetPagination,\n"
         + "    PageNumberPagination,\n"
         + "    PaginationStrategy,\n"
         + "    SearchFilterStrategy,\n"
