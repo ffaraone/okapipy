@@ -29,6 +29,7 @@ from okapipy.generator.emit.client import emit_client
 from okapipy.generator.emit.project import emit_project_skeleton
 from okapipy.generator.emit.runtime import emit_runtime
 from okapipy.generator.emit.stubs import emit_stubs
+from okapipy.generator.emit.tests import emit_tests
 from okapipy.generator.emit.walk import emit_root_init_extension, emit_tree
 from okapipy.generator.manifest import MANIFEST_FILENAME, serialize
 from okapipy.generator.models import emit_models, public_names
@@ -127,6 +128,9 @@ def generate(
             vfs.setdefault(path, GeneratedFile(""))
     # User-layer subclass stubs — already marked one-shot internally.
     vfs.update(emit_stubs(api, package, package_path, client_class))
+    # Generated test scaffolding — one-shot so customer edits survive regeneration.
+    test_files = emit_tests(env, api, project_context, top_package)
+    _wrap(vfs, test_files, one_shot=True)
     # Manifest, computed last so `base_files` reflects the full base tree.
     # The manifest path itself is included in `base_files` so pruning treats
     # it like any other regenerated base file.

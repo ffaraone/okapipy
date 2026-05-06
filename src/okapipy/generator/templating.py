@@ -77,6 +77,8 @@ def render_python(
     env: Environment,
     template_name: str,
     context: Mapping[str, Any],
+    *,
+    known_first_party: str | None = None,
 ) -> str:
     """Render a Python template, isort-fix it, then `ruff format` the result.
 
@@ -84,26 +86,45 @@ def render_python(
     accumulate `I001` lints when imported by users running ruff against their
     whole project. The format pass runs after isort so the final output is
     canonical.
+
+    `known_first_party` (when set) is forwarded to ruff's isort so absolute
+    imports of the generated package end up in the correct group. This matters
+    for files that live outside the generated package — e.g. tests under
+    `tests/` that `from <pkg> import ...` — because the generated project's
+    `pyproject.toml` configures the package as first-party.
     """
     rendered = render(env, template_name, context)
-    sorted_ = ruff_isort(rendered, template_name)
+    sorted_ = ruff_isort(rendered, template_name, known_first_party=known_first_party)
     return ruff_format(sorted_, template_name)
 
 
-def ruff_isort(source: str, label: str) -> str:
+def ruff_isort(
+    source: str,
+    label: str,
+    *,
+    known_first_party: str | None = None,
+) -> str:
     """Run `ruff check --fix --select I` to apply isort to `source`."""
+    args = [
+        "ruff",
+        "check",
+        "--fix",
+        "--select",
+        "I",
+        "--stdin-filename",
+        "generated.py",
+    ]
+    if known_first_party:
+        args.extend(
+            [
+                "--config",
+                f'lint.isort.known-first-party = ["{known_first_party}"]',
+            ]
+        )
+    args.append("-")
     try:
         result = subprocess.run(
-            [
-                "ruff",
-                "check",
-                "--fix",
-                "--select",
-                "I",
-                "--stdin-filename",
-                "generated.py",
-                "-",
-            ],
+            args,
             input=source,
             capture_output=True,
             text=True,
