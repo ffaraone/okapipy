@@ -72,3 +72,38 @@ jobs:
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
+
+  docs:
+    name: Build and deploy docs to GitHub Pages
+    # Only deploy docs once the PyPI publish has succeeded; a failed publish
+    # should not produce a docs site that points at a release that doesn't exist.
+    needs: publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # mkdocs gh-deploy pushes to the gh-pages branch
+    concurrency:
+      group: pages
+      cancel-in-progress: true
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          # gh-deploy needs full history so it can rewrite gh-pages cleanly.
+          fetch-depth: 0
+
+      - name: Set up uv with Python 3.13
+        uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.13"
+          enable-cache: true
+
+      - name: Install dependencies (incl. docs group)
+        run: uv sync --locked --group docs
+
+      - name: Configure git identity for gh-deploy
+        run: |
+          git config --local user.name  "github-actions[bot]"
+          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Build and deploy
+        run: uv run mkdocs gh-deploy --force --clean --verbose

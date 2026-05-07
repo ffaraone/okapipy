@@ -6,16 +6,17 @@ first generation (`one_shot=True`) and are never touched again by subsequent
 runs.
 
 On first emission each stub **auto-wires** every `__<child>_factory__` hook
-to point at the user-layer subclass tree, so out-of-the-box `client.commerce.orders`
-returns the user's `OrdersCollection` rather than the `Base` default. Spec
-growth (a new collection added later) is the one case the auto-wiring can't
-cover, since parent stubs are one-shot — Phase 4's drift detection emits a
-warning telling the user the exact line to add.
+to point at the user-layer subclass tree, so out-of-the-box
+`client.commerce.orders` returns the user's `OrdersCollection` rather than the
+`Base` default. Spec growth — a new collection added later — is the one case
+auto-wiring cannot cover, because parent stubs are never re-emitted; the
+manifest-based drift detection in `vfs.py` emits a warning that names the
+exact line the customer needs to add by hand.
 
 Layout produced (sibling of the regenerated `base/` tree):
 
     src/{package_path}/
-    ├── __init__.py            # empty (decision: customization.md §11.2)
+    ├── __init__.py            # left empty so the customer can choose what to re-export
     ├── client.py              # class Client(ClientBase): __ns_factory__ = ...
     ├── namespaces/<ns>.py     # class CommerceNamespace(...): __orders_factory__ = ...
     ├── collections/<c>.py     # class OrdersCollection(...): __resource_factory__ = ...

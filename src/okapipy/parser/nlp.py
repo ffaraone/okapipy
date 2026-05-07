@@ -1,12 +1,32 @@
-"""Phase 2 of the parser pipeline: spaCy-backed POS and morphology lookup.
+"""spaCy-backed POS and morphology lookup for path segments.
 
-This module owns three responsibilities:
+The classifier needs to know, for a single path segment, whether it looks like a
+plural noun (a collection: `users`, `account-tokens`), a verb or verb-phrase (an
+action: `login`, `force-reimport`), or neither. This module produces that summary
+by tagging the segment with a small spaCy model.
 
-1. Mapping ISO language codes to spaCy model names.
-2. Loading a spaCy pipeline from a user-controlled cache directory, downloading the
-   model on a cache miss.
-3. Reducing a path segment (which may contain dashes or underscores) to a small
-   summary the classifier can branch on: is it a verb-phrase, is it plural, etc.
+Three responsibilities live here:
+
+1. Map an ISO language code to its spaCy model name (`en` -> `en_core_web_sm`).
+2. Load the spaCy pipeline from a user-controlled cache directory, downloading
+   the model on a cache miss via `python -m spacy download --target <cache_dir>`.
+3. Split a segment on `-`/`_`, tag each token, and reduce the result to three
+   mutually exclusive flags: is it a verb-phrase, is it plural, or is it
+   singular/unknown. The compound-word logic uses the head-noun rule
+   (last token determines role) with a postmodifier-word exception for
+   constructions like `units-of-measure` or `terms-and-conditions`.
+
+Two non-obvious workarounds preserve correctness against the small spaCy models:
+
+* Bare path tokens (`tokens`, `users`) get mistagged as singular `PROPN`. To
+  detect plurality reliably, the segment is re-analyzed inside a definite-article
+  wrapper from `PLURAL_CONTEXT` (e.g. `"the tokens"`); the head noun then carries
+  the right `Number` morphology.
+* Verbs (`reset`, `submit`) keep their `VERB` tag in isolation but lose it inside
+  the article wrapper. Each token is analyzed both ways and the signals combined.
+* A small per-language `VERB_ACTION_REGISTRY` covers high-traffic API verb
+  endpoints (`login`, `refresh`, `ping`, ...) that spaCy mistags even with the
+  workarounds above.
 """
 
 from __future__ import annotations

@@ -258,8 +258,10 @@ def _emit_collection(
         import_names.add(fetch_item_model)
     model_imports = sorted(import_names)
     create_op_ctx = _op_context(create_op, available_models)
-    # Class docstring comes from the fetch operation per generator.md §9. When
-    # the operation isn't populated, fall back to a generic structural string.
+    # The class docstring comes from the fetch operation: the collection class
+    # is the natural surface for "list these things", so its summary best
+    # describes what the class represents. When fetch isn't populated, fall
+    # back to the collection's own summary, then to a generic structural string.
     if fetch_op is not None:
         class_doc = build_docstring(
             fetch_op.summary,
@@ -552,9 +554,12 @@ def _emit_action(
     model_imports = sorted(
         _collect_response_model_names(action.operations, available_models)
     )
-    # Single op: class doc and the (sole) method's doc share the same source per
-    # generator.md §11. Multi-op: class doc lists all operations; per-method docs
-    # come from each operation individually.
+    # Action docstrings: when the action has a single HTTP method, the class
+    # docstring and that method's docstring share one source — the action's
+    # summary/description — because the class and the method describe the same
+    # thing. When the action has multiple methods, the class docstring lists
+    # every operation and each method gets its own docstring from its own
+    # summary/description.
     class_doc = build_action_docstring(action)
     op_docstrings: list[str] = []
     for op in action.operations:
@@ -612,13 +617,14 @@ def build_docstring(
 
 
 def collection_property_docstring(coll: Collection, indent: int = 8) -> str | None:
-    """Docstring for a property that exposes a `Collection`.
+    """Build the docstring for a property that exposes a `Collection`.
 
-    Per generator.md §7.7, the property accessor (e.g. `Admin.accounts`,
-    `Order.lines`, `client.orders`) carries the docstring of the collection's
-    `fetch` operation so users see the collection's purpose at the call site.
-    Falls back to a structural string when the collection has no fetch op or
-    the fetch op has no documentation.
+    The accessor (e.g. `Admin.accounts`, `Order.lines`, `client.orders`)
+    inherits the collection's `fetch` operation docs so the call site shows
+    the collection's purpose without forcing the user to navigate into the
+    collection class. When fetch has no documentation, fall back to the
+    collection's own summary/description, and finally to a structural
+    string identifying the path.
     """
     fetch = coll.fetch
     if fetch is not None:

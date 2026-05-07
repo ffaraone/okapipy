@@ -1,11 +1,15 @@
-"""Phase 1 of the parser pipeline: load an OpenAPI document.
+"""Load an OpenAPI 3.x document from a local path or an http(s) URL.
 
-A single public entry point, `load_spec`, accepts either a local filesystem path or an
-http(s) URL, in JSON or YAML, and returns the parsed document with `$ref` pointers
-left intact. Resolution and validation are intentionally skipped: the structural
-parser recovers schema names from the original `$ref` strings, and the cost of full
-spec resolution (deeply self-referential schemas, unreachable external files) is
-both unnecessary and prohibitive on real-world specs.
+`load_spec` is the public entry point. It auto-detects JSON vs YAML from the file
+content, fetches the document (off disk for paths, over HTTP for URLs), and returns
+the parsed mapping. `$ref` pointers are deliberately left intact: downstream code
+recovers schema names from the original `$ref` strings, and full reference
+resolution would be both unnecessary and prohibitively expensive on real-world
+specs (deeply self-referential schemas, unreachable external files).
+
+`detect_base_path` reads the path component of the first `servers[].url`, and
+`strip_base_path` removes that prefix from each path key so subsequent path-walking
+sees segments relative to the API's logical root.
 """
 
 from __future__ import annotations

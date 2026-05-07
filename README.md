@@ -8,6 +8,7 @@
 [![PyPI](https://img.shields.io/pypi/v/okapipy.svg)](https://pypi.org/project/okapipy/)
 [![Python versions](https://img.shields.io/pypi/pyversions/okapipy)](https://pypi.org/project/okapipy/)
 [![License](https://img.shields.io/pypi/l/okapipy)](https://github.com/ffaraone/okapipy/blob/main/LICENSE)
+[![Docs](https://img.shields.io/badge/docs-ffaraone.github.io%2Fokapipy-5b3621?labelColor=2c1a10)](https://ffaraone.github.io/okapipy/)
 
 [![Quality Gate](https://sonarcloud.io/api/project_badges/measure?project=ffaraone_okapipy&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=ffaraone_okapipy)
 [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=ffaraone_okapipy&metric=coverage)](https://sonarcloud.io/component_measures?id=ffaraone_okapipy&metric=coverage)
@@ -20,6 +21,10 @@ A Python OpenAPI client generator that lifts the flat list of paths in an
 OpenAPI 3.x document into a hierarchical tree of **Namespaces**, **Collections**,
 **Resources**, **Singletons**, and **Actions**, and emits a strongly-typed,
 async/sync Pydantic v2 client from it.
+
+📚 **Full documentation:** <https://ffaraone.github.io/okapipy/> — installation,
+quick start, client usage, rules and extensions, strategies, code customization,
+template overrides, and a full API reference.
 
 ## Installation
 
