@@ -278,8 +278,9 @@ def test_anyof_request_body_renders_as_python_union_in_action(tmp_path: Path) ->
     )
 
     action_src = vfs["src/acme/client/base/actions/login.py"].content
-    assert "def run(self, body: Login | RefreshAccessToken" in action_src
-    assert "async def run(self, body: Login | RefreshAccessToken" in action_src
+    assert "body: Login | RefreshAccessToken | dict[str, Any]" in action_src
+    # Both sync and async `run` methods carry the same union signature.
+    assert action_src.count("body: Login | RefreshAccessToken | dict[str, Any]") == 2
     assert "from ..models import Login, RefreshAccessToken" in action_src
 
 

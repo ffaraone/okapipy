@@ -753,14 +753,17 @@ def _op_context(
 def _body_type(request_model: str | None, members: Sequence[str]) -> str:
     """Render the Python type expression for the operation's `body` parameter.
 
-    Multiple union members produce `A | B`; a single class produces `A`; an
-    empty/filtered request schema falls back to `Any` so untyped bodies still
-    pass through.
+    Always admits a plain `dict[str, Any]` alongside any typed model(s) so
+    callers may pass a raw payload without satisfying the Pydantic class —
+    the runtime `_build_request_kwargs` already serializes models or dicts
+    interchangeably. Multiple union members produce `A | B | dict[str, Any]`;
+    a single class produces `A | dict[str, Any]`; an empty/filtered request
+    schema falls back to `Any`.
     """
     if members:
-        return " | ".join(members)
+        return " | ".join([*members, "dict[str, Any]"])
     if request_model:
-        return request_model
+        return f"{request_model} | dict[str, Any]"
     return "Any"
 
 
