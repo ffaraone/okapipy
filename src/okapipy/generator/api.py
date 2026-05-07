@@ -1,22 +1,26 @@
-"""Public generator entry point.
+"""Public generator entry point: build the virtual filesystem for a client project.
 
-`generate(api, raw_spec, ...)` returns a virtual filesystem
-(`dict[str, GeneratedFile]`) of the generated project. The CLI calls this and
-flushes to disk via `write_to_disk`; tests inspect the dict directly.
+`generate(api, raw_spec, ...)` orchestrates every emitter in the package and
+returns a `dict[str, GeneratedFile]` keyed by POSIX-style relative path. The CLI
+flushes this dict to disk via `okapipy.generator.vfs.write_to_disk`; tests
+inspect the dict directly without touching the filesystem.
 
-The VFS contains two cooperating layers per `customization.md` §2:
+Each entry carries a `one_shot` lifecycle flag that controls regeneration:
 
-* **Base layer** (`src/{pkg}/base/...`) — regenerated on every run. Includes
-  the runtime, dmcg-emitted models, client base classes, and one file per
-  parser-tree node (namespace / collection / resource / action). Marked
-  `one_shot=False`.
-* **User layer** (`src/{pkg}/...`) — emitted exactly once on first generation.
-  Pure subclass stubs (`class X(XBase): pass`) plus an empty package
-  `__init__.py`. Marked `one_shot=True`.
+* `one_shot=False` (regenerated every run) — files under `src/{package}/base/`:
+  the vendored runtime, `datamodel-code-generator`-emitted `models.py`, sync
+  and async client base classes, one file per parser-tree node, and the
+  `_manifest.json` that tracks node-to-file edges across runs.
+* `one_shot=True` (emitted once, then left alone) — files under
+  `src/{package}/` (subclass stubs the customer customizes), the project
+  skeleton (`pyproject.toml`, `README.md`, `LICENSE`, `.gitignore`,
+  `.python-version`), and the generated test scaffolding.
 
-The project skeleton (`pyproject.toml`, `README.md`, `LICENSE`, `.gitignore`,
-`.python-version`) is also marked `one_shot=True` so customer edits to
-dependency lists or project metadata survive regeneration.
+The order of operations inside `generate` matters: the project skeleton and
+runtime emit first (so subsequent emitters can rely on the package layout),
+the walker emits one base file per node, then the user-layer stubs and tests
+fill in the customer-facing surface, and finally the manifest is computed
+last so it captures the full set of base files.
 """
 
 from __future__ import annotations

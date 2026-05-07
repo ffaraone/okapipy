@@ -1,9 +1,21 @@
-"""Retry policy and `httpx` transport wrapper.
+"""Retry policy and `httpx` transport wrapper for generated clients.
 
-Per `generator.md` §6.3, retries apply to **`GET` only**. Other methods bypass
-the retry wrapper entirely. The wrapper sits in front of any transport the user
-configures and re-issues the request when the response status is in
-`retry_on_status` or the underlying transport raises one of `retry_on_exceptions`.
+`RetryTransport` (sync) and `AsyncRetryTransport` (async) sit in front of any
+transport the user configures and re-issue the request when the response status
+is in `RetryPolicy.retry_on_status` or the underlying transport raises one of
+`RetryPolicy.retry_on_exceptions`.
+
+Retries apply to **`GET` requests only**. Every other method bypasses the
+retry loop entirely and is forwarded to the wrapped transport untouched. This
+is deliberate: HTTP methods other than `GET` are not guaranteed to be
+idempotent, and silently re-issuing a `POST`/`PATCH`/`PUT`/`DELETE` after a
+failure would risk creating duplicate side effects on the server. Customers
+that need retry semantics for non-GET requests must add them at the
+application layer where the idempotency contract is known.
+
+Backoff between attempts is exponential: `delay = backoff * 2**attempt`. A
+`backoff` of `0` means no sleep between attempts. `total = 0` disables
+retries entirely.
 """
 
 from __future__ import annotations

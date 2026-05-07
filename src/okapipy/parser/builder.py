@@ -1,8 +1,38 @@
-"""Phase 3 step 2 + Phase 4: walk the resolved spec and build the structural tree.
+"""Walk an OpenAPI document and produce a populated `APIModel` tree.
 
-The builder mutates `APIModel` and its child Pydantic models directly. It owns the
-naming engine (PascalCase + breadcrumb-driven contextual names), per-segment node
-attachment, and per-method operation routing.
+`build` is the single public entry. It iterates `paths`, classifies each segment
+via `classify_segment`, attaches the corresponding node (`Namespace`,
+`Collection`, `Resource`, `Singleton`, or `Action`) under its parent, and routes
+the path-item's HTTP methods to operation slots on that node. The function
+mutates the `APIModel` and its children in place — there are no draft or
+wrapper types.
+
+Three concerns live in this module:
+
+* **Naming.** `contextual_name` joins the full breadcrumb of singular collection
+  names accumulated so far, so `/organizations/{id}/datasources/{id}/force-reimport`
+  yields `OrganizationDatasourceForceReimport`. Resource names use the
+  breadcrumb for the same reason. `singularize` reduces a plural collection
+  segment via the spaCy-backed lemmatizer.
+* **Node attachment.** Each segment is mapped to a node kind by the classifier;
+  `_attach` then either creates a new child or reuses an existing one with the
+  same name. Namespace-level actions are valid (e.g. `/auth/login`); a path that
+  attempts to place an action directly under a `Namespace` raises
+  `InvalidStructureError` only when structurally impossible.
+* **Operation routing.** GET/POST on a `Collection` map to `fetch`/`create`;
+  GET/PUT/PATCH/DELETE on a `Resource` or `Singleton` map to
+  `retrieve`/`update`/`partial_update`/`delete`. Operations that don't fit
+  (e.g. `POST /users/{id}` with no `x-okapipy-kind: action` hint, PUT on a
+  bare collection) are dropped with a warning rather than coerced into a
+  synthetic action; synthetic actions exist only for explicit
+  `x-okapipy-kind: action` opt-ins.
+
+Schema names for `request_model` / `response_model` are recovered from the
+unresolved `raw_spec` by reading the trailing segment of the original `$ref`,
+falling back to the resolved schema's `title` when no ref is present.
+`x-okapipy-exclude` skips whole paths (`"*"`) or specific methods
+(`["DELETE", ...]`, case-insensitive); rules-file values override spec values
+on every conflict.
 """
 
 from __future__ import annotations

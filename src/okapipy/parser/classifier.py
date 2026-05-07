@@ -1,8 +1,26 @@
-"""Single-segment classifier — phase 3 step 1 of the parser pipeline.
+"""Classify a single OpenAPI path segment into a `SegmentKind`.
 
-The classifier converts one path segment into a `SegmentKind`. It consults, in order:
-the path-parameter shape, an explicit hint (rules > spec extension), the namespace
-registry (rules ∪ spec), and finally the spaCy-derived NLP signal.
+The structural builder calls `classify_segment` once per segment as it walks each
+path. The result decides whether the segment becomes a `Namespace`, `Collection`,
+`Resource` (path parameter), `Singleton`, or `Action` node in the tree.
+
+The classifier applies the following precedence chain, stopping at the first match:
+
+1. **Path-parameter shape** — a segment containing `{...}` is always a
+   `RESOURCE_ID`.
+2. **Explicit hint** — an `x-okapipy-kind` value passed in via `extension_hint`.
+   The caller is responsible for merging spec values with rules-file values
+   (rules win) before passing the hint here.
+3. **Namespace registry** — if the cumulative path is declared as a namespace
+   (via spec `x-okapipy-ns` or rules), the segment is a `NAMESPACE`.
+4. **NLP signal** — `analyze_segment` reports verb-phrase / plural / singular,
+   producing `ACTION`, `COLLECTION`, or (depending on parent) `NAMESPACE` /
+   `COLLECTION`.
+5. **Fallback** — emit a warning and treat the segment as a `COLLECTION`.
+
+`SINGLETON` never falls out of NLP heuristics: real singletons (`/me`, `/health`)
+look identical to singular-noun namespaces, so the kind is reachable only through
+an explicit hint.
 """
 
 from __future__ import annotations
