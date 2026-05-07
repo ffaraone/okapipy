@@ -10,12 +10,13 @@ from collections.abc import Mapping
 from functools import cached_property
 {% endif %}
 {% if top_namespaces or top_collections or top_singletons or top_actions %}
-from typing import Any, ClassVar, Literal
+from typing import Any, ClassVar, Literal, TypeVar, cast
 {% else %}
-from typing import Any, Literal
+from typing import Any, Literal, TypeVar, cast
 {% endif %}
 
 import httpx
+from pydantic import BaseModel
 
 from .strategies import (
     CommaSignedSort,
@@ -40,6 +41,13 @@ from .singletons.{{ sing.module }} import {{ sing.class_name }}, Async{{ sing.cl
 {% for act in top_actions %}
 from .actions.{{ act.module }} import {{ act.class_name }}, Async{{ act.class_name }}
 {% endfor %}
+
+# Threaded by `from_response` so that `response_model=Foo` produces a return
+# type of `Foo | dict[str, Any] | None` — the runtime `dicts` shape and the
+# 204 / empty-body branches still permit the dict / None arms. Bounded to
+# `BaseModel` so `model_cls.model_validate(...)` resolves on the type.
+T = TypeVar("T", bound=BaseModel)
+
 
 class {{ client_class }}Base:
     """Synchronous client base for `{{ project_name }}`."""
@@ -130,10 +138,12 @@ class {{ client_class }}Base:
         sibling.sort_strategy = self.sort_strategy
         return sibling
 
-    def from_response(self, model_cls: type[Any] | None, raw: Any) -> Any:
+    def from_response(
+        self, model_cls: type[T] | None, raw: Any,
+    ) -> T | dict[str, Any] | None:
         """Deserialize one raw record per the configured shape."""
         if model_cls is None or self._shape == "dicts":
-            return raw
+            return cast("dict[str, Any] | None", raw)
         return model_cls.model_validate(raw)
 
 {% for ns in top_namespaces %}
@@ -253,9 +263,11 @@ class Async{{ client_class }}Base:
         sibling.sort_strategy = self.sort_strategy
         return sibling
 
-    def from_response(self, model_cls: type[Any] | None, raw: Any) -> Any:
+    def from_response(
+        self, model_cls: type[T] | None, raw: Any,
+    ) -> T | dict[str, Any] | None:
         if model_cls is None or self._shape == "dicts":
-            return raw
+            return cast("dict[str, Any] | None", raw)
         return model_cls.model_validate(raw)
 
 {% for ns in top_namespaces %}

@@ -9,10 +9,12 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 {% if child_collections or child_singletons or actions %}
-from typing import TYPE_CHECKING, Any, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar, TypeVar
 {% else %}
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, TypeVar
 {% endif %}
+
+from pydantic import BaseModel
 
 {% if model_imports %}
 from ..models import {{ model_imports | join(", ") }}
@@ -29,6 +31,11 @@ from ..actions.{{ action.module }} import {{ action.class_name }}, Async{{ actio
 
 if TYPE_CHECKING:
     from ..client import {{ client_class }}Base, Async{{ client_class }}Base
+
+# Threads `response_model=Foo` through `_request` so callers see
+# `Foo | dict[str, Any] | None` instead of `Any`. Bounded to `BaseModel`
+# to match the client-side `from_response` signature.
+T = TypeVar("T", bound=BaseModel)
 
 
 class {{ class_name }}:
@@ -51,7 +58,7 @@ class {{ class_name }}:
         return self.PATH_TEMPLATE.format(**self.path_params) if self.path_params else self.PATH_TEMPLATE
 
 {% if retrieve_op %}
-    def retrieve(self, **overrides: Any) -> Any:
+    def retrieve(self, **overrides: Any) -> {{ retrieve_op.response_type }}:
 {{ retrieve_docstring }}
         return self._request(
             "{{ retrieve_op.method }}", body=None, overrides=overrides,
@@ -60,7 +67,7 @@ class {{ class_name }}:
 {% endif %}
 
 {% if update_op %}
-    def update(self, body: {{ update_op.body_type }}, **overrides: Any) -> Any:
+    def update(self, body: {{ update_op.body_type }}, **overrides: Any) -> {{ update_op.response_type }}:
 {{ update_docstring }}
         return self._request(
             "{{ update_op.method }}", body=body, overrides=overrides,
@@ -69,7 +76,7 @@ class {{ class_name }}:
 {% endif %}
 
 {% if patch_op %}
-    def patch(self, body: {{ patch_op.body_type }}, **overrides: Any) -> Any:
+    def patch(self, body: {{ patch_op.body_type }}, **overrides: Any) -> {{ patch_op.response_type }}:
 {{ patch_docstring }}
         return self._request(
             "{{ patch_op.method }}", body=body, overrides=overrides,
@@ -78,7 +85,7 @@ class {{ class_name }}:
 {% endif %}
 
 {% if delete_op %}
-    def delete(self, **overrides: Any) -> Any:
+    def delete(self, **overrides: Any) -> {{ delete_op.response_type }}:
 {{ delete_docstring }}
         return self._request(
             "{{ delete_op.method }}", body=None, overrides=overrides,
@@ -120,8 +127,8 @@ class {{ class_name }}:
         *,
         body: Any,
         overrides: dict[str, Any],
-        response_model: type[Any] | None,
-    ) -> Any:
+        response_model: type[T] | None,
+    ) -> T | dict[str, Any] | None:
         """Build a request, raise on non-2xx, deserialize per shape."""
         response = self.client._http.request(
             method, self.url, **self._build_request_kwargs(body, overrides),
@@ -166,7 +173,7 @@ class Async{{ class_name }}:
         return self.PATH_TEMPLATE.format(**self.path_params) if self.path_params else self.PATH_TEMPLATE
 
 {% if retrieve_op %}
-    async def retrieve(self, **overrides: Any) -> Any:
+    async def retrieve(self, **overrides: Any) -> {{ retrieve_op.response_type }}:
 {{ retrieve_docstring }}
         return await self._request(
             "{{ retrieve_op.method }}", body=None, overrides=overrides,
@@ -175,7 +182,7 @@ class Async{{ class_name }}:
 {% endif %}
 
 {% if update_op %}
-    async def update(self, body: {{ update_op.body_type }}, **overrides: Any) -> Any:
+    async def update(self, body: {{ update_op.body_type }}, **overrides: Any) -> {{ update_op.response_type }}:
 {{ update_docstring }}
         return await self._request(
             "{{ update_op.method }}", body=body, overrides=overrides,
@@ -184,7 +191,7 @@ class Async{{ class_name }}:
 {% endif %}
 
 {% if patch_op %}
-    async def patch(self, body: {{ patch_op.body_type }}, **overrides: Any) -> Any:
+    async def patch(self, body: {{ patch_op.body_type }}, **overrides: Any) -> {{ patch_op.response_type }}:
 {{ patch_docstring }}
         return await self._request(
             "{{ patch_op.method }}", body=body, overrides=overrides,
@@ -193,7 +200,7 @@ class Async{{ class_name }}:
 {% endif %}
 
 {% if delete_op %}
-    async def delete(self, **overrides: Any) -> Any:
+    async def delete(self, **overrides: Any) -> {{ delete_op.response_type }}:
 {{ delete_docstring }}
         return await self._request(
             "{{ delete_op.method }}", body=None, overrides=overrides,
@@ -235,8 +242,8 @@ class Async{{ class_name }}:
         *,
         body: Any,
         overrides: dict[str, Any],
-        response_model: type[Any] | None,
-    ) -> Any:
+        response_model: type[T] | None,
+    ) -> T | dict[str, Any] | None:
         response = await self.client._http.request(
             method, self.url, **self._build_request_kwargs(body, overrides),
         )

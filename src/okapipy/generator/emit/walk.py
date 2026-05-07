@@ -737,17 +737,33 @@ def _op_context(
         if available_models is None or name in available_models
     ]
     has_body = bool(op.request_model) or bool(op.request_model_members)
+    response_model = _filter_model_name(op.response_model, available_models)
     return {
         "method": op.method,
-        "response_model": _filter_model_name(op.response_model, available_models),
+        "response_model": response_model,
         "request_model": request_model,
         "request_model_members": members,
         "body_type": _body_type(request_model, members),
+        "response_type": _response_type(response_model),
         "has_body": has_body,
         "pagination_supported": op.pagination_supported,
         "filter_supported": op.filter_supported,
         "sort_supported": op.sort_supported,
     }
+
+
+def _response_type(response_model: str | None) -> str:
+    """Render the Python return type for an operation that calls `from_response`.
+
+    When the response schema name was recovered (and dmcg emitted a class for
+    it), the runtime returns either a model instance or — under the `dicts`
+    shape — the raw JSON; either way the value may be `None` for 204 / empty
+    bodies. So the type is `ResponseModel | dict[str, Any] | None`. When no
+    response schema is known the model arm drops away.
+    """
+    if response_model:
+        return f"{response_model} | dict[str, Any] | None"
+    return "dict[str, Any] | None"
 
 
 def _body_type(request_model: str | None, members: Sequence[str]) -> str:

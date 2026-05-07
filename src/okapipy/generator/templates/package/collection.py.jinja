@@ -105,7 +105,7 @@ class {{ class_name }}:
 {% endif %}
 
 {% if create_op %}
-    def create(self, body: {{ create_op.body_type }}, **overrides: Any) -> Any:
+    def create(self, body: {{ create_op.body_type }}, **overrides: Any) -> {{ create_op.response_type }}:
 {{ create_docstring }}
         request_kwargs: dict[str, Any] = {"json": self._serialize_body(body)}
         params = dict(overrides.get("params") or {})
@@ -351,7 +351,7 @@ class Async{{ class_name }}:
 {% endif %}
 
 {% if create_op %}
-    async def create(self, body: {{ create_op.body_type }}, **overrides: Any) -> Any:
+    async def create(self, body: {{ create_op.body_type }}, **overrides: Any) -> {{ create_op.response_type }}:
 {{ create_docstring }}
         request_kwargs: dict[str, Any] = {"json": self._serialize_body(body)}
         params = dict(overrides.get("params") or {})
