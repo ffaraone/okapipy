@@ -71,6 +71,7 @@ don't import them from the `okapipy` package itself at runtime.
         - FilterStrategy
         - SortStrategy
         - FilterEncoding
+        - SortEncoding
         - LimitOffsetPagination
         - PageNumberPagination
         - CursorPagination

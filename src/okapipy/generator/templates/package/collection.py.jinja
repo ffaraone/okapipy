@@ -158,15 +158,23 @@ class {{ class_name }}:
         """Encode `filter()` / `order_by()` accumulators.
 
         Returns the merged `params` dict plus an optional raw query string
-        fragment from the filter strategy (RQL-style dialects emit the
-        expression verbatim into the query string rather than as `key=value`
-        pairs). The fragment is meant to be appended to the URL; ordinary
-        params still flow through httpx's `params=` argument.
+        fragment from the filter and/or sort strategies (RQL-style dialects
+        emit the expression verbatim into the query string rather than as
+        `key=value` pairs). When both strategies emit a raw fragment they are
+        joined with `&`. Ordinary params still flow through httpx's `params=`
+        argument.
         """
-        encoding = self.client.filter_strategy.encode(self.filter_expr)
-        out: dict[str, Any] = dict(encoding.params)
-        out.update(self.client.sort_strategy.encode(self.sort_expr))
-        return out, encoding.raw_query
+        filter_encoding = self.client.filter_strategy.encode(self.filter_expr)
+        sort_encoding = self.client.sort_strategy.encode(self.sort_expr)
+        out: dict[str, Any] = dict(filter_encoding.params)
+        out.update(sort_encoding.params)
+        raw_fragments = [
+            fragment
+            for fragment in (filter_encoding.raw_query, sort_encoding.raw_query)
+            if fragment
+        ]
+        raw_query = "&".join(raw_fragments) if raw_fragments else None
+        return out, raw_query
 
     def merge_options_params(self, params: dict[str, Any]) -> dict[str, Any]:
         """Merge `with_options(params=...)` overrides into the request params."""
@@ -391,10 +399,17 @@ class Async{{ class_name }}:
         return Async{{ class_name }}Iterator(self)
 
     def collect_filter_sort_params(self) -> tuple[dict[str, Any], str | None]:
-        encoding = self.client.filter_strategy.encode(self.filter_expr)
-        out: dict[str, Any] = dict(encoding.params)
-        out.update(self.client.sort_strategy.encode(self.sort_expr))
-        return out, encoding.raw_query
+        filter_encoding = self.client.filter_strategy.encode(self.filter_expr)
+        sort_encoding = self.client.sort_strategy.encode(self.sort_expr)
+        out: dict[str, Any] = dict(filter_encoding.params)
+        out.update(sort_encoding.params)
+        raw_fragments = [
+            fragment
+            for fragment in (filter_encoding.raw_query, sort_encoding.raw_query)
+            if fragment
+        ]
+        raw_query = "&".join(raw_fragments) if raw_fragments else None
+        return out, raw_query
 
     def merge_options_params(self, params: dict[str, Any]) -> dict[str, Any]:
         if self.options.params:

@@ -24,6 +24,7 @@ from .sort import Sort
 from .strategies import (
     CommaSignedSort,
     CursorPagination,
+    FilterEncoding,
     FilterStrategy,
     JsonApiSort,
     JsonFilterStrategy,
@@ -35,6 +36,7 @@ from .strategies import (
     PageNumberPagination,
     PaginationStrategy,
     SearchFilterStrategy,
+    SortEncoding,
     SortStrategy,
 )
 from .transport import RetryPolicy, RetryTransport
@@ -49,6 +51,7 @@ __all__ = [
     "ConfigurationError",
     "CursorPagination",
     "Filter",
+    "FilterEncoding",
     "FilterStrategy",
     "JsonApiSort",
     "JsonFilterStrategy",
@@ -69,6 +72,7 @@ __all__ = [
     "SearchFilterStrategy",
     "ServerError",
     "Sort",
+    "SortEncoding",
     "SortStrategy",
     "Unset",
     "UnsupportedFilterError",

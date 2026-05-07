@@ -289,6 +289,107 @@ def test_raw_query_filter_strategy_count_request(client_module) -> None:
     client.close()
 
 
+def test_raw_query_sort_strategy_appends_to_url(client_module) -> None:
+    """Sort strategy emitting `raw_query` is appended verbatim to the request URL.
+
+    Mirrors the filter raw_query support: an RQL-style ordering expression
+    (`ordering(+name,-created_at)`) must reach the server with parentheses
+    and commas intact instead of being URL-encoded as a `key=value` param.
+    """
+    captured: list[httpx.URL] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        captured.append(request.url)
+        return httpx.Response(200, json={"items": [], "total": 0})
+
+    transport = httpx.MockTransport(handler)
+    Sort = client_module.Sort
+    SortEncoding = client_module.SortEncoding
+
+    class RqlOrdering:
+        def encode(self, s):
+            if not s:
+                return SortEncoding()
+            terms = [
+                f"-{field_}" if direction == "desc" else f"+{field_}"
+                for field_, direction in s.terms
+            ]
+            return SortEncoding(raw_query="ordering(" + ",".join(terms) + ")")
+
+    client = client_module.PagClientBase(
+        "https://api.example.com",
+        transport=transport,
+        pagination_strategy=client_module.LimitOffsetPagination(default_page_size=100),
+        sort_strategy=RqlOrdering(),
+    )
+
+    list(client.orders.order_by(Sort("-created_at") + Sort("name")).page_size(2))
+
+    assert len(captured) == 1
+    raw_query = captured[0].raw_path.decode("ascii")
+    assert raw_query.startswith("/orders?ordering(-created_at,+name)")
+    assert "offset=0" in raw_query
+    assert "limit=2" in raw_query
+    client.close()
+
+
+def test_raw_query_filter_and_sort_compose_with_ampersand(client_module) -> None:
+    """Filter and sort raw_query fragments are concatenated with `&` in the URL.
+
+    Both strategies emit verbatim fragments: they must coexist in the query
+    string alongside ordinary pagination params, joined by `&` separators.
+    """
+    captured: list[httpx.URL] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        captured.append(request.url)
+        return httpx.Response(200, json={"items": [], "total": 0})
+
+    transport = httpx.MockTransport(handler)
+    Filter = client_module.Filter
+    FilterEncoding = client_module.FilterEncoding
+    Sort = client_module.Sort
+    SortEncoding = client_module.SortEncoding
+
+    class RqlFilter:
+        def encode(self, f):
+            if f is None:
+                return FilterEncoding()
+            terms = [f"eq({k},{v})" for k, v in f.kwargs.items()]
+            return FilterEncoding(raw_query="and(" + ",".join(terms) + ")")
+
+    class RqlOrdering:
+        def encode(self, s):
+            if not s:
+                return SortEncoding()
+            terms = [
+                f"-{field_}" if direction == "desc" else f"+{field_}"
+                for field_, direction in s.terms
+            ]
+            return SortEncoding(raw_query="ordering(" + ",".join(terms) + ")")
+
+    client = client_module.PagClientBase(
+        "https://api.example.com",
+        transport=transport,
+        pagination_strategy=client_module.LimitOffsetPagination(default_page_size=100),
+        filter_strategy=RqlFilter(),
+        sort_strategy=RqlOrdering(),
+    )
+
+    list(
+        client.orders.filter(Filter(status="open"))
+        .order_by(Sort("-created_at"))
+        .page_size(2)
+    )
+
+    assert len(captured) == 1
+    raw_query = captured[0].raw_path.decode("ascii")
+    assert raw_query.startswith("/orders?and(eq(status,open))&ordering(-created_at)")
+    assert "offset=0" in raw_query
+    assert "limit=2" in raw_query
+    client.close()
+
+
 def test_with_options_seeds_overrides_for_every_page(client_module) -> None:
     """`with_options(headers=...)` is forwarded to every page request."""
     seen_headers: list[str] = []

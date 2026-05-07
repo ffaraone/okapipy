@@ -26,6 +26,7 @@ from okapipy.generator.runtime.strategies import (
     LinkHeaderPagination,
     PageNumberPagination,
     SearchFilterStrategy,
+    SortEncoding,
 )
 
 
@@ -384,18 +385,20 @@ def test_comma_signed_sort_renders_signed_csv() -> None:
     """`CommaSignedSort` joins terms with commas; descending gets a leading `-`."""
     expr = Sort("-created_at") + Sort("id")
 
-    params = CommaSignedSort(param="sort").encode(expr)
+    encoding = CommaSignedSort(param="sort").encode(expr)
 
-    assert params == {"sort": "-created_at,id"}
+    assert encoding == SortEncoding(params={"sort": "-created_at,id"})
+    assert encoding.raw_query is None
 
 
 def test_key_direction_sort_emits_two_params() -> None:
     """`KeyDirectionSort` emits separate field/direction parameters."""
     expr = Sort("-created_at")
 
-    params = KeyDirectionSort().encode(expr)
+    encoding = KeyDirectionSort().encode(expr)
 
-    assert params == {"order_by": "created_at", "order": "desc"}
+    assert encoding.params == {"order_by": "created_at", "order": "desc"}
+    assert encoding.raw_query is None
 
 
 def test_key_direction_sort_refuses_multi_term() -> None:
@@ -410,14 +413,50 @@ def test_json_api_sort_matches_jsonapi_format() -> None:
     """`JsonApiSort` matches the JSON:API sort encoding (signed, comma-joined)."""
     expr = Sort("-created_at") + Sort("name")
 
-    params = JsonApiSort().encode(expr)
+    encoding = JsonApiSort().encode(expr)
 
-    assert params == {"sort": "-created_at,name"}
+    assert encoding.params == {"sort": "-created_at,name"}
+    assert encoding.raw_query is None
 
 
 def test_sort_strategies_treat_empty_sort_as_no_op() -> None:
-    """An empty `Sort()` (no terms) results in no params from any sort strategy."""
-    assert CommaSignedSort().encode(None) == {}
-    assert CommaSignedSort().encode(Sort()) == {}
-    assert KeyDirectionSort().encode(None) == {}
-    assert JsonApiSort().encode(Sort()) == {}
+    """An empty `Sort()` (no terms) yields an empty `SortEncoding` from every strategy."""
+    empty = SortEncoding()
+    assert CommaSignedSort().encode(None) == empty
+    assert CommaSignedSort().encode(Sort()) == empty
+    assert KeyDirectionSort().encode(None) == empty
+    assert JsonApiSort().encode(Sort()) == empty
+    # Empty encoding is falsy so iterators / count() can short-circuit cheaply.
+    assert not empty
+
+
+def test_sort_encoding_is_truthy_when_either_field_populated() -> None:
+    """`SortEncoding` is truthy when params or raw_query carry content."""
+    assert SortEncoding(params={"sort": "name"})
+    assert SortEncoding(raw_query="ordering(+name)")
+    assert not SortEncoding()
+
+
+def test_user_sort_strategy_can_emit_raw_query_fragment() -> None:
+    """A user-defined sort strategy can emit `raw_query` for RQL-style dialects.
+
+    Verifies the public contract: returning a `SortEncoding(raw_query=...)`
+    is the supported way to pass a sort expression that must be appended
+    verbatim to the URL's query string instead of going through httpx
+    `params=` (which would URL-encode parentheses and split on commas).
+    """
+
+    class RqlOrdering:
+        def encode(self, s: Sort | None) -> SortEncoding:
+            if not s:
+                return SortEncoding()
+            terms = [
+                f"-{field_}" if direction == "desc" else f"+{field_}"
+                for field_, direction in s.terms
+            ]
+            return SortEncoding(raw_query="ordering(" + ",".join(terms) + ")")
+
+    encoding = RqlOrdering().encode(Sort("-created_at") + Sort("name"))
+
+    assert encoding.params == {}
+    assert encoding.raw_query == "ordering(-created_at,+name)"
