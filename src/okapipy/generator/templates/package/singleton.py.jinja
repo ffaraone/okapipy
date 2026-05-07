@@ -60,7 +60,7 @@ class {{ class_name }}:
 {% endif %}
 
 {% if update_op %}
-    def update(self, body: Any, **overrides: Any) -> Any:
+    def update(self, body: {{ update_op.body_type }}, **overrides: Any) -> Any:
 {{ update_docstring }}
         return self._request(
             "{{ update_op.method }}", body=body, overrides=overrides,
@@ -69,7 +69,7 @@ class {{ class_name }}:
 {% endif %}
 
 {% if patch_op %}
-    def patch(self, body: Any, **overrides: Any) -> Any:
+    def patch(self, body: {{ patch_op.body_type }}, **overrides: Any) -> Any:
 {{ patch_docstring }}
         return self._request(
             "{{ patch_op.method }}", body=body, overrides=overrides,
@@ -175,7 +175,7 @@ class Async{{ class_name }}:
 {% endif %}
 
 {% if update_op %}
-    async def update(self, body: Any, **overrides: Any) -> Any:
+    async def update(self, body: {{ update_op.body_type }}, **overrides: Any) -> Any:
 {{ update_docstring }}
         return await self._request(
             "{{ update_op.method }}", body=body, overrides=overrides,
@@ -184,7 +184,7 @@ class Async{{ class_name }}:
 {% endif %}
 
 {% if patch_op %}
-    async def patch(self, body: Any, **overrides: Any) -> Any:
+    async def patch(self, body: {{ patch_op.body_type }}, **overrides: Any) -> Any:
 {{ patch_docstring }}
         return await self._request(
             "{{ patch_op.method }}", body=body, overrides=overrides,

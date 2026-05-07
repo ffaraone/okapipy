@@ -573,7 +573,7 @@ def _build_operation(
     """Build an Operation from one method entry, reading schema names from `$ref`s."""
     summary = op_data.get("summary")
     description = op_data.get("description")
-    request_content_type, request_model = _request_info(op_data)
+    request_content_type, request_model, request_model_members = _request_info(op_data)
     response_content_type, response_model, item_model, response_headers = (
         _response_info(op_data)
     )
@@ -583,6 +583,7 @@ def _build_operation(
         description=description if isinstance(description, str) else None,
         request_content_type=request_content_type,
         request_model=request_model,
+        request_model_members=request_model_members,
         response_content_type=response_content_type,
         response_model=response_model,
         item_model=item_model,
@@ -591,18 +592,64 @@ def _build_operation(
     )
 
 
-def _request_info(op_data: dict[str, Any]) -> tuple[str | None, str | None]:
-    """Return `(content_type, schema_name)` for the operation's request body, if any."""
+def _request_info(
+    op_data: dict[str, Any],
+) -> tuple[str | None, str | None, list[str]]:
+    """Return `(content_type, schema_name, union_members)` for the request body, if any.
+
+    `union_members` is non-empty when the body schema is an inline `anyOf` /
+    `oneOf` whose non-null members are all `$ref`s and there are 2+ of them —
+    the generator renders the body parameter as a `Member1 | Member2 | ...`
+    union. A single non-null `$ref` member (e.g. `[$ref, type: null]`) collapses
+    back to that single ref. When neither case applies the schema's `$ref` /
+    `title` fallback drives `schema_name`.
+    """
     body = op_data.get("requestBody")
     if not isinstance(body, dict):
-        return None, None
+        return None, None, []
     content = body.get("content")
     if not isinstance(content, dict) or not content:
-        return None, None
+        return None, None, []
     content_type = next(iter(content))
     entry = content.get(content_type)
     schema = entry.get("schema") if isinstance(entry, dict) else None
-    return content_type, _name_from_schema(schema)
+    members = _union_member_names(schema)
+    if len(members) >= 2:
+        return content_type, None, members
+    if len(members) == 1:
+        return content_type, members[0], []
+    return content_type, _name_from_schema(schema), []
+
+
+def _union_member_names(schema: Any) -> list[str]:
+    """Return the deduped `$ref` trailing names of an inline `anyOf` / `oneOf`.
+
+    Empty when the schema isn't a union, when any non-null member fails to be
+    a `$ref`, or when there are no non-null members. Caller decides what to
+    do with the count — a single name still rides through as a regular ref.
+    """
+    if not isinstance(schema, dict):
+        return []
+    union = schema.get("anyOf") or schema.get("oneOf")
+    if not isinstance(union, list) or not union:
+        return []
+    names: list[str] = []
+    for member in union:
+        if not isinstance(member, dict):
+            return []
+        if member.get("type") == "null":
+            continue
+        ref_name = _schema_name(member)
+        if ref_name is None:
+            return []
+        names.append(ref_name)
+    seen: set[str] = set()
+    deduped: list[str] = []
+    for name in names:
+        if name not in seen:
+            seen.add(name)
+            deduped.append(name)
+    return deduped
 
 
 def _response_info(

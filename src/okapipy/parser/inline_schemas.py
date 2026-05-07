@@ -61,6 +61,16 @@ def flatten_inline_schemas(spec: dict[str, Any]) -> dict[str, Any]:
     if not occurrences:
         return spec
 
+    # Map each existing top-level component schema to its content hash so we can
+    # detect when an inline group is structurally identical to a schema already
+    # named by the spec author. Without this, two same-shape schemas — e.g. an
+    # inline `Login` body and `components.schemas.Login` — would each get their
+    # own class on the dmcg side (`Login` and `Login<hash>`).
+    existing_by_hash: dict[str, str] = {}
+    for cname, schema in schemas.items():
+        if isinstance(schema, dict) and "$ref" not in schema:
+            existing_by_hash.setdefault(_structural_hash(schema), cname)
+
     by_hash: dict[str, list[_Occurrence]] = {}
     for occ in occurrences:
         by_hash.setdefault(_structural_hash(occ.schema), []).append(occ)
@@ -68,13 +78,20 @@ def flatten_inline_schemas(spec: dict[str, Any]) -> dict[str, Any]:
     used_names = set(schemas.keys())
     hash_to_name: dict[str, str] = {}
     for digest, group in by_hash.items():
+        existing = existing_by_hash.get(digest)
+        if existing is not None:
+            hash_to_name[digest] = existing
+            continue
         name = _choose_name(group, digest, used_names)
         used_names.add(name)
         hash_to_name[digest] = name
 
     for digest, group in by_hash.items():
         name = hash_to_name[digest]
-        schemas[name] = group[0].schema
+        # Only seed a fresh component when the chosen name isn't already taken
+        # by a structurally identical schema the author authored explicitly.
+        if name not in schemas:
+            schemas[name] = group[0].schema
         ref = {"$ref": f"#/components/schemas/{name}"}
         for occ in group:
             occ.parent[occ.key] = ref  # type: ignore[index]
@@ -284,7 +301,7 @@ def _choose_name(group: list[_Occurrence], digest: str, used: set[str]) -> str:
         if c not in used:
             return c
     base = unique[0] if unique else "Anon"
-    return f"{base}_{digest[:8]}"
+    return f"{base}{digest[:8].capitalize()}"
 
 
 def _pascal(s: str) -> str:

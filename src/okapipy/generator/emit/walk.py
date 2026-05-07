@@ -372,10 +372,8 @@ def _emit_resource(
         )
         for action in resource.actions
     ]
-    # Resource methods type their `body` parameter as `Any`, so request-model
-    # imports would be unreferenced. Pull only response_model names here.
     model_imports = sorted(
-        _collect_response_model_names(
+        _collect_model_names(
             [
                 resource.retrieve,
                 resource.update,
@@ -474,10 +472,8 @@ def _emit_singleton(
         )
         for action in singleton.actions
     ]
-    # Singleton methods type their `body` parameter as `Any`, so request-model
-    # imports would be unreferenced. Pull only response_model names here.
     model_imports = sorted(
-        _collect_response_model_names(
+        _collect_model_names(
             [
                 singleton.retrieve,
                 singleton.update,
@@ -549,11 +545,7 @@ def _emit_action(
     operations = [_op_context(op, available_models) for op in action.operations]
     operations = [op for op in operations if op is not None]
     single_op = operations[0] if len(operations) == 1 else None
-    # Action methods type their `body` parameter as `Any`, so request-model
-    # imports would be unreferenced. Pull only response_model names here.
-    model_imports = sorted(
-        _collect_response_model_names(action.operations, available_models)
-    )
+    model_imports = sorted(_collect_model_names(action.operations, available_models))
     # Action docstrings: when the action has a single HTTP method, the class
     # docstring and that method's docstring share one source — the action's
     # summary/description — because the class and the method describe the same
@@ -690,28 +682,6 @@ def _build_docstring_from_body(body: str, indent: int) -> str:
     return "\n".join(out_lines)
 
 
-def _collect_response_model_names(
-    operations: Sequence[Operation | None],
-    available_models: set[str] | None,
-) -> set[str]:
-    """Return the set of `response_model` names referenced by `operations`.
-
-    Used by emitters whose generated code only references response_model in
-    `from_response` calls and types `body` as `Any` — pulling request_model
-    too would produce unused-import (F401) lint failures. Names not in
-    `available_models` are filtered out, matching `_collect_model_names`.
-    """
-    names: set[str] = set()
-    for op in operations:
-        if op is None:
-            continue
-        if op.response_model:
-            names.add(op.response_model)
-    if available_models is not None:
-        names &= available_models
-    return names
-
-
 def _collect_model_names(
     operations: Sequence[Operation | None],
     available_models: set[str] | None,
@@ -730,6 +700,7 @@ def _collect_model_names(
             continue
         if op.request_model:
             names.add(op.request_model)
+        names.update(op.request_model_members)
         if op.response_model:
             names.add(op.response_model)
     if available_models is not None:
@@ -759,15 +730,38 @@ def _op_context(
     """Translate an Operation into the small dict templates need."""
     if op is None:
         return None
+    request_model = _filter_model_name(op.request_model, available_models)
+    members = [
+        name
+        for name in op.request_model_members
+        if available_models is None or name in available_models
+    ]
+    has_body = bool(op.request_model) or bool(op.request_model_members)
     return {
         "method": op.method,
         "response_model": _filter_model_name(op.response_model, available_models),
-        "request_model": _filter_model_name(op.request_model, available_models),
-        "has_body": op.request_model is not None,
+        "request_model": request_model,
+        "request_model_members": members,
+        "body_type": _body_type(request_model, members),
+        "has_body": has_body,
         "pagination_supported": op.pagination_supported,
         "filter_supported": op.filter_supported,
         "sort_supported": op.sort_supported,
     }
+
+
+def _body_type(request_model: str | None, members: Sequence[str]) -> str:
+    """Render the Python type expression for the operation's `body` parameter.
+
+    Multiple union members produce `A | B`; a single class produces `A`; an
+    empty/filtered request schema falls back to `Any` so untyped bodies still
+    pass through.
+    """
+    if members:
+        return " | ".join(members)
+    if request_model:
+        return request_model
+    return "Any"
 
 
 def _new_path_param(parent_path: str, child_path: str) -> str:

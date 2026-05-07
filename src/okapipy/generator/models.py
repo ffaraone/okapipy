@@ -35,7 +35,7 @@ from datamodel_code_generator import generate as dmcg_generate
 from datamodel_code_generator.format import Formatter
 
 from okapipy.generator.errors import GenerationError
-from okapipy.generator.inline_schemas import flatten_inline_schemas
+from okapipy.parser.inline_schemas import flatten_inline_schemas
 from okapipy.parser.loader import load_spec
 
 DEFAULT_MODEL_TEMPLATES_DIR = Path(__file__).parent / "templates" / "model"

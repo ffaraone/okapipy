@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from okapipy.parser.builder import build
+from okapipy.parser.inline_schemas import flatten_inline_schemas
 from okapipy.parser.loader import load_spec
 from okapipy.parser.model import APIModel
 from okapipy.parser.nlp import DEFAULT_CACHE_DIR, load_pipeline
@@ -40,6 +41,7 @@ def parse(
         The fully-built APIModel rooted at the namespaces it discovered.
     """
     spec = load_spec(source)
+    spec = flatten_inline_schemas(spec)
     loaded_rules = load_rules(rules)
     nlp = load_pipeline(lang, cache_dir=nlp_cache_dir)
     return build(spec, loaded_rules, nlp, strip_prefix=strip_prefix)

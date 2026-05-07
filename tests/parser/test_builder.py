@@ -468,6 +468,83 @@ def test_build_handles_request_body_without_ref(english_nlp: Language) -> None:
     assert orders.create.request_model == "OrderInput"
 
 
+def test_build_records_anyof_body_as_union_member_list(
+    english_nlp: Language,
+) -> None:
+    """A request body whose schema is `anyOf` of `$ref` members captures every member name.
+
+    The generator turns this into a `Member1 | Member2` Python union for the
+    body parameter rather than inventing a single wrapper class.
+    """
+    spec = {
+        "paths": {
+            "/login": {
+                "post": {
+                    "x-okapipy-kind": "action",
+                    "requestBody": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "anyOf": [
+                                        {"$ref": "#/components/schemas/Login"},
+                                        {
+                                            "$ref": "#/components/schemas/RefreshAccessToken"
+                                        },
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "responses": {"200": {"description": "OK"}},
+                }
+            }
+        }
+    }
+
+    api = build(spec, Rules(), english_nlp)
+
+    login = api.actions[0]
+    op = login.operations[0]
+    assert op.request_model is None
+    assert op.request_model_members == ["Login", "RefreshAccessToken"]
+
+
+def test_build_anyof_with_null_member_drops_null_from_union(
+    english_nlp: Language,
+) -> None:
+    """`anyOf: [$ref, {type: null}]` collapses to a single ref — null is nullability noise."""
+    spec = {
+        "paths": {
+            "/login": {
+                "post": {
+                    "x-okapipy-kind": "action",
+                    "requestBody": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "anyOf": [
+                                        {"$ref": "#/components/schemas/Login"},
+                                        {"type": "null"},
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "responses": {"200": {"description": "OK"}},
+                }
+            }
+        }
+    }
+
+    api = build(spec, Rules(), english_nlp)
+
+    login = api.actions[0]
+    op = login.operations[0]
+    assert op.request_model_members == []
+    # Single non-null ref left → falls back to single request_model name.
+    assert op.request_model == "Login"
+
+
 def test_build_routes_resource_put_to_update_slot(english_nlp: Language) -> None:
     """PUT on a resource lands on the canonical `update` slot."""
     spec = {

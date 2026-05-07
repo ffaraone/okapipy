@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from okapipy.generator.inline_schemas import flatten_inline_schemas
+from okapipy.parser.inline_schemas import flatten_inline_schemas
 
 
 def _empty_spec() -> dict[str, Any]:
@@ -377,5 +377,48 @@ def test_collision_across_distinct_shapes_falls_back_to_hash_suffix() -> None:
     new_ref = flat["components"]["schemas"]["Audit"]["properties"]["by"]["$ref"]
     name = new_ref.rsplit("/", 1)[-1]
     assert name not in {"By", "AuditBy"}
-    assert "_" in name
-    assert len(name.rsplit("_", 1)[-1]) == 8
+    # Fallback appends an 8-char hex digest (capitalized) to a candidate base.
+    # The format is dmcg-clean — no underscore — so the lifted component name
+    # matches the class dmcg emits for it.
+    assert name.startswith("By")
+    suffix = name.removeprefix("By")
+    assert len(suffix) == 8
+    assert all(ch.isalnum() for ch in suffix)
+
+
+def test_inline_schema_identical_to_existing_component_is_deduplicated() -> None:
+    """An inline schema with the same shape as a top-level component reuses that name.
+
+    Without this dedupe, dmcg would emit two structurally identical classes
+    (`Login` and `Login<hash>`), and the parser would record the inline copy's
+    name even though the spec author already named the same shape.
+    """
+    spec = _empty_spec()
+    login_shape: dict[str, Any] = {
+        "type": "object",
+        "properties": {
+            "email": {"type": "string"},
+            "password": {"type": "string"},
+        },
+        "required": ["email", "password"],
+        "title": "Login",
+    }
+    spec["components"] = {"schemas": {"Login": login_shape}}
+    spec["paths"] = {
+        "/auth/tokens": {
+            "post": {
+                "requestBody": {
+                    "content": {"application/json": {"schema": dict(login_shape)}},
+                },
+                "responses": {"200": {"description": "ok"}},
+            },
+        },
+    }
+
+    flat = flatten_inline_schemas(spec)
+
+    assert list(flat["components"]["schemas"].keys()) == ["Login"]
+    body_schema = flat["paths"]["/auth/tokens"]["post"]["requestBody"]["content"][
+        "application/json"
+    ]["schema"]
+    assert body_schema == {"$ref": "#/components/schemas/Login"}

@@ -19,6 +19,7 @@ from okapipy.generator.vfs import write_to_disk
 from okapipy.parser.builder import build
 from okapipy.parser.dump import to_json, write
 from okapipy.parser.errors import ParserError
+from okapipy.parser.inline_schemas import flatten_inline_schemas
 from okapipy.parser.loader import load_spec
 from okapipy.parser.model import APIModel, Collection, Namespace, Resource
 from okapipy.parser.nlp import DEFAULT_CACHE_DIR, load_pipeline
@@ -94,6 +95,7 @@ def _run_pipeline(
     """Run the full parser pipeline with a spinner for each phase."""
     with _phase("Loading OpenAPI spec"):
         spec = load_spec(source)
+        spec = flatten_inline_schemas(spec)
     with _phase("Loading rules"):
         loaded_rules = load_rules(rules)
     with _phase(f"Loading spaCy pipeline ({lang})"):
