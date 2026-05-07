@@ -295,6 +295,7 @@ def _emit_collection(
             else None
         ),
         "fetch_item_model": fetch_item_model,
+        "item_type": _response_type(fetch_item_model),
         "pagination_supported": (
             fetch_op.pagination_supported if fetch_op is not None else False
         ),
@@ -716,12 +717,37 @@ def _filter_model_name(
     A `None` response_model causes the runtime `from_response` to short-circuit
     and yield raw dicts, which is the right behavior when the schema couldn't
     be modeled as a typed class.
+
+    dmcg strips non-alphanumeric characters from `$ref` schema names — e.g.
+    `LimitOffsetPage_OrganizationRead_` becomes `LimitOffsetPageOrganizationRead`.
+    The parser, on the other hand, copies the original ref segment verbatim. We
+    apply the same normalization as a fallback so generic-style names recovered
+    by the parser still resolve to the class dmcg actually emitted.
     """
     if name is None:
         return None
-    if available_models is None or name in available_models:
+    if available_models is None:
         return name
+    if name in available_models:
+        return name
+    sanitized = _dmcg_class_name(name)
+    if sanitized in available_models:
+        return sanitized
     return None
+
+
+_NON_ALNUM = re.compile(r"[^A-Za-z0-9]+")
+
+
+def _dmcg_class_name(name: str) -> str:
+    """PascalCase a `$ref` schema name the way `datamodel-code-generator` does.
+
+    Splits on every non-alphanumeric run, drops empty parts, and capitalizes
+    the first letter of each surviving fragment while preserving the rest of
+    its casing. `LimitOffsetPage_OrganizationRead_` → `LimitOffsetPageOrganizationRead`.
+    """
+    parts = _NON_ALNUM.split(name)
+    return "".join(p[:1].upper() + p[1:] for p in parts if p)
 
 
 def _op_context(

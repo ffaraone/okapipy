@@ -121,7 +121,7 @@ class {{ class_name }}:
         return self.client.from_response({{ create_op.response_model | py_class_or_none }}, response.json())
 {% endif %}
 
-    def first(self) -> Any:
+    def first(self) -> {{ item_type }}:
         """Return the first item in the result set, or `None`."""
         for item in self:
             return item
@@ -219,7 +219,7 @@ class {{ class_name }}:
         return body
 
 
-class {{ class_name }}Iterator(Iterator[Any]):
+class {{ class_name }}Iterator(Iterator[{{ item_type }}]):
     """Pulls successive pages from `{{ class_name }}` and yields items.
 
     The state machine: hold the parameters for the next request (`next_params`);
@@ -234,13 +234,13 @@ class {{ class_name }}Iterator(Iterator[Any]):
         params.update(filter_sort_params)
         self.next_params: Mapping[str, Any] | None = collection.merge_options_params(params)
         self.raw_query: str | None = raw_query
-        self.current_page: list[Any] = []
+        self.current_page: list[{{ item_type }}] = []
         self.index: int = 0
 
     def __iter__(self) -> {{ class_name }}Iterator:
         return self
 
-    def __next__(self) -> Any:
+    def __next__(self) -> {{ item_type }}:
         while self.index >= len(self.current_page):
             if self.next_params is None:
                 raise StopIteration
@@ -367,7 +367,7 @@ class Async{{ class_name }}:
         return self.client.from_response({{ create_op.response_model | py_class_or_none }}, response.json())
 {% endif %}
 
-    async def first(self) -> Any:
+    async def first(self) -> {{ item_type }}:
         async for item in self:
             return item
         return None
@@ -442,7 +442,7 @@ class Async{{ class_name }}:
         return body
 
 
-class Async{{ class_name }}Iterator(AsyncIterator[Any]):
+class Async{{ class_name }}Iterator(AsyncIterator[{{ item_type }}]):
     """Async sibling of `{{ class_name }}Iterator`."""
 
     def __init__(self, collection: Async{{ class_name }}) -> None:
@@ -452,13 +452,13 @@ class Async{{ class_name }}Iterator(AsyncIterator[Any]):
         params.update(filter_sort_params)
         self.next_params: Mapping[str, Any] | None = collection.merge_options_params(params)
         self.raw_query: str | None = raw_query
-        self.current_page: list[Any] = []
+        self.current_page: list[{{ item_type }}] = []
         self.index: int = 0
 
     def __aiter__(self) -> Async{{ class_name }}Iterator:
         return self
 
-    async def __anext__(self) -> Any:
+    async def __anext__(self) -> {{ item_type }}:
         while self.index >= len(self.current_page):
             if self.next_params is None:
                 raise StopAsyncIteration

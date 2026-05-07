@@ -205,6 +205,35 @@ def test_root_actions_fixture_emits_action_files(tmp_path: Path) -> None:
     assert "def refresh(self) -> RefreshActionBase" in auth_ns
 
 
+def test_dmcg_class_name_sanitizes_ref_segments() -> None:
+    """`_dmcg_class_name` mirrors how dmcg PascalCases generic-style ref names.
+
+    Splits on every non-alphanumeric run, drops empty parts, and capitalizes
+    each surviving fragment. Used as a fallback in `_filter_model_name` so a
+    parser-recovered ref like `LimitOffsetPage_OrganizationRead_` resolves to
+    the dmcg-emitted `LimitOffsetPageOrganizationRead`.
+    """
+    from okapipy.generator.emit.walk import _dmcg_class_name, _filter_model_name
+
+    assert (
+        _dmcg_class_name("LimitOffsetPage_OrganizationRead_")
+        == "LimitOffsetPageOrganizationRead"
+    )
+    assert _dmcg_class_name("Already.Clean") == "AlreadyClean"
+    assert _dmcg_class_name("Plain") == "Plain"
+
+    available = {"LimitOffsetPageOrganizationRead", "OrganizationRead"}
+    # Verbatim hit returns as-is — no normalization needed.
+    assert _filter_model_name("OrganizationRead", available) == "OrganizationRead"
+    # Generic-style miss falls through to the sanitized form.
+    assert (
+        _filter_model_name("LimitOffsetPage_OrganizationRead_", available)
+        == "LimitOffsetPageOrganizationRead"
+    )
+    # Truly unknown name still drops to None.
+    assert _filter_model_name("Nonexistent", available) is None
+
+
 def test_anyof_request_body_renders_as_python_union_in_action(tmp_path: Path) -> None:
     """An action whose body is `anyOf: [$ref Login, $ref RefreshAccessToken]` types
     `body` as `Login | RefreshAccessToken`, and the action file imports both classes.

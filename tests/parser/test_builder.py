@@ -545,6 +545,59 @@ def test_build_anyof_with_null_member_drops_null_from_union(
     assert op.request_model == "Login"
 
 
+def test_build_recovers_item_model_through_envelope_ref(
+    english_nlp: Language,
+) -> None:
+    """Response `$ref`s to a paginated envelope still surface the inner item type.
+
+    The envelope schema lives in `components.schemas`; the parser should follow
+    the one-hop ref so an `items: type: array, items: $ref: ...` pattern is seen
+    and `item_model` matches the array element's class.
+    """
+    spec = {
+        "paths": {
+            "/orders": {
+                "get": {
+                    "responses": {
+                        "200": {
+                            "description": "OK",
+                            "content": {
+                                "application/json": {
+                                    "schema": {
+                                        "$ref": "#/components/schemas/OrderEnvelope"
+                                    }
+                                }
+                            },
+                        }
+                    },
+                }
+            }
+        },
+        "components": {
+            "schemas": {
+                "Order": {"type": "object", "properties": {"id": {"type": "string"}}},
+                "OrderEnvelope": {
+                    "type": "object",
+                    "properties": {
+                        "items": {
+                            "type": "array",
+                            "items": {"$ref": "#/components/schemas/Order"},
+                        },
+                        "total": {"type": "integer"},
+                    },
+                },
+            }
+        },
+    }
+
+    api = build(spec, Rules(), english_nlp)
+
+    orders = api.collections[0]
+    assert orders.fetch is not None
+    assert orders.fetch.response_model == "OrderEnvelope"
+    assert orders.fetch.item_model == "Order"
+
+
 def test_build_routes_resource_put_to_update_slot(english_nlp: Language) -> None:
     """PUT on a resource lands on the canonical `update` slot."""
     spec = {

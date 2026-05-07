@@ -61,7 +61,7 @@ def _async_paged_handler(pages: list[dict]):
 def test_async_iteration_walks_all_pages(async_client_module) -> None:
     """`async for` over a collection walks the offset/limit pagination loop."""
 
-    async def run() -> list[dict]:
+    async def run():
         pages = [
             {"items": [{"id": "1"}, {"id": "2"}], "total": 5},
             {"items": [{"id": "3"}, {"id": "4"}], "total": 5},
@@ -74,7 +74,7 @@ def test_async_iteration_walks_all_pages(async_client_module) -> None:
 
     items = asyncio.run(run())
 
-    assert [it["id"] for it in items] == ["1", "2", "3", "4", "5"]
+    assert [it.id for it in items] == ["1", "2", "3", "4", "5"]
 
 
 def test_async_first_short_circuits(async_client_module) -> None:
@@ -89,7 +89,8 @@ def test_async_first_short_circuits(async_client_module) -> None:
 
     first = asyncio.run(run())
 
-    assert first == {"id": "first"}
+    assert first is not None
+    assert first.id == "first"
 
 
 def test_async_count_returns_envelope_total(async_client_module) -> None:
