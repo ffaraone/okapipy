@@ -27,7 +27,7 @@ Once a client is generated, every strategy class is importable from
 ```python
 from acme.commerce.base.strategies import (
     PaginationStrategy, FilterStrategy, SortStrategy,
-    FilterEncoding,
+    FilterEncoding, SortEncoding,
     LimitOffsetPagination, PageNumberPagination, CursorPagination, LinkHeaderPagination,
     KeyValueFilter, KeyOpValueFilter, SearchFilterStrategy, JsonFilterStrategy,
     CommaSignedSort, KeyDirectionSort, JsonApiSort,
@@ -57,7 +57,7 @@ class FilterStrategy(Protocol):
     def encode(self, f: Filter | None) -> FilterEncoding: ...
 
 class SortStrategy(Protocol):
-    def encode(self, s: Sort | None) -> Mapping[str, Any]: ...
+    def encode(self, s: Sort | None) -> SortEncoding: ...
 ```
 
 All three are `runtime_checkable` and **duck-typed**. Your strategy
@@ -157,6 +157,15 @@ multiple leaves with `SearchFilterStrategy`), the strategy raises
 | `CommaSignedSort` | `?sort=-created_at,id` | Yes |
 | `JsonApiSort` | `?sort=-created_at,id` | Yes (alias for the JSON:API style) |
 | `KeyDirectionSort` | `?order_by=created_at&order=desc` | No (raises `UnsupportedSortError` on multi-term) |
+
+Sort strategies return a `SortEncoding`, the sort-side analogue of
+`FilterEncoding`. It carries both ordinary key/value `params` and an
+optional `raw_query` fragment for dialects whose sort expression must be
+emitted verbatim into the query string instead of as `key=value` pairs
+(e.g. an RQL-style `ordering(+name,-created_at)` term). When both the
+filter and sort strategies emit a `raw_query` fragment they are
+concatenated into the URL with `&` separators alongside the URL-encoded
+ordinary params.
 
 ## Wiring strategies to a client
 
@@ -312,12 +321,11 @@ If your API encodes sort as `?sortField=<f>&sortDir=<asc|desc>` and
 allows only one field:
 
 ```python
-from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any
 
 from acme.commerce.base.exceptions import UnsupportedSortError
 from acme.commerce.base.sort import Sort
+from acme.commerce.base.strategies import SortEncoding
 
 
 @dataclass
@@ -325,14 +333,44 @@ class SingleFieldSort:
     field_param: str = "sortField"
     direction_param: str = "sortDir"
 
-    def encode(self, s: Sort | None) -> Mapping[str, Any]:
+    def encode(self, s: Sort | None) -> SortEncoding:
         if not s:
-            return {}
+            return SortEncoding()
         if len(s.terms) > 1:
             raise UnsupportedSortError("SingleFieldSort accepts one term only")
         field_, direction = s.terms[0]
-        return {self.field_param: field_, self.direction_param: direction}
+        return SortEncoding(
+            params={self.field_param: field_, self.direction_param: direction},
+        )
 ```
+
+If your API expects an RQL-style ordering expression
+(`?ordering(+name,-created_at)`) where the parentheses and commas must
+not be URL-encoded, emit a `raw_query` fragment instead of `params`:
+
+```python
+from dataclasses import dataclass
+
+from acme.commerce.base.sort import Sort
+from acme.commerce.base.strategies import SortEncoding
+
+
+@dataclass
+class RqlOrdering:
+    def encode(self, s: Sort | None) -> SortEncoding:
+        if not s:
+            return SortEncoding()
+        terms = [
+            f"-{field_}" if direction == "desc" else f"+{field_}"
+            for field_, direction in s.terms
+        ]
+        return SortEncoding(raw_query="ordering(" + ",".join(terms) + ")")
+```
+
+Use `raw_query` (not `params`) so the operators stay verbatim in the
+URL. When the configured filter strategy also emits a `raw_query` (e.g.
+`RqlFilter`), the two fragments are joined with `&` in the final URL —
+for example `/orders?and(eq(status,open))&ordering(-created_at)&offset=0&limit=50`.
 
 ## Errors strategies are allowed to raise
 

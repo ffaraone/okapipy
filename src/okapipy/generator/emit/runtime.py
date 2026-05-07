@@ -117,6 +117,7 @@ RUNTIME_PUBLIC_NAMES: tuple[str, ...] = (
     "SearchFilterStrategy",
     "ServerError",
     "Sort",
+    "SortEncoding",
     "SortStrategy",
     "Unset",
     "UnsupportedFilterError",
@@ -181,6 +182,7 @@ def _runtime_init(
         + "    PageNumberPagination,\n"
         + "    PaginationStrategy,\n"
         + "    SearchFilterStrategy,\n"
+        + "    SortEncoding,\n"
         + "    SortStrategy,\n"
         + ")\n"
         + "from .transport import AsyncRetryTransport, RetryPolicy, RetryTransport\n"

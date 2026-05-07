@@ -17,11 +17,14 @@ fall back to whatever default the backend chooses, leaving the client unable
 to tell what page size each request actually carries. Users can still
 override per-call via `.page_size(n)`.
 
-Filter strategies return a `FilterEncoding` object rather than a bare params
-dict. `FilterEncoding` carries both ordinary key/value `params` and an optional
-`raw_query` fragment for dialects whose expression must be emitted verbatim
-into the query string instead of as `key=value` pairs (e.g. RQL:
-`/path/to/coll?and(eq(f1,v1),eq(f2,v2))&limit=100&offset=0`).
+Filter and sort strategies return `FilterEncoding` / `SortEncoding` objects
+rather than bare params dicts. Each encoding carries both ordinary key/value
+`params` and an optional `raw_query` fragment for dialects whose expression
+must be emitted verbatim into the query string instead of as `key=value`
+pairs (e.g. RQL filters: `?and(eq(f1,v1),eq(f2,v2))`, or RQL-style sort:
+`?ordering(+name,-created_at)`). When both filter and sort produce raw
+fragments they are concatenated into the URL with `&` separators alongside
+the URL-encoded ordinary params (e.g. `?and(eq(f,v))&ordering(+name)&limit=100`).
 """
 
 from __future__ import annotations
@@ -51,6 +54,23 @@ class FilterEncoding:
     verbatim — required for expression-language filters like RQL where the
     operators (`and(...)`, `eq(...)`) carry parentheses and commas that must
     not be split into separate parameters.
+    """
+
+    params: Mapping[str, Any] = field(default_factory=dict)
+    raw_query: str | None = None
+
+    def __bool__(self) -> bool:
+        return bool(self.params) or bool(self.raw_query)
+
+
+@dataclass(frozen=True)
+class SortEncoding:
+    """The wire form of a `Sort` term list as produced by a `SortStrategy`.
+
+    Mirrors `FilterEncoding`. `params` are merged into the request's `params=`
+    argument; `raw_query` is a query-string fragment appended verbatim — for
+    sort dialects whose expression must not be URL-encoded as `key=value`
+    pairs (e.g. an RQL-style `ordering(+name,-created_at)` term).
     """
 
     params: Mapping[str, Any] = field(default_factory=dict)
@@ -91,9 +111,9 @@ class FilterStrategy(Protocol):
 
 @runtime_checkable
 class SortStrategy(Protocol):
-    """Renders a `Sort` term list into request parameters."""
+    """Renders a `Sort` term list into a `SortEncoding`."""
 
-    def encode(self, s: Sort | None) -> Mapping[str, Any]: ...
+    def encode(self, s: Sort | None) -> SortEncoding: ...
 
 
 # --------------------------------------------------------------------------- #
@@ -527,14 +547,14 @@ class CommaSignedSort:
 
     param: str = "sort"
 
-    def encode(self, s: Sort | None) -> Mapping[str, Any]:
+    def encode(self, s: Sort | None) -> SortEncoding:
         if not s:
-            return {}
+            return SortEncoding()
         rendered = ",".join(
             f"-{field_}" if direction == "desc" else field_
             for field_, direction in s.terms
         )
-        return {self.param: rendered}
+        return SortEncoding(params={self.param: rendered})
 
 
 @dataclass
@@ -547,16 +567,18 @@ class KeyDirectionSort:
     field_param: str = "order_by"
     direction_param: str = "order"
 
-    def encode(self, s: Sort | None) -> Mapping[str, Any]:
+    def encode(self, s: Sort | None) -> SortEncoding:
         if not s:
-            return {}
+            return SortEncoding()
         if len(s.terms) > 1:
             raise UnsupportedSortError(
                 "KeyDirectionSort encodes a single field only; got "
                 f"{len(s.terms)} terms"
             )
         field_, direction = s.terms[0]
-        return {self.field_param: field_, self.direction_param: direction}
+        return SortEncoding(
+            params={self.field_param: field_, self.direction_param: direction}
+        )
 
 
 @dataclass
@@ -569,14 +591,14 @@ class JsonApiSort:
 
     param: str = "sort"
 
-    def encode(self, s: Sort | None) -> Mapping[str, Any]:
+    def encode(self, s: Sort | None) -> SortEncoding:
         if not s:
-            return {}
+            return SortEncoding()
         rendered = ",".join(
             f"-{field_}" if direction == "desc" else field_
             for field_, direction in s.terms
         )
-        return {self.param: rendered}
+        return SortEncoding(params={self.param: rendered})
 
 
 # Stops mypy `unused import` complaints; `field` is used to make the dataclasses

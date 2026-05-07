@@ -183,3 +183,6 @@ bandit.json
 
 # Language files
 .spacy/
+
+# claude local settings
+.claude/settings.local.json
