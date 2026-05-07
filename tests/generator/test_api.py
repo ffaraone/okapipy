@@ -205,6 +205,172 @@ def test_root_actions_fixture_emits_action_files(tmp_path: Path) -> None:
     assert "def refresh(self) -> RefreshActionBase" in auth_ns
 
 
+def test_dmcg_class_name_sanitizes_ref_segments() -> None:
+    """`_dmcg_class_name` mirrors how dmcg PascalCases generic-style ref names.
+
+    Splits on every non-alphanumeric run, drops empty parts, and capitalizes
+    each surviving fragment. Used as a fallback in `_filter_model_name` so a
+    parser-recovered ref like `LimitOffsetPage_OrganizationRead_` resolves to
+    the dmcg-emitted `LimitOffsetPageOrganizationRead`.
+    """
+    from okapipy.generator.emit.walk import _dmcg_class_name, _filter_model_name
+
+    assert (
+        _dmcg_class_name("LimitOffsetPage_OrganizationRead_")
+        == "LimitOffsetPageOrganizationRead"
+    )
+    assert _dmcg_class_name("Already.Clean") == "AlreadyClean"
+    assert _dmcg_class_name("Plain") == "Plain"
+
+    available = {"LimitOffsetPageOrganizationRead", "OrganizationRead"}
+    # Verbatim hit returns as-is — no normalization needed.
+    assert _filter_model_name("OrganizationRead", available) == "OrganizationRead"
+    # Generic-style miss falls through to the sanitized form.
+    assert (
+        _filter_model_name("LimitOffsetPage_OrganizationRead_", available)
+        == "LimitOffsetPageOrganizationRead"
+    )
+    # Truly unknown name still drops to None.
+    assert _filter_model_name("Nonexistent", available) is None
+
+
+def test_anyof_request_body_renders_as_python_union_in_action(tmp_path: Path) -> None:
+    """An action whose body is `anyOf: [$ref Login, $ref RefreshAccessToken]` types
+    `body` as `Login | RefreshAccessToken`, and the action file imports both classes.
+
+    Without member-aware handling, the parser would fall back to the schema's
+    `title` (or no name), the walker would filter it out, and the body parameter
+    would degrade to `Any`.
+    """
+    import yaml
+
+    from okapipy.parser.api import parse
+
+    spec = {
+        "openapi": "3.0.0",
+        "info": {"title": "T", "version": "1"},
+        "paths": {
+            "/login": {
+                "post": {
+                    "x-okapipy-kind": "action",
+                    "summary": "Get token",
+                    "requestBody": {
+                        "required": True,
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "anyOf": [
+                                        {"$ref": "#/components/schemas/Login"},
+                                        {
+                                            "$ref": "#/components/schemas/RefreshAccessToken"
+                                        },
+                                    ],
+                                    "title": "Data",
+                                }
+                            }
+                        },
+                    },
+                    "responses": {"200": {"description": "OK"}},
+                }
+            }
+        },
+        "components": {
+            "schemas": {
+                "Login": {
+                    "type": "object",
+                    "properties": {
+                        "email": {"type": "string"},
+                        "password": {"type": "string"},
+                    },
+                    "required": ["email", "password"],
+                },
+                "RefreshAccessToken": {
+                    "type": "object",
+                    "properties": {
+                        "refresh_token": {"type": "string"},
+                    },
+                    "required": ["refresh_token"],
+                },
+            },
+        },
+    }
+    spec_path = tmp_path / "spec.yaml"
+    spec_path.write_text(yaml.safe_dump(spec))
+
+    api = parse(spec_path, nlp_cache_dir=Path(__file__).resolve().parents[2] / ".spacy")
+    vfs = generate(
+        api,
+        raw_spec=spec_path,
+        output_dir=tmp_path / "out",
+        package="acme.client",
+        client_class="AcmeClient",
+    )
+
+    action_src = vfs["src/acme/client/base/actions/login.py"].content
+    assert "body: Login | RefreshAccessToken | dict[str, Any]" in action_src
+    # Both sync and async `run` methods carry the same union signature.
+    assert action_src.count("body: Login | RefreshAccessToken | dict[str, Any]") == 2
+    assert "from ..models import Login, RefreshAccessToken" in action_src
+
+
+def test_inline_body_matching_existing_component_is_not_duplicated(
+    tmp_path: Path,
+) -> None:
+    """When a path's inline request body is shape-identical to a top-level component,
+    the flattener reuses the existing component name — dmcg emits a single class.
+
+    The check inspects `models.py` directly: the spec author named one schema
+    `Login`, so there must be exactly one `class Login(...)` definition and no
+    `Login<hash>` siblings.
+    """
+    import yaml
+
+    from okapipy.parser.api import parse
+
+    login_shape = {
+        "type": "object",
+        "properties": {
+            "email": {"type": "string"},
+            "password": {"type": "string"},
+        },
+        "required": ["email", "password"],
+        "title": "Login",
+    }
+    spec = {
+        "openapi": "3.0.0",
+        "info": {"title": "T", "version": "1"},
+        "paths": {
+            "/login": {
+                "post": {
+                    "x-okapipy-kind": "action",
+                    "requestBody": {
+                        "content": {"application/json": {"schema": dict(login_shape)}},
+                    },
+                    "responses": {"200": {"description": "OK"}},
+                }
+            }
+        },
+        "components": {"schemas": {"Login": login_shape}},
+    }
+    spec_path = tmp_path / "spec.yaml"
+    spec_path.write_text(yaml.safe_dump(spec))
+
+    api = parse(spec_path, nlp_cache_dir=Path(__file__).resolve().parents[2] / ".spacy")
+    vfs = generate(
+        api,
+        raw_spec=spec_path,
+        output_dir=tmp_path / "out",
+        package="acme.client",
+        client_class="AcmeClient",
+    )
+
+    models_src = vfs["src/acme/client/base/models.py"].content
+    assert models_src.count("\nclass Login(") == 1
+    # No hash-suffixed Login lookalike.
+    assert "class Login0" not in models_src
+    assert "class Login1" not in models_src
+
+
 def test_with_models_false_drops_model_imports_from_generated_nodes(
     tmp_path: Path,
 ) -> None:

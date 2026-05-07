@@ -21,6 +21,12 @@ class Operation(BaseModel):
     yield typed model instances instead of raw dicts; left as `None` when the
     response isn't list-shaped or the item schema is anonymous.
 
+    `request_model_members` is non-empty when the request body is an inline
+    `anyOf` / `oneOf` union of `$ref` members (e.g. `Login | RefreshAccessToken`).
+    The generator renders the body parameter as a `Member1 | Member2` Python
+    union type. When this list is empty and `request_model` is set, the body is
+    typed as that single class.
+
     `pagination_supported` defaults to `True` and is only meaningful on
     collection-fetch operations; the generator decides what to do with it on other
     operations. `filter_supported` and `sort_supported` default to `False` and will
@@ -35,6 +41,7 @@ class Operation(BaseModel):
     description: str | None = None
     request_content_type: str | None = None
     request_model: str | None = None
+    request_model_members: list[str] = Field(default_factory=list)
     response_content_type: str | None = None
     response_model: str | None = None
     item_model: str | None = None

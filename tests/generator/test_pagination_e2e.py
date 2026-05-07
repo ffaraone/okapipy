@@ -94,7 +94,7 @@ def test_offset_limit_iteration_walks_all_pages(client_module) -> None:
 
     items = list(client.orders.page_size(2))
 
-    assert [item["id"] for item in items] == ["1", "2", "3", "4", "5"]
+    assert [item.id for item in items] == ["1", "2", "3", "4", "5"]
     client.close()
 
 
@@ -112,7 +112,8 @@ def test_first_short_circuits_after_one_page(client_module) -> None:
 
     first = client.orders.first()
 
-    assert first == {"id": "1"}
+    assert first is not None
+    assert first.id == "1"
     client.close()
 
 
@@ -156,7 +157,7 @@ def test_cursor_pagination_follows_next_token_until_absent(client_module) -> Non
 
     items = list(client.orders)
 
-    assert [item["id"] for item in items] == ["1", "2", "3"]
+    assert [item.id for item in items] == ["1", "2", "3"]
     client.close()
 
 
@@ -185,7 +186,7 @@ def test_link_header_pagination_follows_rel_next(client_module) -> None:
 
     items = list(client.orders)
 
-    assert [item["id"] for item in items] == ["1", "2"]
+    assert [item.id for item in items] == ["1", "2"]
     client.close()
 
 
@@ -411,6 +412,6 @@ def test_with_options_seeds_overrides_for_every_page(client_module) -> None:
 
     items = list(client.orders.with_options(headers={"X-Trace": "abc"}).page_size(2))
 
-    assert [item["id"] for item in items] == ["x", "y"]
+    assert [item.id for item in items] == ["x", "y"]
     assert all(h == "abc" for h in seen_headers if h)
     client.close()

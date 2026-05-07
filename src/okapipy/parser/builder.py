@@ -145,6 +145,7 @@ def build(
                 ns_registry=ns_registry,
                 spec_path_kinds=spec_path_kinds,
                 excluded_methods=excluded_methods,
+                spec=spec,
             )
         except InvalidStructureError as exc:
             log.warning("skipping path %s: %s", path, exc)
@@ -274,6 +275,7 @@ def _walk_path(
     ns_registry: set[str],
     spec_path_kinds: dict[str, str],
     excluded_methods: set[str],
+    spec: dict[str, Any],
 ) -> None:
     """Walk a single OpenAPI path and attach its operations to the tree."""
     log.debug("walking path %s", path)
@@ -334,6 +336,7 @@ def _walk_path(
         path=path,
         action_path=last_path,
         excluded_methods=excluded_methods,
+        spec=spec,
     )
 
 
@@ -417,6 +420,7 @@ def _install_operations(
     path: str,
     action_path: str,
     excluded_methods: set[str],
+    spec: dict[str, Any],
 ) -> None:
     """Attach Operation entries onto the terminal node according to its kind."""
     item_paginated = _resolve_paginated(
@@ -447,6 +451,7 @@ def _install_operations(
             method=method,
             op_data=op_data,
             pagination_supported=op_paginated,
+            spec=spec,
         )
         _route(
             cursor=cursor,
@@ -569,13 +574,14 @@ def _build_operation(
     method: str,
     op_data: dict[str, Any],
     pagination_supported: bool,
+    spec: dict[str, Any],
 ) -> Operation:
     """Build an Operation from one method entry, reading schema names from `$ref`s."""
     summary = op_data.get("summary")
     description = op_data.get("description")
-    request_content_type, request_model = _request_info(op_data)
+    request_content_type, request_model, request_model_members = _request_info(op_data)
     response_content_type, response_model, item_model, response_headers = (
-        _response_info(op_data)
+        _response_info(op_data, spec)
     )
     return Operation(
         method=method.upper(),
@@ -583,6 +589,7 @@ def _build_operation(
         description=description if isinstance(description, str) else None,
         request_content_type=request_content_type,
         request_model=request_model,
+        request_model_members=request_model_members,
         response_content_type=response_content_type,
         response_model=response_model,
         item_model=item_model,
@@ -591,22 +598,69 @@ def _build_operation(
     )
 
 
-def _request_info(op_data: dict[str, Any]) -> tuple[str | None, str | None]:
-    """Return `(content_type, schema_name)` for the operation's request body, if any."""
+def _request_info(
+    op_data: dict[str, Any],
+) -> tuple[str | None, str | None, list[str]]:
+    """Return `(content_type, schema_name, union_members)` for the request body, if any.
+
+    `union_members` is non-empty when the body schema is an inline `anyOf` /
+    `oneOf` whose non-null members are all `$ref`s and there are 2+ of them —
+    the generator renders the body parameter as a `Member1 | Member2 | ...`
+    union. A single non-null `$ref` member (e.g. `[$ref, type: null]`) collapses
+    back to that single ref. When neither case applies the schema's `$ref` /
+    `title` fallback drives `schema_name`.
+    """
     body = op_data.get("requestBody")
     if not isinstance(body, dict):
-        return None, None
+        return None, None, []
     content = body.get("content")
     if not isinstance(content, dict) or not content:
-        return None, None
+        return None, None, []
     content_type = next(iter(content))
     entry = content.get(content_type)
     schema = entry.get("schema") if isinstance(entry, dict) else None
-    return content_type, _name_from_schema(schema)
+    members = _union_member_names(schema)
+    if len(members) >= 2:
+        return content_type, None, members
+    if len(members) == 1:
+        return content_type, members[0], []
+    return content_type, _name_from_schema(schema), []
+
+
+def _union_member_names(schema: Any) -> list[str]:
+    """Return the deduped `$ref` trailing names of an inline `anyOf` / `oneOf`.
+
+    Empty when the schema isn't a union, when any non-null member fails to be
+    a `$ref`, or when there are no non-null members. Caller decides what to
+    do with the count — a single name still rides through as a regular ref.
+    """
+    if not isinstance(schema, dict):
+        return []
+    union = schema.get("anyOf") or schema.get("oneOf")
+    if not isinstance(union, list) or not union:
+        return []
+    names: list[str] = []
+    for member in union:
+        if not isinstance(member, dict):
+            return []
+        if member.get("type") == "null":
+            continue
+        ref_name = _schema_name(member)
+        if ref_name is None:
+            return []
+        names.append(ref_name)
+    seen: set[str] = set()
+    deduped: list[str] = []
+    for name in names:
+        if name not in seen:
+            seen.add(name)
+            deduped.append(name)
+    return deduped
 
 
 def _response_info(
     op_data: dict[str, Any],
+    spec: dict[str, Any],
 ) -> tuple[str | None, str | None, str | None, list[str]]:
     """Return `(content_type, schema_name, item_name, header_names)` for the chosen 2xx response.
 
@@ -615,7 +669,9 @@ def _response_info(
     when the response is list-shaped — either a plain `type: array` or an object
     with a known data-array property (`items`, `data`, `results`, `records`,
     `entries`); `None` otherwise. The generator uses `item_name` so paginated
-    iteration yields typed model instances.
+    iteration yields typed model instances. `spec` is consulted only for one-hop
+    `$ref` resolution into `components.schemas` so envelope refs surface their
+    inner item type.
     """
     responses = op_data.get("responses")
     if not isinstance(responses, dict):
@@ -636,7 +692,7 @@ def _response_info(
     return (
         content_type,
         _name_from_schema(schema),
-        _item_name_from_schema(schema),
+        _item_name_from_schema(schema, spec),
         headers,
     )
 
@@ -644,19 +700,24 @@ def _response_info(
 _ENVELOPE_DATA_KEYS = ("items", "data", "results", "records", "entries")
 
 
-def _item_name_from_schema(schema: Any) -> str | None:
+def _item_name_from_schema(schema: Any, spec: dict[str, Any]) -> str | None:
     """Return the inner item schema name for a list-shaped response, or `None`.
 
     Recognised shapes: plain `type: array` (item is `schema.items`) and object
     schemas with one of the conventional data-array properties (`items`, `data`,
-    `results`, `records`, `entries`). Anything else returns `None` and the
-    generator falls back to yielding raw dicts.
+    `results`, `records`, `entries`). When the response schema is a `$ref`,
+    one hop is followed into `components.schemas` so envelope refs (e.g.
+    `LimitOffsetPage_OrganizationRead_`) surface their item type without
+    forcing the parser to fully resolve the spec.
     """
     if not isinstance(schema, dict):
         return None
-    if schema.get("type") == "array":
-        return _name_from_schema(schema.get("items"))
-    props = schema.get("properties")
+    resolved = _resolve_one_ref(schema, spec) if "$ref" in schema else schema
+    if not isinstance(resolved, dict):
+        return None
+    if resolved.get("type") == "array":
+        return _name_from_schema(resolved.get("items"))
+    props = resolved.get("properties")
     if not isinstance(props, dict):
         return None
     for key in _ENVELOPE_DATA_KEYS:
@@ -664,6 +725,29 @@ def _item_name_from_schema(schema: Any) -> str | None:
         if isinstance(entry, dict) and entry.get("type") == "array":
             return _name_from_schema(entry.get("items"))
     return None
+
+
+def _resolve_one_ref(schema: dict[str, Any], spec: dict[str, Any]) -> Any:
+    """Resolve a single `#/components/schemas/Foo` ref against `spec`.
+
+    Returns the target schema dict, or `None` if the ref points outside
+    `components.schemas` or to a missing entry. Only one hop is followed —
+    deeper resolution would risk infinite loops on self-referential schemas.
+    """
+    ref = schema.get("$ref")
+    if not isinstance(ref, str):
+        return None
+    prefix = "#/components/schemas/"
+    if not ref.startswith(prefix):
+        return None
+    name = ref[len(prefix) :]
+    components = spec.get("components")
+    if not isinstance(components, dict):
+        return None
+    schemas = components.get("schemas")
+    if not isinstance(schemas, dict):
+        return None
+    return schemas.get(name)
 
 
 def _name_from_schema(schema: Any) -> str | None:

@@ -8,7 +8,9 @@ Project: `{{ project_name }}`.
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, TypeVar
+
+from pydantic import BaseModel
 
 {% if model_imports %}
 from ..models import {{ model_imports | join(", ") }}
@@ -16,6 +18,11 @@ from ..models import {{ model_imports | join(", ") }}
 
 if TYPE_CHECKING:
     from ..client import {{ client_class }}Base, Async{{ client_class }}Base
+
+# Threads `response_model=Foo` through `_request` so callers see
+# `Foo | dict[str, Any] | None` instead of `Any`. Bounded to `BaseModel`
+# to match the client-side `from_response` signature.
+T = TypeVar("T", bound=BaseModel)
 
 
 class {{ class_name }}:
@@ -37,7 +44,7 @@ class {{ class_name }}:
         return self.PATH_TEMPLATE.format(**self.path_params) if self.path_params else self.PATH_TEMPLATE
 
 {% if single_op %}
-    def run(self, {% if single_op.has_body %}body: Any, {% endif %}**overrides: Any) -> Any:
+    def run(self, {% if single_op.has_body %}body: {{ single_op.body_type }}, {% endif %}**overrides: Any) -> {{ single_op.response_type }}:
 {{ single_op_docstring }}
         return self._request(
             "{{ single_op.method }}",
@@ -47,7 +54,7 @@ class {{ class_name }}:
         )
 {% else %}
 {% for op in operations %}
-    def {{ op.method | lower }}(self, {% if op.has_body %}body: Any, {% endif %}**overrides: Any) -> Any:
+    def {{ op.method | lower }}(self, {% if op.has_body %}body: {{ op.body_type }}, {% endif %}**overrides: Any) -> {{ op.response_type }}:
 {{ op_docstrings[loop.index0] }}
         return self._request(
             "{{ op.method }}",
@@ -65,8 +72,8 @@ class {{ class_name }}:
         *,
         body: Any,
         overrides: dict[str, Any],
-        response_model: type[Any] | None,
-    ) -> Any:
+        response_model: type[T] | None,
+    ) -> T | dict[str, Any] | None:
         response = self.client._http.request(
             method, self.url, **self._build_request_kwargs(body, overrides),
         )
@@ -109,7 +116,7 @@ class Async{{ class_name }}:
         return self.PATH_TEMPLATE.format(**self.path_params) if self.path_params else self.PATH_TEMPLATE
 
 {% if single_op %}
-    async def run(self, {% if single_op.has_body %}body: Any, {% endif %}**overrides: Any) -> Any:
+    async def run(self, {% if single_op.has_body %}body: {{ single_op.body_type }}, {% endif %}**overrides: Any) -> {{ single_op.response_type }}:
 {{ single_op_docstring }}
         return await self._request(
             "{{ single_op.method }}",
@@ -119,7 +126,7 @@ class Async{{ class_name }}:
         )
 {% else %}
 {% for op in operations %}
-    async def {{ op.method | lower }}(self, {% if op.has_body %}body: Any, {% endif %}**overrides: Any) -> Any:
+    async def {{ op.method | lower }}(self, {% if op.has_body %}body: {{ op.body_type }}, {% endif %}**overrides: Any) -> {{ op.response_type }}:
 {{ op_docstrings[loop.index0] }}
         return await self._request(
             "{{ op.method }}",
@@ -137,8 +144,8 @@ class Async{{ class_name }}:
         *,
         body: Any,
         overrides: dict[str, Any],
-        response_model: type[Any] | None,
-    ) -> Any:
+        response_model: type[T] | None,
+    ) -> T | dict[str, Any] | None:
         response = await self.client._http.request(
             method, self.url, **self._build_request_kwargs(body, overrides),
         )

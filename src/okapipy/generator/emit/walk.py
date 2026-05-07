@@ -295,6 +295,7 @@ def _emit_collection(
             else None
         ),
         "fetch_item_model": fetch_item_model,
+        "item_type": _response_type(fetch_item_model),
         "pagination_supported": (
             fetch_op.pagination_supported if fetch_op is not None else False
         ),
@@ -372,10 +373,8 @@ def _emit_resource(
         )
         for action in resource.actions
     ]
-    # Resource methods type their `body` parameter as `Any`, so request-model
-    # imports would be unreferenced. Pull only response_model names here.
     model_imports = sorted(
-        _collect_response_model_names(
+        _collect_model_names(
             [
                 resource.retrieve,
                 resource.update,
@@ -474,10 +473,8 @@ def _emit_singleton(
         )
         for action in singleton.actions
     ]
-    # Singleton methods type their `body` parameter as `Any`, so request-model
-    # imports would be unreferenced. Pull only response_model names here.
     model_imports = sorted(
-        _collect_response_model_names(
+        _collect_model_names(
             [
                 singleton.retrieve,
                 singleton.update,
@@ -549,11 +546,7 @@ def _emit_action(
     operations = [_op_context(op, available_models) for op in action.operations]
     operations = [op for op in operations if op is not None]
     single_op = operations[0] if len(operations) == 1 else None
-    # Action methods type their `body` parameter as `Any`, so request-model
-    # imports would be unreferenced. Pull only response_model names here.
-    model_imports = sorted(
-        _collect_response_model_names(action.operations, available_models)
-    )
+    model_imports = sorted(_collect_model_names(action.operations, available_models))
     # Action docstrings: when the action has a single HTTP method, the class
     # docstring and that method's docstring share one source — the action's
     # summary/description — because the class and the method describe the same
@@ -690,28 +683,6 @@ def _build_docstring_from_body(body: str, indent: int) -> str:
     return "\n".join(out_lines)
 
 
-def _collect_response_model_names(
-    operations: Sequence[Operation | None],
-    available_models: set[str] | None,
-) -> set[str]:
-    """Return the set of `response_model` names referenced by `operations`.
-
-    Used by emitters whose generated code only references response_model in
-    `from_response` calls and types `body` as `Any` — pulling request_model
-    too would produce unused-import (F401) lint failures. Names not in
-    `available_models` are filtered out, matching `_collect_model_names`.
-    """
-    names: set[str] = set()
-    for op in operations:
-        if op is None:
-            continue
-        if op.response_model:
-            names.add(op.response_model)
-    if available_models is not None:
-        names &= available_models
-    return names
-
-
 def _collect_model_names(
     operations: Sequence[Operation | None],
     available_models: set[str] | None,
@@ -730,6 +701,7 @@ def _collect_model_names(
             continue
         if op.request_model:
             names.add(op.request_model)
+        names.update(op.request_model_members)
         if op.response_model:
             names.add(op.response_model)
     if available_models is not None:
@@ -745,12 +717,37 @@ def _filter_model_name(
     A `None` response_model causes the runtime `from_response` to short-circuit
     and yield raw dicts, which is the right behavior when the schema couldn't
     be modeled as a typed class.
+
+    dmcg strips non-alphanumeric characters from `$ref` schema names — e.g.
+    `LimitOffsetPage_OrganizationRead_` becomes `LimitOffsetPageOrganizationRead`.
+    The parser, on the other hand, copies the original ref segment verbatim. We
+    apply the same normalization as a fallback so generic-style names recovered
+    by the parser still resolve to the class dmcg actually emitted.
     """
     if name is None:
         return None
-    if available_models is None or name in available_models:
+    if available_models is None:
         return name
+    if name in available_models:
+        return name
+    sanitized = _dmcg_class_name(name)
+    if sanitized in available_models:
+        return sanitized
     return None
+
+
+_NON_ALNUM = re.compile(r"[^A-Za-z0-9]+")
+
+
+def _dmcg_class_name(name: str) -> str:
+    """PascalCase a `$ref` schema name the way `datamodel-code-generator` does.
+
+    Splits on every non-alphanumeric run, drops empty parts, and capitalizes
+    the first letter of each surviving fragment while preserving the rest of
+    its casing. `LimitOffsetPage_OrganizationRead_` → `LimitOffsetPageOrganizationRead`.
+    """
+    parts = _NON_ALNUM.split(name)
+    return "".join(p[:1].upper() + p[1:] for p in parts if p)
 
 
 def _op_context(
@@ -759,15 +756,57 @@ def _op_context(
     """Translate an Operation into the small dict templates need."""
     if op is None:
         return None
+    request_model = _filter_model_name(op.request_model, available_models)
+    members = [
+        name
+        for name in op.request_model_members
+        if available_models is None or name in available_models
+    ]
+    has_body = bool(op.request_model) or bool(op.request_model_members)
+    response_model = _filter_model_name(op.response_model, available_models)
     return {
         "method": op.method,
-        "response_model": _filter_model_name(op.response_model, available_models),
-        "request_model": _filter_model_name(op.request_model, available_models),
-        "has_body": op.request_model is not None,
+        "response_model": response_model,
+        "request_model": request_model,
+        "request_model_members": members,
+        "body_type": _body_type(request_model, members),
+        "response_type": _response_type(response_model),
+        "has_body": has_body,
         "pagination_supported": op.pagination_supported,
         "filter_supported": op.filter_supported,
         "sort_supported": op.sort_supported,
     }
+
+
+def _response_type(response_model: str | None) -> str:
+    """Render the Python return type for an operation that calls `from_response`.
+
+    When the response schema name was recovered (and dmcg emitted a class for
+    it), the runtime returns either a model instance or — under the `dicts`
+    shape — the raw JSON; either way the value may be `None` for 204 / empty
+    bodies. So the type is `ResponseModel | dict[str, Any] | None`. When no
+    response schema is known the model arm drops away.
+    """
+    if response_model:
+        return f"{response_model} | dict[str, Any] | None"
+    return "dict[str, Any] | None"
+
+
+def _body_type(request_model: str | None, members: Sequence[str]) -> str:
+    """Render the Python type expression for the operation's `body` parameter.
+
+    Always admits a plain `dict[str, Any]` alongside any typed model(s) so
+    callers may pass a raw payload without satisfying the Pydantic class —
+    the runtime `_build_request_kwargs` already serializes models or dicts
+    interchangeably. Multiple union members produce `A | B | dict[str, Any]`;
+    a single class produces `A | dict[str, Any]`; an empty/filtered request
+    schema falls back to `Any`.
+    """
+    if members:
+        return " | ".join([*members, "dict[str, Any]"])
+    if request_model:
+        return f"{request_model} | dict[str, Any]"
+    return "Any"
 
 
 def _new_path_param(parent_path: str, child_path: str) -> str:

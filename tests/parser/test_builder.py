@@ -468,6 +468,136 @@ def test_build_handles_request_body_without_ref(english_nlp: Language) -> None:
     assert orders.create.request_model == "OrderInput"
 
 
+def test_build_records_anyof_body_as_union_member_list(
+    english_nlp: Language,
+) -> None:
+    """A request body whose schema is `anyOf` of `$ref` members captures every member name.
+
+    The generator turns this into a `Member1 | Member2` Python union for the
+    body parameter rather than inventing a single wrapper class.
+    """
+    spec = {
+        "paths": {
+            "/login": {
+                "post": {
+                    "x-okapipy-kind": "action",
+                    "requestBody": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "anyOf": [
+                                        {"$ref": "#/components/schemas/Login"},
+                                        {
+                                            "$ref": "#/components/schemas/RefreshAccessToken"
+                                        },
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "responses": {"200": {"description": "OK"}},
+                }
+            }
+        }
+    }
+
+    api = build(spec, Rules(), english_nlp)
+
+    login = api.actions[0]
+    op = login.operations[0]
+    assert op.request_model is None
+    assert op.request_model_members == ["Login", "RefreshAccessToken"]
+
+
+def test_build_anyof_with_null_member_drops_null_from_union(
+    english_nlp: Language,
+) -> None:
+    """`anyOf: [$ref, {type: null}]` collapses to a single ref — null is nullability noise."""
+    spec = {
+        "paths": {
+            "/login": {
+                "post": {
+                    "x-okapipy-kind": "action",
+                    "requestBody": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "anyOf": [
+                                        {"$ref": "#/components/schemas/Login"},
+                                        {"type": "null"},
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "responses": {"200": {"description": "OK"}},
+                }
+            }
+        }
+    }
+
+    api = build(spec, Rules(), english_nlp)
+
+    login = api.actions[0]
+    op = login.operations[0]
+    assert op.request_model_members == []
+    # Single non-null ref left → falls back to single request_model name.
+    assert op.request_model == "Login"
+
+
+def test_build_recovers_item_model_through_envelope_ref(
+    english_nlp: Language,
+) -> None:
+    """Response `$ref`s to a paginated envelope still surface the inner item type.
+
+    The envelope schema lives in `components.schemas`; the parser should follow
+    the one-hop ref so an `items: type: array, items: $ref: ...` pattern is seen
+    and `item_model` matches the array element's class.
+    """
+    spec = {
+        "paths": {
+            "/orders": {
+                "get": {
+                    "responses": {
+                        "200": {
+                            "description": "OK",
+                            "content": {
+                                "application/json": {
+                                    "schema": {
+                                        "$ref": "#/components/schemas/OrderEnvelope"
+                                    }
+                                }
+                            },
+                        }
+                    },
+                }
+            }
+        },
+        "components": {
+            "schemas": {
+                "Order": {"type": "object", "properties": {"id": {"type": "string"}}},
+                "OrderEnvelope": {
+                    "type": "object",
+                    "properties": {
+                        "items": {
+                            "type": "array",
+                            "items": {"$ref": "#/components/schemas/Order"},
+                        },
+                        "total": {"type": "integer"},
+                    },
+                },
+            }
+        },
+    }
+
+    api = build(spec, Rules(), english_nlp)
+
+    orders = api.collections[0]
+    assert orders.fetch is not None
+    assert orders.fetch.response_model == "OrderEnvelope"
+    assert orders.fetch.item_model == "Order"
+
+
 def test_build_routes_resource_put_to_update_slot(english_nlp: Language) -> None:
     """PUT on a resource lands on the canonical `update` slot."""
     spec = {
