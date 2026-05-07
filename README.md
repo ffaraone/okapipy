@@ -17,316 +17,228 @@
 [![Checked with mypy](https://img.shields.io/badge/mypy-checked-blue.svg)](http://mypy-lang.org/)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 
-A Python OpenAPI client generator that lifts the flat list of paths in an
-OpenAPI 3.x document into a hierarchical tree of **Namespaces**, **Collections**,
-**Resources**, **Singletons**, and **Actions**, and emits a strongly-typed,
-async/sync Pydantic v2 client from it.
+okapipy turns an OpenAPI 3.x document into a typed, hierarchical Python
+client — sync **and** async, sharing one tree. It lifts flat paths into
+**Namespaces**, **Collections**, **Resources**, **Singletons**, and
+**Actions**, then emits a project where regenerated `base/` code carries
+the wiring and a one-shot user layer carries your customizations. Re-run
+the generator after a spec change and your code is left strictly alone.
 
-📚 **Full documentation:** <https://ffaraone.github.io/okapipy/> — installation,
-quick start, client usage, rules and extensions, strategies, code customization,
-template overrides, and a full API reference.
+📚 **Full documentation:** <https://ffaraone.github.io/okapipy/>
 
-## Installation
+## Install
 
-okapipy requires Python 3.12+ and uses [uv](https://docs.astral.sh/uv/) for
-dependency management.
+okapipy needs Python 3.12+.
 
 ```bash
-uv add okapipy            # add to an existing project
-# or, for one-off use:
-uvx okapipy --help
+pip install okapipy            # or: uv add okapipy
 ```
 
 The first NLP-dependent run downloads the spaCy `en_core_web_sm` model
-(~12 MB) into `./.spacy/`. To pre-warm it:
+(~12 MB) into `./.spacy/`. To pre-warm it (recommended in CI):
 
 ```bash
-uv run okapipy nlp fetch en
+okapipy nlp fetch en
 ```
 
-## Usage
+## Use
 
-Parse a spec into its structural tree (path or http(s) URL accepted):
+Sanity-check the parse:
 
 ```bash
-uv run okapipy spec parse openapi.yaml --output tree.yaml
+okapipy spec parse openapi.yaml
 ```
 
 Generate a full client project:
 
 ```bash
-uv run okapipy spec generate openapi.yaml \
+okapipy spec generate openapi.yaml \
     --output ./my-client \
     --package acme.commerce \
     --client-class CommerceClient
 ```
 
-This writes a complete Python project under `./my-client` with a
-regeneratable base layer (`src/acme/commerce/base/...`) and a one-shot user
-layer of subclass stubs you can safely customize. Re-running the command
-refreshes the base layer while preserving your edits in the user layer.
+This writes a runnable Python project under `./my-client`: a regenerated
+`src/acme/commerce/base/` tree (transport, models, vendored runtime,
+per-node base classes) plus one-shot subclass stubs you can customize.
+Re-running the command refreshes `base/` and leaves your edits alone.
 
-Useful flags:
+Useful flags: `--rules path/to/rules.yaml` for project-local overrides,
+`--strip-prefix /api/v1` to drop a base prefix, `--no-models` to skip
+emitting `base/models.py` (operations end up untyped), `--check` for a CI
+dry-run that exits non-zero on any drift.
 
-- `--rules path/to/rules.yaml` — project-local overrides for namespace
-  assignment, segment kind, and operation exclusion (mirrors the
-  `x-okapipy-*` extensions; rules-file values win on conflict).
-- `--strip-prefix /api/v1` — drop a base prefix from every path before
-  classification.
-- `--no-models` (alias `--without-models`) — skip emitting `base/models.py`
-  and drop every model import from the generated client. Operations end up
-  untyped (raw dicts in / out). Useful when `datamodel-code-generator`
-  can't process the spec's schemas, or when the consumer prefers to bring
-  their own types.
-- `--check` — CI dry-run: report drift and stale files, exit non-zero on
-  any change.
+## Customize
 
-## How paths become a tree
+okapipy decides what each path segment is using POS tagging plus a small
+heuristic registry. When the heuristics get it wrong — or when you need
+to fence off pieces of the spec — you decorate the spec with `x-okapipy-*`
+extensions, or carry the same overrides in a project-local **rules file**
+(useful when you don't own the OpenAPI document). Rules-file values win
+on every conflict.
 
-okapipy walks each OpenAPI path one segment at a time and assigns each segment
-one of five kinds:
+Pass a rules file with `--rules`:
 
-| Kind          | What it represents                                  | Example path                          |
-| ------------- | --------------------------------------------------- | ------------------------------------- |
-| **Namespace** | A folder-style grouping (no operations of its own)  | `/commerce/...`, `/auth/...`          |
-| **Collection**| A plural endpoint that lists/creates                | `/orders`, `/users`                   |
-| **Resource**  | A single item within a collection (after `{id}`)    | `/orders/{id}`                        |
-| **Singleton** | A resource with no enclosing collection             | `/me`, `/health`, `/users/{id}/avatar`|
-| **Action**    | A non-CRUD verb endpoint                            | `/login`, `/orders/{id}/submit`       |
+```bash
+okapipy spec generate openapi.yaml --rules okapipy.rules.yaml \
+    --output ./my-client --package acme.commerce --client-class CommerceClient
+```
 
-Classification runs in this order: `{id}`-shaped segments are resources,
-explicit `x-okapipy-kind` hints win next, then the namespace registry, then
-spaCy POS/morphology. When everything else is silent the segment defaults to
-a collection.
-
-HTTP methods are routed to fixed slots:
-
-| Terminal kind | GET        | POST     | PUT      | PATCH            | DELETE   |
-| ------------- | ---------- | -------- | -------- | ---------------- | -------- |
-| Collection    | `fetch`    | `create` | dropped  | dropped          | dropped  |
-| Resource      | `retrieve` | dropped  | `update` | `partial_update` | `delete` |
-| Singleton     | `retrieve` | dropped  | `update` | `partial_update` | `delete` |
-| Action        | appended to `Action.operations` (one Action holds every method on its path) |
-
-Operations that don't fit (e.g. `POST /orders/{id}` without an action hint)
-are dropped with a warning rather than coerced into something synthetic — opt
-them in with `x-okapipy-kind: action` if you want them.
-
-## OpenAPI extensions
-
-You decorate the spec with `x-okapipy-*` keys to override the heuristics. All
-extensions are optional; small/well-named specs often need none.
-
-### `x-okapipy-ns` (root level)
-
-Declares which top-level path segments are folders. Without this, a singular
-noun like `commerce` or `auth` would be classified as a namespace only when
-the heuristic guesses correctly — the registry makes it deterministic.
+### OpenAPI extensions
 
 ```yaml
 openapi: 3.0.0
-info:
-  title: Commerce API
-  version: 1.0.0
+info: { title: Commerce API, version: 1.0.0 }
+
+# Declare top-level folders so single-noun segments aren't misclassified.
 x-okapipy-ns:
   - commerce
   - commerce/internal
   - settings
+
 paths:
-  /commerce/orders:           # → Namespace(commerce) → Collection(Orders)
+  /commerce/orders:                      # Plural → Collection
     get: ...
-  /commerce/internal/audit:   # nested namespaces are fine
-    get: ...
-```
+    post: ...
 
-Leading slashes are tolerated (`/commerce` and `commerce` are equivalent).
+  /commerce/orders/{id}/submit:          # Verb → Action (NLP catches it)
+    post: ...
 
-### `x-okapipy-kind` (path-item or operation level)
-
-Forces a segment's classification when NLP can't disambiguate. Allowed values:
-`namespace`, `collection`, `singleton`, `action`.
-
-```yaml
-paths:
   /me:
-    x-okapipy-kind: singleton  # /me is a Singleton, not a Namespace
-    get:
-      summary: Return the current user
-    patch:
-      summary: Update the current user
-
-  /orders/{id}/submit:
-    post:
-      x-okapipy-kind: action   # operation-level: route this POST to a synthetic Action
-
-  /staff:                      # spaCy treats "staff" as singular → namespace by default
-    x-okapipy-kind: collection
+    x-okapipy-kind: singleton            # Force singleton; NLP can't tell apart from a namespace
     get: ...
-```
+    patch: ...
 
-Path-item-level hints classify the *segment* (and propagate to other paths
-that walk through the same prefix — declaring `/me` as a singleton once is
-enough for `/me/notifications`, `/me/refresh`, etc., to see it). Operation-level
-`x-okapipy-kind: action` is narrower: it routes a single method to a
-synthetic Action without changing the segment's classification.
+  /staff:
+    x-okapipy-kind: collection           # spaCy thinks "staff" is singular — override
 
-### `x-okapipy-exclude` (path-item level)
+  /currencies:
+    x-okapipy-paginated: false           # Override pagination heuristic
+    get: ...
 
-Skips operations during parsing — useful for endpoints you don't want in the
-generated client (admin-only, deprecated migration endpoints, internal
-debugging routes).
-
-```yaml
-paths:
   /internal/debug:
-    x-okapipy-exclude: "*"           # drop every method on this path
+    x-okapipy-exclude: "*"               # Drop every method on this path
 
   /orders/{id}:
-    x-okapipy-exclude: [DELETE]      # drop just DELETE; keep GET / PUT / PATCH
+    x-okapipy-exclude: [DELETE]          # Or just selected methods
     get: ...
     delete: ...
 ```
 
-Method names are case-insensitive.
+Allowed `x-okapipy-kind` values: `namespace`, `collection`, `singleton`,
+`action`. Path-item hints classify the *segment* and propagate to other
+paths walking through the same prefix. Operation-level
+`x-okapipy-kind: action` is narrower — it routes a single method to a
+synthetic Action without changing the segment classification.
 
-### `x-okapipy-paginated` (path-item or operation level)
+### Rules file
 
-Overrides whether a list-shaped operation is treated as paginated by the
-generator. Defaults to `true`. Set it to `false` for endpoints that return a
-bounded list (e.g. enum-like reference data).
-
-```yaml
-paths:
-  /currencies:
-    x-okapipy-paginated: false       # the full list is short and fixed
-    get:
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Currency'
-```
-
-## Singletons
-
-A **Singleton** is a resourceful endpoint with no enclosing collection: there
-is exactly one of it, and CRUD verbs apply directly to it. Common cases:
-
-- `/me`, `/self` — the authenticated user
-- `/health`, `/status`, `/version` — service introspection
-- `/users/{id}/avatar` — a sub-singleton owned by a parent resource
-
-Singletons must opt in with `x-okapipy-kind: singleton`. Without the hint, a
-single-noun segment like `me` would be classified as a Namespace because
-spaCy can't tell the two apart from the segment alone. Once declared, the
-Singleton accepts the same CRUD verbs as a Resource (`GET → retrieve`,
-`PUT → update`, `PATCH → partial_update`, `DELETE → delete`) and may host
-nested collections, sub-singletons, or actions.
+The rules file mirrors the spec extensions and is local-only (no URLs).
+JSON or YAML, same shape:
 
 ```yaml
-paths:
-  /me:
-    x-okapipy-kind: singleton
-    get: { summary: Return the current user, responses: { '200': ... } }
-    patch: { summary: Update the current user, responses: { '200': ... } }
-
-  /users/{id}/avatar:
-    x-okapipy-kind: singleton    # sub-singleton under the User resource
-    parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
-    get: ...
-    put: ...
-    delete: ...
-```
-
-The generated client surfaces these as direct attributes — `client.me.retrieve()`,
-`client.users(id).avatar.update(...)` — rather than going through a
-collection.
-
-## Root and namespace-level actions
-
-Verb endpoints can attach at the root of the API or directly under a
-namespace. Plenty of real-world specs do this (`/login`, `/logout`,
-`/password-reset`, `/auth/refresh`), and okapipy does not require a wrapper
-collection for them.
-
-```yaml
-paths:
-  /login:
-    post: ...                         # → APIModel.actions[Login]
-  /password-reset:
-    post: ...                         # multi-token verb-phrase → Action
-  /auth/refresh:
-    post: ...                         # → Namespace(auth).actions[Refresh]
-```
-
-Detection notes:
-
-- **Multi-token kebab segments** with a non-plural head (e.g. `password-reset`,
-  `force-reimport`) are detected as verb-phrases by spaCy directly.
-- **Single-token API verbs** that small spaCy models mistag as nouns (`login`,
-  `logout`, `refresh`, `revoke`, `verify`, `subscribe`, `unsubscribe`,
-  `activate`, `deactivate`, `enable`, `disable`, `archive`, `publish`, `ping`,
-  …) are caught by an English-language registry.
-- Anything outside that set should use `x-okapipy-kind: action` to be safe.
-
-Naming follows the breadcrumb of singular collection names — namespaces don't
-contribute. So `/login` becomes `Login`, `/auth/refresh` becomes `Refresh`,
-and `/users/{id}/avatar` becomes `UserAvatar`. Cross-namespace name
-collisions (e.g. `/web/login` and `/admin/login` would both be `Login`) are
-left to the generator to disambiguate.
-
-## Rules file
-
-The rules file is a **project-local override layer**. Use it when you don't
-own the OpenAPI document but still need to fix classifications, exclude
-endpoints, or declare namespaces. It mirrors the spec extensions; rules-file
-values win on every conflict.
-
-Pass it via `--rules`:
-
-```bash
-uv run okapipy spec parse openapi.yaml --rules okapipy.rules.yaml
-```
-
-The file is local-only (no URLs) and accepts JSON or YAML:
-
-```yaml
-# Same shape as x-okapipy-ns at the root of the spec.
 x-okapipy-ns:
   - commerce
-  - commerce/internal
   - settings
 
 paths:
-  # Path-item-level kind override (mirrors x-okapipy-kind on a path).
   /staff:
     x-okapipy-kind: collection
-
-  # Force /me to be a singleton even though the upstream spec is silent.
   /me:
     x-okapipy-kind: singleton
-
-  # Per-method override (mirrors x-okapipy-kind on an operation).
   /orders/{id}/submit:
     post:
       x-okapipy-kind: action
-
-  # Per-method pagination override.
   /currencies:
     x-okapipy-paginated: false
-
-  # Drop every method on a path…
   /internal/debug:
     x-okapipy-exclude: "*"
-
-  # …or just selected methods.
   /orders/{id}:
     x-okapipy-exclude: [DELETE]
 ```
 
-Allowed `x-okapipy-kind` values: `namespace`, `collection`, `action`,
-`singleton`. Unknown values are rejected at load time with the path that
-contains them.
+For more — code customization, custom strategies, template overrides,
+client construction options — see <https://ffaraone.github.io/okapipy/>.
+
+## Using the generated client
+
+```python
+from acme.commerce import CommerceClient
+import httpx
+
+with CommerceClient(
+    base_url="https://api.example.com",
+    auth=httpx.BearerAuth("..."),
+) as client:
+    # Iterate a collection — pagination is automatic.
+    for order in client.commerce.orders:
+        print(order.id, order.total)
+
+    # Filter, sort, page-size — fluent and order-independent.
+    for order in (
+        client.commerce.orders
+        .filter(status="open")
+        .order_by("-created_at")
+        .page_size(50)
+    ):
+        ...
+
+    # Resource lookup uses [id], not (id). Indexing is request-free;
+    # .retrieve() issues the GET.
+    order = client.commerce.orders["ord_42"].retrieve()
+
+    # Sub-collections walk the tree naturally.
+    line = client.commerce.orders["ord_42"].lines.create(
+        body={"sku": "SKU-1", "qty": 2},
+    )
+
+    # Actions return an action object whose method is `.run()`.
+    client.commerce.orders["ord_42"].submit.run()
+
+    # Singletons (e.g. /me, /health) are direct attributes.
+    me = client.me.retrieve()
+
+    # Count without a full walk.
+    total = client.commerce.orders.filter(status="open").count()
+```
+
+Async is the same shape, `Async`-prefixed:
+
+```python
+from acme.commerce import AsyncCommerceClient
+
+async with AsyncCommerceClient(base_url="https://api.example.com") as client:
+    async for order in client.commerce.orders:
+        ...
+    me = await client.me.retrieve()
+```
+
+## Contributing
+
+Bug reports, feature requests, and pull requests are welcome via
+[GitHub issues](https://github.com/ffaraone/okapipy/issues) and
+[pull requests](https://github.com/ffaraone/okapipy/pulls).
+
+To work on okapipy locally:
+
+```bash
+git clone https://github.com/ffaraone/okapipy.git
+cd okapipy
+uv sync
+uv run okapipy nlp fetch en              # one-time spaCy model download
+uv run pytest                            # full suite + coverage
+uv run mypy src/okapipy/parser           # strict type-check (parser)
+uv run ruff check src tests              # lint
+```
+
+Before opening a PR, please ensure tests, type-check, and lint all pass.
+The internal design notes live under [`design/`](design/) — read the
+relevant spec and plan before changing parser, generator, or
+customization behavior. Coding and documentation conventions are in
+[`CLAUDE.md`](CLAUDE.md).
+
+## License
+
+okapipy is released under the [Apache License 2.0](LICENSE). You're free
+to use it commercially, modify it, and redistribute it; please keep the
+copyright notice and the license text intact.
