@@ -142,4 +142,4 @@ class AsyncRetryTransport(httpx.AsyncBaseTransport):
 
 
 # Re-export for completeness; helps mypy notice these are public surface.
-__all__: Sequence[str] = ("RetryPolicy", "RetryTransport", "AsyncRetryTransport")
+__all__: Sequence[str] = ("AsyncRetryTransport", "RetryPolicy", "RetryTransport")

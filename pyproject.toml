@@ -52,7 +52,7 @@ dev = [
     "httpx>=0.27,<1",
     "ipython>=9.4.0,<10.0.0",
     "mypy>=1.17.1,<2.0.0",
-    "pre-commit>=4.3.0,<5.0.0",
+    "prek>=0.3,<1",
     "pytest>=8.4.2,<9.0.0",
     "pytest-asyncio>=1.2.0,<2.0.0",
     "pytest-cov>=7.0.0,<8.0.0",
@@ -112,20 +112,43 @@ cache-dir = "../.cache/ruff"
 
 [tool.ruff.lint]
 select = [
-    "E",  # w errors
+    "E",  # pycodestyle errors
     "W",  # pycodestyle warnings
     "F",  # pyflakes
     "I",  # isort
     "B",  # flake8-bugbear
     "C4",  # flake8-comprehensions
-    "UP",  # pyupgrade,
+    "UP",  # pyupgrade
     "PT",  # flake8-pytest-style
-    "T10",  # flake8-pytest-style
+    "T10",  # flake8-debugger
+    "S",  # flake8-bandit (replaces standalone bandit)
+    "SIM",  # flake8-simplify
+    "RUF",  # ruff-specific rules
+    "PTH",  # flake8-use-pathlib
+    "RET",  # flake8-return
+    "N",  # pep8-naming
 ]
 ignore = [
     "PT011", # pytest.raises({exception}) is too broad, set the match parameter or use a more specific exception
     "B008",  # do not perform function calls in argument defaults
     "B904",  # Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling
+    # Ported from former [tool.bandit] skips:
+    # S404: importing `subprocess` triggers a blanket warning.
+    # S603: subprocess call without shell=True; argv is built from internal sources.
+    # S607: partial executable path; `ruff` is intentionally resolved via PATH.
+    "S404",
+    "S603",
+    "S607",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = [
+    "S101",  # assert is the primary mechanism in pytest
+    "S105",  # hardcoded passwords are fine in fixtures
+    "S106",
+    "S108",  # /tmp paths in fixtures (we don't write to them)
+    "S311",  # pseudo-random generators are fine for test data
+    "N806",  # dynamically-resolved classes are bound to PascalCase locals on purpose
 ]
 
 [tool.ruff.lint.isort]
@@ -158,20 +181,7 @@ disallow_untyped_calls = false
 disallow_incomplete_defs = false
 warn_return_any = false
 
-[tool.bandit]
-exclude_dirs = [
-    ".venv",
-    ".cache",
-    ".spacy",
-    "dist",
-    "htmlcov",
-    "tests",
-]
-# B404: importing `subprocess` triggers a blanket warning.
-# B603: subprocess call without `shell=True` — bandit can't statically prove
-#       the argv is safe, but every call site here uses a hardcoded list whose
-#       first element is a literal program name and whose remaining args come
-#       from internal sources (sys.executable, hardcoded LANG_TO_MODEL keys).
-# B607: partial executable path — we deliberately resolve `ruff` via PATH so
-#       the developer's venv copy is picked up.
-skips = ["B404", "B603", "B607"]
+[tool.codespell]
+skip = ".git,.cache,.spacy,.venv,htmlcov,site,dist,build,*.lock,*.svg,uv.lock,coverage.xml,junit.xml"
+# `strat` is the project's intentional abbreviation for `strategy`.
+ignore-words-list = "strat"

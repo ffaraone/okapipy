@@ -204,7 +204,7 @@ def _walk_schema(
         for pname, pschema in properties.items():
             if isinstance(pschema, dict):
                 yield from _maybe_extract(
-                    properties, pname, pschema, breadcrumb + (pname,)
+                    properties, pname, pschema, (*breadcrumb, pname)
                 )
     items = schema.get("items")
     if isinstance(items, dict):
@@ -236,9 +236,7 @@ def _is_extractable(schema: dict[str, Any]) -> bool:
     if "enum" in schema:
         return True
     properties = schema.get("properties")
-    if isinstance(properties, dict) and properties:
-        return True
-    return False
+    return bool(isinstance(properties, dict) and properties)
 
 
 def _structural_hash(schema: dict[str, Any]) -> str:

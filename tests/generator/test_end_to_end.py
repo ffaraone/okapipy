@@ -5,7 +5,7 @@ then shells out `uv sync && uv run ruff check . && uv run mypy src`. The
 goal is a black-box smoke check that everything wired together produces a
 ruff/mypy-clean Python project.
 
-Marked `slow` because `uv sync` provisions a venv per test (~5–10 seconds).
+Marked `slow` because `uv sync` provisions a venv per test (~5-10 seconds).
 """
 
 from __future__ import annotations

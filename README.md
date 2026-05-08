@@ -13,7 +13,7 @@
 [![Quality Gate](https://sonarcloud.io/api/project_badges/measure?project=ffaraone_okapipy&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=ffaraone_okapipy)
 [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=ffaraone_okapipy&metric=coverage)](https://sonarcloud.io/component_measures?id=ffaraone_okapipy&metric=coverage)
 [![Maintainability](https://sonarcloud.io/api/project_badges/measure?project=ffaraone_okapipy&metric=sqale_rating)](https://sonarcloud.io/component_measures?id=ffaraone_okapipy&metric=sqale_rating)
-[![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://github.com/pre-commit/pre-commit)
+[![prek](https://img.shields.io/badge/prek-enabled-brightgreen?logo=rust&logoColor=white)](https://github.com/j178/prek)
 [![Checked with mypy](https://img.shields.io/badge/mypy-checked-blue.svg)](http://mypy-lang.org/)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 
