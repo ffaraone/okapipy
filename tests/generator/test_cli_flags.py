@@ -91,7 +91,7 @@ def test_check_passes_on_unchanged_regen(before_spec: Path, tmp_path: Path) -> N
     out = tmp_path / "out"
     runner.invoke(app, _generate_args(before_spec, out))
 
-    result = runner.invoke(app, _generate_args(before_spec, out) + ["--check"])
+    result = runner.invoke(app, [*_generate_args(before_spec, out), "--check"])
 
     assert result.exit_code == 0, result.stderr
     assert "--check passed" in result.stderr
@@ -104,7 +104,7 @@ def test_check_fails_when_spec_grows(
     out = tmp_path / "out"
     runner.invoke(app, _generate_args(before_spec, out))
 
-    result = runner.invoke(app, _generate_args(after_spec, out) + ["--check"])
+    result = runner.invoke(app, [*_generate_args(after_spec, out), "--check"])
 
     assert result.exit_code == 1
     assert "--check failed" in result.stderr
@@ -120,7 +120,7 @@ def test_check_does_not_modify_disk(
     products_user_stub = out / "src" / "cli" / "collections" / "products.py"
     assert not products_user_stub.exists()
 
-    runner.invoke(app, _generate_args(after_spec, out) + ["--check"])
+    runner.invoke(app, [*_generate_args(after_spec, out), "--check"])
 
     assert not products_user_stub.exists()
 
@@ -132,7 +132,7 @@ def test_quiet_suppresses_drift_warnings(
     out = tmp_path / "out"
     runner.invoke(app, _generate_args(before_spec, out))
 
-    result = runner.invoke(app, _generate_args(after_spec, out) + ["--quiet"])
+    result = runner.invoke(app, [*_generate_args(after_spec, out), "--quiet"])
 
     assert result.exit_code == 0
     assert "WARNING" not in result.stderr
@@ -162,7 +162,7 @@ def test_no_models_flag_skips_models_file(before_spec: Path, tmp_path: Path) -> 
     """
     out = tmp_path / "out"
 
-    result = runner.invoke(app, _generate_args(before_spec, out) + ["--no-models"])
+    result = runner.invoke(app, [*_generate_args(before_spec, out), "--no-models"])
 
     assert result.exit_code == 0, result.output
     assert not (out / "src" / "cli" / "base" / "models.py").exists()
@@ -176,7 +176,7 @@ def test_without_models_alias_works(before_spec: Path, tmp_path: Path) -> None:
     """`--without-models` is accepted as an alias for `--no-models`."""
     out = tmp_path / "out"
 
-    result = runner.invoke(app, _generate_args(before_spec, out) + ["--without-models"])
+    result = runner.invoke(app, [*_generate_args(before_spec, out), "--without-models"])
 
     assert result.exit_code == 0, result.output
     assert not (out / "src" / "cli" / "base" / "models.py").exists()

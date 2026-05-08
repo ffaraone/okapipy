@@ -44,12 +44,12 @@ def make_environment(templates_dir: Path | None) -> Environment:
     if templates_dir is not None:
         loaders.append(FileSystemLoader(str(templates_dir)))
     loaders.append(PackageLoader("okapipy.generator", "templates"))
-    env = Environment(  # nosec B701 — emits Python source, HTML autoescape would corrupt output
+    env = Environment(
         loader=ChoiceLoader(loaders),
         trim_blocks=True,
         lstrip_blocks=True,
         keep_trailing_newline=True,
-        autoescape=False,
+        autoescape=False,  # noqa: S701 — emits Python source, HTML autoescape would corrupt output
         undefined=StrictUndefined,
     )
     env.filters["snake_case"] = snake_case

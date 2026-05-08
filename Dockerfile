@@ -1,16 +1,25 @@
 FROM python:3.13
 
-# Install basic utilites
+# Install basic utilities
 RUN apt-get update; \
-    apt-get install -y --no-install-recommends ca-certificates curl vim postgresql-client netcat-openbsd; \
+    apt-get install -y --no-install-recommends ca-certificates curl vim postgresql-client netcat-openbsd gnupg; \
     apt-get autoremove --purge -y; \
     apt-get clean -y; \
     rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
 
+# Install GH CLI
+RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | gpg --dearmor -o /usr/share/keyrings/githubcli-archive-keyring.gpg \
+ && chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg \
+ && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" > /etc/apt/sources.list.d/github-cli.list \
+ && apt-get update && apt-get install -y --no-install-recommends gh \
+ && rm -rf /var/lib/apt/lists/*
+
+# Install starship
+RUN curl -sS https://starship.rs/install.sh | sh -s -- --yes
+RUN echo 'eval "$(starship init bash)"' >> ~/.bashrc
+
 # Install Claude code
-
 RUN curl -fsSL https://claude.ai/install.sh | bash
-
 
 # Download the latest installer
 ADD https://astral.sh/uv/install.sh /uv-installer.sh

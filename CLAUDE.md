@@ -145,7 +145,7 @@ Module map (under `src/okapipy/generator/`):
   our own model emitter. Users override via `model_templates_dir`.
 * All wiring (parent → child properties, `__call__`/`__getitem__`) lives on
   `*Base` classes. User stubs specialize via `__<child>_factory__`
-  ClassVars; never re-declare wiring in the user layer.
+  ClassVars; never redeclare wiring in the user layer.
 * `__<child>_factory__` is dunder-both-sides on purpose — Python does not
   name-mangle that form, so the override on a user subclass is referenced
   verbatim.

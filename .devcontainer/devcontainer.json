@@ -11,9 +11,12 @@
     "workspaceFolder": "/app",
     "mounts": [
         "source=${localEnv:HOME}/.ssh,target=/root/.ssh,type=bind",
+        "source=${localEnv:HOME}/.config/starship.toml,target=/root/.config/starship.toml,type=bind",
+        "source=${localEnv:HOME}/.config/gh,target=/root/.config/gh,type=bind,consistency=cached",
         "source=claude-state,target=/root/.claude,type=volume",
         "source=${localWorkspaceFolder},target=/app,type=bind,consistency=cached"
     ],
+    "postCreateCommand": "touch /root/.claude/.claude.json && ln -sf /root/.claude/.claude.json /root/.claude.json",
     "customizations": {
         "vscode": {
             "extensions": [

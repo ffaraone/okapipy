@@ -371,7 +371,7 @@ def _attach(
         if existing_col is None:
             existing_col = Collection(name=name, path=cumulative_path)
             collections_list.append(existing_col)
-        new_breadcrumb = breadcrumb + [_pascal_case(singularize(segment, nlp))]
+        new_breadcrumb = [*breadcrumb, _pascal_case(singularize(segment, nlp))]
         return existing_col, new_breadcrumb
     if kind is SegmentKind.RESOURCE_ID:
         if not isinstance(cursor, Collection):
