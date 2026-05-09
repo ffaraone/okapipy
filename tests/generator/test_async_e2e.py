@@ -55,6 +55,37 @@ def test_async_first_short_circuits(async_client_module) -> None:
     assert first.id == "first"
 
 
+def test_async_first_requests_only_one_item(async_client_module) -> None:
+    """Async `first()` overrides the strategy's `default_page_size` and asks for `limit=1`.
+
+    Regression: pulling a full default-size page just to return one item wastes
+    bandwidth. The override must reach the strategy via `current_page_size=1`.
+    """
+    seen_limits: list[str | None] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen_limits.append(request.url.params.get("limit"))
+        return httpx.Response(200, json={"items": [{"id": "first"}], "total": 99})
+
+    async def run() -> Any:
+        transport = httpx.MockTransport(handler)
+        client_cls = async_client_module.AsyncAsyncCliBase
+        async with client_cls(
+            "https://api.example.com",
+            transport=transport,
+            pagination_strategy=async_client_module.LimitOffsetPagination(
+                default_page_size=100,
+            ),
+        ) as c:
+            return await c.orders.first()
+
+    first = asyncio.run(run())
+
+    assert first is not None
+    assert first.id == "first"
+    assert seen_limits == ["1"]
+
+
 def test_async_count_returns_envelope_total(async_client_module) -> None:
     """Async `count()` issues one request and reads the envelope total field."""
 
