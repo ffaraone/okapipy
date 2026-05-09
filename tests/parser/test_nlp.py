@@ -28,7 +28,7 @@ def test_model_name_for_known_language_returns_spacy_package() -> None:
 
 def test_model_name_for_unknown_language_raises_missing() -> None:
     """A code not in the table is rejected up-front, not deferred to download time."""
-    with pytest.raises(NlpModelMissingError):
+    with pytest.raises(NlpModelMissingError, match="language 'xx'"):
         model_name_for("xx")
 
 
@@ -122,7 +122,7 @@ def test_fetch_model_wraps_subprocess_failure(
         side_effect=subprocess.CalledProcessError(1, ["spacy"]),
     )
 
-    with pytest.raises(NlpModelMissingError):
+    with pytest.raises(NlpModelMissingError, match="language 'en'"):
         fetch_model("en", cache_dir=tmp_path)
 
 

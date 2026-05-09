@@ -7,46 +7,9 @@ the resulting client module, and exercise its surface against `httpx.MockTranspo
 from __future__ import annotations
 
 import importlib
-import sys
-from pathlib import Path
 
 import httpx
 import pytest
-
-from okapipy.generator import generate
-from okapipy.generator.vfs import write_to_disk
-from okapipy.parser.model import APIModel
-
-
-@pytest.fixture
-def generated_client_module(tmp_path: Path):
-    """Generate a tree, write to disk, import the runtime + client module.
-
-    The package name is unique per test (`acmecli_<n>`) so multiple parametrized
-    test runs don't collide in `sys.modules`. Returns the imported package module.
-    """
-    package = "acmecli"
-    out = tmp_path / "out"
-    vfs = generate(
-        APIModel(),
-        raw_spec=Path("tests/fixtures/simple.yaml"),
-        output_dir=out,
-        package=package,
-        client_class="AcmeClient",
-        project_name="acme-client",
-    )
-    write_to_disk(vfs, out)
-    sys.path.insert(0, str(out / "src"))
-    try:
-        if package in sys.modules:
-            del sys.modules[package]
-        module = importlib.import_module(f"{package}.base")
-        yield module
-    finally:
-        sys.path.remove(str(out / "src"))
-        for name in list(sys.modules):
-            if name == package or name.startswith(package + "."):
-                del sys.modules[name]
 
 
 def test_client_class_is_constructable(generated_client_module) -> None:
@@ -60,7 +23,7 @@ def test_client_class_is_constructable(generated_client_module) -> None:
 
 def test_client_requires_base_url(generated_client_module) -> None:
     """`base_url` is a required positional argument; constructing without it raises."""
-    with pytest.raises(TypeError):
+    with pytest.raises(TypeError, match="base_url"):
         generated_client_module.AcmeClientBase()
 
 

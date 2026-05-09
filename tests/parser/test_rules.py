@@ -82,7 +82,7 @@ def test_load_rules_rejects_non_mapping_root(tmp_path: Path) -> None:
 
 def test_load_rules_missing_file_raises(tmp_path: Path) -> None:
     """A non-existent path is wrapped as a RulesFormatError."""
-    with pytest.raises(RulesFormatError):
+    with pytest.raises(RulesFormatError, match="failed to read rules"):
         load_rules(tmp_path / "missing.yaml")
 
 
@@ -103,7 +103,7 @@ def test_load_rules_rejects_invalid_yaml(tmp_path: Path) -> None:
     target = tmp_path / "bad.yaml"
     target.write_text("paths:\n  /x:\n    -invalid: : :\n  unbalanced:[\n")
 
-    with pytest.raises(RulesFormatError):
+    with pytest.raises(RulesFormatError, match="not valid JSON or YAML"):
         load_rules(target)
 
 

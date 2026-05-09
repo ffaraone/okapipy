@@ -8,53 +8,10 @@ adapts purely through strategy injection — no per-collection regeneration need
 
 from __future__ import annotations
 
-import importlib
-import sys
 from collections.abc import Callable
-from pathlib import Path
 from typing import Any
 
 import httpx
-import pytest
-
-from okapipy.generator import generate
-from okapipy.generator.vfs import write_to_disk
-from okapipy.parser.api import parse
-
-FIXTURE = Path(__file__).resolve().parent.parent / "fixtures" / "simple.yaml"
-
-
-@pytest.fixture
-def client_module(tmp_path: Path):
-    """Generate the client + write to disk + import the package.
-
-    Yields the imported module (not the client class) so tests can also fetch
-    runtime types like `LimitOffsetPagination` from `module.<runtime>`. Cleans
-    sys.modules / sys.path on teardown to keep tests independent.
-    """
-    package = "pagcli"
-    out = tmp_path / "out"
-    api = parse(FIXTURE)
-    vfs = generate(
-        api,
-        raw_spec=FIXTURE,
-        output_dir=out,
-        package=package,
-        client_class="PagClient",
-        project_name="pag-client",
-    )
-    write_to_disk(vfs, out)
-    sys.path.insert(0, str(out / "src"))
-    try:
-        if package in sys.modules:
-            del sys.modules[package]
-        module = importlib.import_module(f"{package}.base")
-        yield module
-    finally:
-        sys.path.remove(str(out / "src"))
-        for name in list(sys.modules):
-            if name == package or name.startswith(package + "."):
-                del sys.modules[name]
 
 
 def _paged_handler(

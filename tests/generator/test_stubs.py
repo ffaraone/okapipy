@@ -12,27 +12,11 @@ import importlib
 import sys
 from pathlib import Path
 
-import pytest
-
 from okapipy.generator import generate
-from okapipy.generator.vfs import GeneratedFile, write_to_disk
+from okapipy.generator.vfs import write_to_disk
 from okapipy.parser.api import parse
 
 FIXTURE = Path(__file__).resolve().parent.parent / "fixtures" / "nested.yaml"
-
-
-@pytest.fixture
-def stubs_vfs(tmp_path: Path) -> dict[str, GeneratedFile]:
-    """Generate a tree from the nested fixture and return the in-memory VFS."""
-    api = parse(FIXTURE)
-    return generate(
-        api,
-        raw_spec=FIXTURE,
-        output_dir=tmp_path,
-        package="acme.client",
-        client_class="AcmeClient",
-        project_name="acme-client",
-    )
 
 
 def test_top_level_init_is_emitted_empty_and_one_shot(stubs_vfs) -> None:

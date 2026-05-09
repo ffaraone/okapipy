@@ -9,9 +9,6 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-import pytest
-
-from okapipy.generator import generate
 from okapipy.generator.edges import compute_edges
 from okapipy.generator.manifest import (
     GENERATOR_VERSION,
@@ -25,30 +22,19 @@ from okapipy.parser.api import parse as parse_spec
 NESTED = Path(__file__).resolve().parent.parent / "fixtures" / "nested.yaml"
 
 
-@pytest.fixture
-def vfs(tmp_path: Path) -> dict[str, GeneratedFile]:
-    """Generate a tree from the nested fixture and return the in-memory VFS."""
-    api = parse_spec(NESTED)
-    return generate(
-        api,
-        raw_spec=NESTED,
-        output_dir=tmp_path,
-        package="man.client",
-        client_class="ManClient",
-    )
-
-
-def test_manifest_path_in_vfs(vfs: dict[str, GeneratedFile]) -> None:
+def test_manifest_path_in_vfs(manifest_vfs: dict[str, GeneratedFile]) -> None:
     """A manifest file is emitted at `src/{pkg}/base/_manifest.json`."""
     expected = f"src/man/client/base/{MANIFEST_FILENAME}"
 
-    assert expected in vfs
-    assert vfs[expected].one_shot is False  # regenerated each run
+    assert expected in manifest_vfs
+    assert manifest_vfs[expected].one_shot is False  # regenerated each run
 
 
-def test_manifest_is_well_formed_json(vfs: dict[str, GeneratedFile]) -> None:
+def test_manifest_is_well_formed_json(
+    manifest_vfs: dict[str, GeneratedFile],
+) -> None:
     """The manifest is parseable JSON with the expected top-level keys."""
-    manifest_text = vfs[f"src/man/client/base/{MANIFEST_FILENAME}"].content
+    manifest_text = manifest_vfs[f"src/man/client/base/{MANIFEST_FILENAME}"].content
     payload = json.loads(manifest_text)
 
     assert payload["generator_version"] == GENERATOR_VERSION
@@ -61,29 +47,31 @@ def test_manifest_is_well_formed_json(vfs: dict[str, GeneratedFile]) -> None:
 
 
 def test_base_files_lists_every_emitted_base_file(
-    vfs: dict[str, GeneratedFile],
+    manifest_vfs: dict[str, GeneratedFile],
 ) -> None:
     """Every VFS path under `<pkg>/base/` is recorded in `base_files`."""
-    manifest = parse(vfs[f"src/man/client/base/{MANIFEST_FILENAME}"].content)
-    base_paths_in_vfs = {p for p in vfs if "/base/" in p}
+    manifest = parse(manifest_vfs[f"src/man/client/base/{MANIFEST_FILENAME}"].content)
+    base_paths_in_vfs = {p for p in manifest_vfs if "/base/" in p}
 
     assert set(manifest.base_files) == base_paths_in_vfs
 
 
-def test_edges_match_compute_edges_directly(vfs: dict[str, GeneratedFile]) -> None:
+def test_edges_match_compute_edges_directly(
+    manifest_vfs: dict[str, GeneratedFile],
+) -> None:
     """The manifest's `edges` is exactly what `compute_edges(api, package)` produces."""
     api = parse_spec(NESTED)
     direct = compute_edges(api, "man.client")
-    manifest = parse(vfs[f"src/man/client/base/{MANIFEST_FILENAME}"].content)
+    manifest = parse(manifest_vfs[f"src/man/client/base/{MANIFEST_FILENAME}"].content)
 
     assert set(manifest.edges) == set(direct)
 
 
 def test_edges_include_top_level_namespace_wiring(
-    vfs: dict[str, GeneratedFile],
+    manifest_vfs: dict[str, GeneratedFile],
 ) -> None:
     """The Client → top-level namespace edge is present (commerce in nested.yaml)."""
-    manifest = parse(vfs[f"src/man/client/base/{MANIFEST_FILENAME}"].content)
+    manifest = parse(manifest_vfs[f"src/man/client/base/{MANIFEST_FILENAME}"].content)
 
     edge = Edge(
         parent_module="client.py",
@@ -95,10 +83,10 @@ def test_edges_include_top_level_namespace_wiring(
 
 
 def test_edges_include_namespace_to_collection_wiring(
-    vfs: dict[str, GeneratedFile],
+    manifest_vfs: dict[str, GeneratedFile],
 ) -> None:
     """The Commerce → Orders collection edge is present."""
-    manifest = parse(vfs[f"src/man/client/base/{MANIFEST_FILENAME}"].content)
+    manifest = parse(manifest_vfs[f"src/man/client/base/{MANIFEST_FILENAME}"].content)
 
     edge = Edge(
         parent_module="namespaces/commerce.py",
@@ -110,10 +98,10 @@ def test_edges_include_namespace_to_collection_wiring(
 
 
 def test_edges_include_collection_to_resource_wiring(
-    vfs: dict[str, GeneratedFile],
+    manifest_vfs: dict[str, GeneratedFile],
 ) -> None:
     """The Orders → Order resource edge uses `__resource_factory__`."""
-    manifest = parse(vfs[f"src/man/client/base/{MANIFEST_FILENAME}"].content)
+    manifest = parse(manifest_vfs[f"src/man/client/base/{MANIFEST_FILENAME}"].content)
 
     edge = Edge(
         parent_module="collections/orders.py",
@@ -124,9 +112,11 @@ def test_edges_include_collection_to_resource_wiring(
     assert edge in manifest.edges
 
 
-def test_edges_include_resource_to_action_wiring(vfs: dict[str, GeneratedFile]) -> None:
+def test_edges_include_resource_to_action_wiring(
+    manifest_vfs: dict[str, GeneratedFile],
+) -> None:
     """A resource-level action shows up as an edge from the resource."""
-    manifest = parse(vfs[f"src/man/client/base/{MANIFEST_FILENAME}"].content)
+    manifest = parse(manifest_vfs[f"src/man/client/base/{MANIFEST_FILENAME}"].content)
 
     edge = Edge(
         parent_module="resources/order.py",

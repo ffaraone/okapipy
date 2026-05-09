@@ -87,7 +87,7 @@ def test_transport_error_during_get_is_retried_then_raised() -> None:
     )
     transport = RetryTransport(inner, RetryPolicy(total=2), sleep=lambda _delay: None)
 
-    with pytest.raises(httpx.ConnectError):
+    with pytest.raises(httpx.ConnectError, match="fail 3"):
         transport.handle_request(httpx.Request("GET", "https://api/x"))
     assert inner.calls == 3
 

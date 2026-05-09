@@ -71,7 +71,7 @@ def test_offset_limit_default_page_size_is_required() -> None:
     The argument is required (not `int | None`) so every emitted request carries
     a known limit instead of falling back to whatever the backend chooses.
     """
-    with pytest.raises(TypeError):
+    with pytest.raises(TypeError, match="default_page_size"):
         LimitOffsetPagination()  # type: ignore[call-arg]
 
 
@@ -280,7 +280,7 @@ def test_key_value_filter_rejects_or_and_not() -> None:
     """`KeyValueFilter` raises `UnsupportedFilterError` on OR/NOT nodes."""
     expr = Filter(status="open") | Filter(status="pending")
 
-    with pytest.raises(UnsupportedFilterError):
+    with pytest.raises(UnsupportedFilterError, match="conjunctive expressions only"):
         KeyValueFilter().encode(expr)
 
 
@@ -288,7 +288,7 @@ def test_key_value_filter_rejects_operator_suffix() -> None:
     """Operator-suffix keys (`__gte`, `__in`) are out of scope for `KeyValueFilter`."""
     expr = Filter(created_at__gte="2026-01-01")
 
-    with pytest.raises(UnsupportedFilterError):
+    with pytest.raises(UnsupportedFilterError, match="operator suffix"):
         KeyValueFilter().encode(expr)
 
 
@@ -319,7 +319,9 @@ def test_search_filter_rejects_compound_expressions() -> None:
     """A search filter strategy cannot encode compound expressions."""
     expr = Search("a") & Search("b")
 
-    with pytest.raises(UnsupportedFilterError):
+    with pytest.raises(
+        UnsupportedFilterError, match="single Search\\(\\.\\.\\.\\) leaf only"
+    ):
         SearchFilterStrategy().encode(expr)
 
 
@@ -405,7 +407,7 @@ def test_key_direction_sort_refuses_multi_term() -> None:
     """`KeyDirectionSort` cannot represent multiple sort fields."""
     expr = Sort("a") + Sort("b")
 
-    with pytest.raises(UnsupportedSortError):
+    with pytest.raises(UnsupportedSortError, match="single field only"):
         KeyDirectionSort().encode(expr)
 
 

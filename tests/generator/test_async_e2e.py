@@ -3,47 +3,9 @@
 from __future__ import annotations
 
 import asyncio
-import importlib
-import sys
-from pathlib import Path
 from typing import Any
 
 import httpx
-import pytest
-
-from okapipy.generator import generate
-from okapipy.generator.vfs import write_to_disk
-from okapipy.parser.api import parse
-
-FIXTURE = Path(__file__).resolve().parent.parent / "fixtures" / "simple.yaml"
-
-
-@pytest.fixture
-def async_client_module(tmp_path: Path):
-    """Generate the client tree, write to disk, and import the package."""
-    package = "asynccli"
-    out = tmp_path / "out"
-    api = parse(FIXTURE)
-    vfs = generate(
-        api,
-        raw_spec=FIXTURE,
-        output_dir=out,
-        package=package,
-        client_class="AsyncCli",
-        project_name="async-cli",
-    )
-    write_to_disk(vfs, out)
-    sys.path.insert(0, str(out / "src"))
-    try:
-        if package in sys.modules:
-            del sys.modules[package]
-        module = importlib.import_module(f"{package}.base")
-        yield module
-    finally:
-        sys.path.remove(str(out / "src"))
-        for name in list(sys.modules):
-            if name == package or name.startswith(package + "."):
-                del sys.modules[name]
 
 
 def _async_paged_handler(pages: list[dict]):

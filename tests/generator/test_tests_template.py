@@ -11,26 +11,11 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
-
 from okapipy.generator.emit.tests import emit_tests
 from okapipy.generator.templating import make_environment
 from okapipy.parser.api import parse
 
 FIXTURES = Path(__file__).resolve().parent.parent / "fixtures"
-
-
-@pytest.fixture
-def project_context() -> dict[str, str]:
-    """Project-level Jinja context shared across the templates."""
-    return {
-        "package": "demoapi",
-        "client_class": "DemoClient",
-        "project_name": "demoapi-test",
-        "project_version": "0.1.0",
-        "python_version": "3.13",
-        "license": "Proprietary",
-    }
 
 
 def test_emit_tests_writes_conftest_and_client_test(
