@@ -122,10 +122,21 @@ class {{ class_name }}:
 {% endif %}
 
     def first(self) -> {{ item_type }} | None:
-        """Return the first item in the result set, or `None`."""
-        for item in self:
-            return item
-        return None
+        """Return the first item in the result set, or `None`.
+
+        Forces `page_size=1` on the underlying request so the server only
+        ships one item over the wire — fetching a full default-size page just
+        to discard everything but the head would waste bandwidth. Any explicit
+        `.page_size(...)` chosen by the caller is restored before returning.
+        """
+        saved_page_size = self.current_page_size
+        self.current_page_size = 1
+        try:
+            for item in self:
+                return item
+            return None
+        finally:
+            self.current_page_size = saved_page_size
 
     def count(self) -> int:
         """Issue one minimal request and read the strategy-specific total."""
@@ -372,10 +383,21 @@ class Async{{ class_name }}:
 {% endif %}
 
     async def first(self) -> {{ item_type }} | None:
-        """Return the first item in the result set, or `None`."""
-        async for item in self:
-            return item
-        return None
+        """Return the first item in the result set, or `None`.
+
+        Forces `page_size=1` on the underlying request so the server only
+        ships one item over the wire — fetching a full default-size page just
+        to discard everything but the head would waste bandwidth. Any explicit
+        `.page_size(...)` chosen by the caller is restored before returning.
+        """
+        saved_page_size = self.current_page_size
+        self.current_page_size = 1
+        try:
+            async for item in self:
+                return item
+            return None
+        finally:
+            self.current_page_size = saved_page_size
 
     async def count(self) -> int:
         if not self.client.pagination_strategy.supports_count:

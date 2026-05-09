@@ -74,6 +74,81 @@ def test_first_short_circuits_after_one_page(client_module) -> None:
     client.close()
 
 
+def test_first_requests_only_one_item_via_offset_limit(client_module) -> None:
+    """`first()` overrides the strategy's `default_page_size` and asks for `limit=1`.
+
+    Regression: the previous implementation iterated with the configured page
+    size (here: 100), pulling 99 items the caller would never see. `first()`
+    should fetch a single-item page so the server only ships what's needed.
+    """
+    seen_limits: list[str | None] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen_limits.append(request.url.params.get("limit"))
+        return httpx.Response(200, json={"items": [{"id": "1"}], "total": 100})
+
+    transport = httpx.MockTransport(handler)
+    client = client_module.PagClientBase(
+        "https://api.example.com",
+        transport=transport,
+        pagination_strategy=client_module.LimitOffsetPagination(default_page_size=100),
+    )
+
+    first = client.orders.first()
+
+    assert first is not None
+    assert first.id == "1"
+    assert seen_limits == ["1"]
+    client.close()
+
+
+def test_first_requests_only_one_item_via_page_number(client_module) -> None:
+    """`first()` flows the size-1 override through `PageNumberPagination` as `page_size=1`."""
+    seen_sizes: list[str | None] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen_sizes.append(request.url.params.get("page_size"))
+        return httpx.Response(200, json={"items": [{"id": "1"}], "total": 100})
+
+    transport = httpx.MockTransport(handler)
+    client = client_module.PagClientBase(
+        "https://api.example.com",
+        transport=transport,
+        pagination_strategy=client_module.PageNumberPagination(default_page_size=50),
+    )
+
+    first = client.orders.first()
+
+    assert first is not None
+    assert first.id == "1"
+    assert seen_sizes == ["1"]
+    client.close()
+
+
+def test_first_restores_user_page_size_after_call(client_module) -> None:
+    """`first()` reverts `current_page_size` so a later iteration honors the user's choice."""
+    seen_limits: list[str | None] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen_limits.append(request.url.params.get("limit"))
+        return httpx.Response(200, json={"items": [{"id": "1"}], "total": 1})
+
+    transport = httpx.MockTransport(handler)
+    client = client_module.PagClientBase(
+        "https://api.example.com",
+        transport=transport,
+        pagination_strategy=client_module.LimitOffsetPagination(default_page_size=100),
+    )
+    collection = client.orders.page_size(25)
+
+    collection.first()
+    list(collection)
+
+    # Two requests: first() forces limit=1, the subsequent iteration honors page_size(25).
+    assert seen_limits == ["1", "25"]
+    client.close()
+
+
 def test_count_uses_dedicated_minimal_request(client_module) -> None:
     """`count()` issues one `limit=1` request and reads `total` from the envelope."""
     calls = {"n": 0}
