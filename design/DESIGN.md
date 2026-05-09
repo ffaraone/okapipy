@@ -250,7 +250,7 @@ src/okapipy/generator/
 emit_project_skeleton           [one-shot]
 emit_root_init_extension        compute import lines for top-level classes
 emit_runtime                    vendor runtime/, write base/__init__.py
-emit_models                     dmcg → base/models.py  (skipped if --no-models)
+emit_models                     dmcg → base/models.py  (skipped if --shape dicts)
 emit_client                     base/client.py
 emit_tree                       base/{namespaces,collections,resources,
                                 singletons,actions}/<...>.py
@@ -419,11 +419,30 @@ in lockstep with the runtime version.
 async `Async<Client>Base`. Construction and lifecycle match the requirements
 in §2.4 of `REQUIREMENTS.md`. Strategies default to
 `LimitOffsetPagination(default_page_size=100)`, `KeyValueFilter()`,
-`CommaSignedSort()`. `from_response(model_cls, raw)` is a small helper that
-either calls `model_cls.model_validate(raw)` (models shape) or returns
-`raw` (dicts shape, or `model_cls is None`). `with_shape("dicts")` returns
-a sibling instance via `object.__new__(type(self))` that shares the
-underlying httpx client, transport, and strategies.
+`CommaSignedSort()`.
+
+The template branches on the generator's `shape` parameter:
+
+* `shape="auto"` (default) emits the dual-shape client: a `shape=`
+  constructor option, a `_shape` attribute, a `shape` property,
+  `with_shape("models" | "dicts")` returning a sibling via
+  `object.__new__(type(self))` that shares httpx client / transport /
+  strategies, and a `from_response(model_cls, raw)` helper that either
+  calls `model_cls.model_validate(raw)` or returns `raw` (when
+  `model_cls is None` or `_shape == "dicts"`).
+* `shape="models"` drops `shape=`, `_shape`, the `shape` property, and
+  `with_shape(...)`. `from_response` always validates against
+  `model_cls`, falling back to `raw` only when no class was recovered
+  (`model_cls is None`).
+* `shape="dicts"` also drops `models.py`, every model import, and the
+  `pydantic.BaseModel` / `TypeVar` machinery. `from_response(model_cls,
+  raw)` ignores `model_cls` and passes `raw` through.
+
+The walker (`emit/walk.py`) takes the same `shape` parameter and uses it
+to pick body / response / iterator-item types: `auto` admits both `Foo`
+and `dict[str, Any]` arms, `models` keeps only the recovered model (or
+`dict[str, Any]` when none was recovered), and `dicts` types everything
+as `dict[str, Any]` regardless.
 
 `templates/package/collection.py.jinja` produces the collection class
 (sync) plus its iterator class (`<C>BaseIterator`), and an `Async`-prefixed

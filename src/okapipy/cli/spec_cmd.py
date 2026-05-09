@@ -5,6 +5,7 @@ from __future__ import annotations
 import sys
 from collections.abc import Iterator
 from contextlib import contextmanager
+from enum import StrEnum
 from pathlib import Path
 
 import typer
@@ -14,7 +15,7 @@ from rich.syntax import Syntax
 from rich.table import Table
 
 from okapipy.cli.console import is_piped, print_error, stderr, stdout, write_stream
-from okapipy.generator import GenerationError, generate
+from okapipy.generator import GenerationError, Shape, generate
 from okapipy.generator.vfs import write_to_disk
 from okapipy.parser.builder import build
 from okapipy.parser.dump import to_json, write
@@ -28,6 +29,17 @@ from okapipy.parser.rules import load_rules
 app = typer.Typer(
     no_args_is_help=True, help="Inspect and parse OpenAPI specifications."
 )
+
+
+class ShapeOption(StrEnum):
+    """CLI surface for the generator's `--shape` flag.
+
+    Only the two locked shapes are user-selectable; absence of the flag means
+    `auto` (the dual-shape default with `shape=` constructor + `with_shape()`).
+    """
+
+    models = "models"
+    dicts = "dicts"
 
 
 @app.command("parse")
@@ -254,15 +266,17 @@ def generate_command(
         "--model-templates-dir",
         help="Directory of datamodel-code-generator templates for models.py.",
     ),
-    no_models: bool = typer.Option(
-        False,
-        "--no-models",
-        "--without-models",
+    shape: ShapeOption | None = typer.Option(
+        None,
+        "--shape",
+        case_sensitive=False,
         help=(
-            "Skip emitting `base/models.py`. Generated operations become "
-            "untyped (raw dicts in / out); useful when dmcg can't process "
-            "the spec's schemas or when the consumer wants to bring their "
-            "own model layer."
+            "Lock the generated client to a single response shape. Omit to "
+            "produce a dual-shape client (constructor `shape=` + "
+            "`with_shape()`). `--shape models` keeps `base/models.py` and "
+            "types every body / return with the recovered Pydantic model. "
+            "`--shape dicts` skips `base/models.py`, drops every model "
+            "import, and types every body / return as `dict[str, Any]`."
         ),
     ),
     check: bool = typer.Option(
@@ -294,6 +308,7 @@ def generate_command(
     except ParserError as exc:
         print_error(exc, debug=verbose >= 2)
         raise typer.Exit(code=1) from exc
+    resolved_shape: Shape = shape.value if shape is not None else "auto"
     try:
         with _phase("Generating client project"):
             vfs = generate(
@@ -308,7 +323,7 @@ def generate_command(
                 license=license_id,
                 templates_dir=templates_dir,
                 model_templates_dir=model_templates_dir,
-                with_models=not no_models,
+                shape=resolved_shape,
             )
         action = "Checking" if check else f"Writing {len(vfs)} files to {output}"
         with _phase(action):

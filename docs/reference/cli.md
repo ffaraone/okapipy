@@ -115,7 +115,7 @@ okapipy spec generate <SOURCE> --output DIR --package PKG --client-class NAME [O
 | --- | --- | --- |
 | `--templates-dir DIR` | none | User Jinja templates that override the packaged defaults. See [Template customization](../user-guide/templates.md). |
 | `--model-templates-dir DIR` | none | datamodel-code-generator templates for `models.py`. |
-| `--no-models` (alias `--without-models`) | off | Skip emitting `base/models.py`. Operations end up untyped (raw dicts in / out). |
+| `--shape {models\|dicts}` | unset (dual shape) | Lock the generated client to a single response shape. Omit to produce a dual-shape client (`shape=` constructor + `with_shape()`). `--shape dicts` also skips `base/models.py`. See [Response shape](../user-guide/shapes.md). |
 | `--check` | off | Dry-run; report drift, exit non-zero on any change. CI gate. |
 | `--quiet`, `-q` | off | Suppress drift-detection warnings. Pruning still runs. |
 

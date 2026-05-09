@@ -68,7 +68,7 @@ client = CommerceClient(
 | `retries` | `RetryPolicy \| None` | Wraps the transport in `RetryTransport` (GET only). |
 | `transport` | `httpx.BaseTransport \| None` | Custom transport (mock, fixture, instrumentation). |
 | `headers` | `Mapping[str, str] \| None` | Default headers merged into every request. |
-| `shape` | `"models" \| "dicts"` | See [Response shape](#response-shape). |
+| `shape` | `"models" \| "dicts"` | Only present when the client was generated without `--shape` (dual-shape mode). See [Response shape](shapes.md). |
 | `pagination_strategy` | strategy or `None` | Defaults to `LimitOffsetPagination(default_page_size=100)`. |
 | `filter_strategy` | strategy or `None` | Defaults to `KeyValueFilter()`. |
 | `sort_strategy` | strategy or `None` | Defaults to `CommaSignedSort()`. |
@@ -301,8 +301,9 @@ Today the only options are `params=` and `headers=` overrides, but the
 shape leaves room.
 
 The return type follows the operation's response schema: a Pydantic
-model, a list, a dict (if `--no-models`), or `None` for `204 No
-Content`.
+model, a list, a `dict[str, Any]` (in dicts shape, or when no schema
+name was recovered), or `None` for `204 No Content`. See
+[Response shape](shapes.md) for the full picture.
 
 ## Namespaces
 
@@ -381,35 +382,19 @@ client.commerce.orders.order_by(Sort("status") + Sort("-created_at"))
 # Both produce the same wire output via CommaSignedSort.
 ```
 
-## Response shape: models vs. dicts
+## Response shape
 
-The client deserializes responses one of two ways, controlled by the
-`shape` constructor option:
+The shape of every method's body parameter and return type — typed
+Pydantic models, raw dicts, or both — is settled at generation time by
+the `--shape` flag of `okapipy spec generate`. The default emits a
+dual-shape client where the constructor takes a `shape="models"|"dicts"`
+keyword and `with_shape(...)` returns a sibling that flips it at
+runtime; `--shape models` and `--shape dicts` produce locked clients
+without the runtime switch.
 
-```python
-typed = CommerceClient(base_url=..., shape="models")     # default
-raw   = CommerceClient(base_url=..., shape="dicts")
-```
-
-* `shape="models"` (default) — every response is parsed into the
-  Pydantic model declared in the spec. Type hints work, validators run,
-  field aliases resolve.
-* `shape="dicts"` — responses pass through as raw `dict[str, Any]`
-  values. Useful for ad-hoc scripts, unknown / drifted schemas, or
-  performance-sensitive paths where you don't need validation.
-
-Switch shape at runtime without rebuilding the client:
-
-```python
-typed = client                          # configured with shape="models"
-raw   = client.with_shape("dicts")      # sibling sharing the connection pool
-
-order = typed.commerce.orders["ord_42"].retrieve()        # Order instance
-order_dict = raw.commerce.orders["ord_42"].retrieve()     # plain dict
-```
-
-`with_shape(...)` returns a new client wrapping the same `httpx.Client`
-— no second connection pool, no auth re-init.
+[Response shape](shapes.md) is the full story: which signatures each
+mode produces, when to pick which, and the dual-flavor recipe (one
+project, two clients — typed and raw).
 
 ## Authentication
 

@@ -412,11 +412,10 @@ Each `okapipy spec generate <spec>` run does:
   pruned. CI gate to ensure regeneration is committed.
 * **`okapipy spec generate --quiet`** — suppress drift-detection
   warnings. Pruning still runs.
-* **`--no-models` / `--without-models`** — skip emitting
-  `base/models.py` and drop every model import from the generated
-  client. Operations end up untyped (raw dicts in / out). Useful when
-  `datamodel-code-generator` can't process the spec's schemas, or when
-  you prefer to bring your own types.
+* **`--shape models\|dicts`** — lock the generated client to a single
+  [response shape](shapes.md). Omit for the dual-shape default
+  (constructor `shape=` + `with_shape()`); `--shape dicts` also skips
+  `base/models.py`.
 * **`--templates-dir DIR`** and **`--model-templates-dir DIR`** — see
   [Templates](templates.md) for per-project overrides of the Jinja
   templates that drive code emission.

@@ -13,7 +13,7 @@ are scaffolding, customer-owned after first generation.
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 from typing import Any
 
 from jinja2 import Environment
@@ -56,18 +56,32 @@ def emit_tests(
     first-party group inside the generated project, producing an `I001` lint
     error when users run `ruff check`.
 
+    Every emitted path lives under `tests/<package_path>/...`, mirroring the
+    `src/<package_path>/...` layout. This keeps two flavors of the client
+    (e.g. `acme.commerce.models` and `acme.commerce.dicts`) from clobbering
+    each other's test scaffolding when they share a project directory and
+    avoids pytest's default-import-mode filename collisions on `test_*.py`.
+
+    Empty `__init__.py` markers are emitted at every directory along the
+    package path (and at `tests/` itself) so pytest's standard `prepend`
+    importer treats each test module as a unique fully-qualified Python
+    module.
+
     Returns a virtual-FS dict keyed on POSIX paths under `tests/`. The caller
     decides the lifecycle (the generator marks them all one-shot so customer
     edits survive regeneration).
     """
+    package: str = project_context["package"]
+    package_path = package.replace(".", "/")
+    tests_root = f"tests/{package_path}"
     out: dict[str, str] = {
-        "tests/conftest.py": render_python(
+        f"{tests_root}/conftest.py": render_python(
             env,
             "tests/conftest.py.jinja",
             project_context,
             known_first_party=top_package,
         ),
-        "tests/test_client.py": render_python(
+        f"{tests_root}/test_client.py": render_python(
             env,
             "tests/test_client.py.jinja",
             project_context,
@@ -76,21 +90,73 @@ def emit_tests(
     }
     for ns in api.namespaces:
         _emit_namespace_tests(
-            env, ns, project_context, out, parent_chain="", top_package=top_package
+            env,
+            ns,
+            project_context,
+            out,
+            parent_chain="",
+            top_package=top_package,
+            tests_root=tests_root,
         )
     for coll in api.collections:
         _emit_collection_tests(
-            env, coll, project_context, out, parent_chain="", top_package=top_package
+            env,
+            coll,
+            project_context,
+            out,
+            parent_chain="",
+            top_package=top_package,
+            tests_root=tests_root,
         )
     for sing in api.singletons:
         _emit_singleton_tests(
-            env, sing, project_context, out, parent_chain="", top_package=top_package
+            env,
+            sing,
+            project_context,
+            out,
+            parent_chain="",
+            top_package=top_package,
+            tests_root=tests_root,
         )
     for action in api.actions:
         _emit_action_tests(
-            env, action, project_context, out, parent_chain="", top_package=top_package
+            env,
+            action,
+            project_context,
+            out,
+            parent_chain="",
+            top_package=top_package,
+            tests_root=tests_root,
         )
+    # Empty `__init__.py` at every directory that contains a test file (or any
+    # ancestor up to `tests/`). pytest's default `prepend` importer otherwise
+    # falls back to the test module's basename, which collides across flavors
+    # (`tests/<pkg>.models/.../test_orders.py` vs `tests/<pkg>.dicts/.../test_orders.py`)
+    # — the markers turn each file into a unique fully-qualified module.
+    for marker_path in _init_marker_paths(out.keys()):
+        out.setdefault(marker_path, "")
     return out
+
+
+def _init_marker_paths(file_paths: Iterable[str]) -> set[str]:
+    """Return `tests/.../__init__.py` paths for every directory containing a file.
+
+    Walks up from each emitted file to `tests/`, collecting every intermediate
+    directory. The result also includes `tests/__init__.py` itself so `tests`
+    is a regular Python package (required for pytest's basename collision
+    guard to work without flipping `import_mode`).
+    """
+    markers: set[str] = set()
+    for path in file_paths:
+        if not path.startswith("tests/"):
+            continue
+        parts = path.split("/")
+        # Drop the filename, keep every directory along the way (excluding the
+        # filesystem root above `tests/`).
+        for end in range(1, len(parts)):
+            directory = "/".join(parts[:end])
+            markers.add(f"{directory}/__init__.py")
+    return markers
 
 
 def _emit_namespace_tests(
@@ -100,6 +166,7 @@ def _emit_namespace_tests(
     out: dict[str, str],
     parent_chain: str,
     top_package: str,
+    tests_root: str,
 ) -> None:
     attr = snake_case(ns.name)
     chain = _join_chain(parent_chain, attr)
@@ -109,7 +176,7 @@ def _emit_namespace_tests(
         "accessor_chain": chain,
         "test_attr": test_attr,
     }
-    out[f"tests/namespaces/test_{namespace_module(ns)}.py"] = render_python(
+    out[f"{tests_root}/namespaces/test_{namespace_module(ns)}.py"] = render_python(
         env, "tests/test_namespace.py.jinja", ctx, known_first_party=top_package
     )
     for child in ns.namespaces:
@@ -120,14 +187,27 @@ def _emit_namespace_tests(
             out,
             parent_chain=chain,
             top_package=top_package,
+            tests_root=tests_root,
         )
     for coll in ns.collections:
         _emit_collection_tests(
-            env, coll, project_context, out, parent_chain=chain, top_package=top_package
+            env,
+            coll,
+            project_context,
+            out,
+            parent_chain=chain,
+            top_package=top_package,
+            tests_root=tests_root,
         )
     for sing in ns.singletons:
         _emit_singleton_tests(
-            env, sing, project_context, out, parent_chain=chain, top_package=top_package
+            env,
+            sing,
+            project_context,
+            out,
+            parent_chain=chain,
+            top_package=top_package,
+            tests_root=tests_root,
         )
     for action in ns.actions:
         _emit_action_tests(
@@ -137,6 +217,7 @@ def _emit_namespace_tests(
             out,
             parent_chain=chain,
             top_package=top_package,
+            tests_root=tests_root,
         )
 
 
@@ -147,6 +228,7 @@ def _emit_collection_tests(
     out: dict[str, str],
     parent_chain: str,
     top_package: str,
+    tests_root: str,
 ) -> None:
     attr = collection_attr(coll)
     chain = _join_chain(parent_chain, attr)
@@ -159,7 +241,7 @@ def _emit_collection_tests(
         "has_create": coll.create is not None,
         "create_method": create_method,
     }
-    out[f"tests/collections/test_{collection_module(coll)}.py"] = render_python(
+    out[f"{tests_root}/collections/test_{collection_module(coll)}.py"] = render_python(
         env, "tests/test_collection.py.jinja", ctx, known_first_party=top_package
     )
     if coll.resource is not None:
@@ -172,6 +254,7 @@ def _emit_collection_tests(
             out,
             parent_chain=resource_chain,
             top_package=top_package,
+            tests_root=tests_root,
         )
     for action in coll.actions:
         _emit_action_tests(
@@ -181,6 +264,7 @@ def _emit_collection_tests(
             out,
             parent_chain=chain,
             top_package=top_package,
+            tests_root=tests_root,
         )
 
 
@@ -191,6 +275,7 @@ def _emit_resource_tests(
     out: dict[str, str],
     parent_chain: str,
     top_package: str,
+    tests_root: str,
 ) -> None:
     chain = parent_chain  # resource attaches via subscript already in chain
     test_attr = _safe_test_attr(f"{chain}_{snake_case(resource.name)}")
@@ -205,7 +290,7 @@ def _emit_resource_tests(
             delete=resource.delete,
         ),
     }
-    out[f"tests/resources/test_{resource_module(resource)}.py"] = render_python(
+    out[f"{tests_root}/resources/test_{resource_module(resource)}.py"] = render_python(
         env, "tests/test_resource.py.jinja", ctx, known_first_party=top_package
     )
     for child_coll in resource.collections:
@@ -216,6 +301,7 @@ def _emit_resource_tests(
             out,
             parent_chain=chain,
             top_package=top_package,
+            tests_root=tests_root,
         )
     for child_sing in resource.singletons:
         _emit_singleton_tests(
@@ -225,6 +311,7 @@ def _emit_resource_tests(
             out,
             parent_chain=chain,
             top_package=top_package,
+            tests_root=tests_root,
         )
     for action in resource.actions:
         _emit_action_tests(
@@ -234,6 +321,7 @@ def _emit_resource_tests(
             out,
             parent_chain=chain,
             top_package=top_package,
+            tests_root=tests_root,
         )
 
 
@@ -244,6 +332,7 @@ def _emit_singleton_tests(
     out: dict[str, str],
     parent_chain: str,
     top_package: str,
+    tests_root: str,
 ) -> None:
     attr = singleton_attr(singleton)
     chain = _join_chain(parent_chain, attr)
@@ -259,8 +348,10 @@ def _emit_singleton_tests(
             delete=singleton.delete,
         ),
     }
-    out[f"tests/singletons/test_{singleton_module(singleton)}.py"] = render_python(
-        env, "tests/test_singleton.py.jinja", ctx, known_first_party=top_package
+    out[f"{tests_root}/singletons/test_{singleton_module(singleton)}.py"] = (
+        render_python(
+            env, "tests/test_singleton.py.jinja", ctx, known_first_party=top_package
+        )
     )
     for child_coll in singleton.collections:
         _emit_collection_tests(
@@ -270,10 +361,17 @@ def _emit_singleton_tests(
             out,
             parent_chain=chain,
             top_package=top_package,
+            tests_root=tests_root,
         )
     for sub in singleton.singletons:
         _emit_singleton_tests(
-            env, sub, project_context, out, parent_chain=chain, top_package=top_package
+            env,
+            sub,
+            project_context,
+            out,
+            parent_chain=chain,
+            top_package=top_package,
+            tests_root=tests_root,
         )
     for action in singleton.actions:
         _emit_action_tests(
@@ -283,6 +381,7 @@ def _emit_singleton_tests(
             out,
             parent_chain=chain,
             top_package=top_package,
+            tests_root=tests_root,
         )
 
 
@@ -293,6 +392,7 @@ def _emit_action_tests(
     out: dict[str, str],
     parent_chain: str,
     top_package: str,
+    tests_root: str,
 ) -> None:
     if not action.operations:
         return
@@ -314,7 +414,7 @@ def _emit_action_tests(
         "operations": operations,
         "single_op": single_op,
     }
-    out[f"tests/actions/test_{action_module(action)}.py"] = render_python(
+    out[f"{tests_root}/actions/test_{action_module(action)}.py"] = render_python(
         env, "tests/test_action.py.jinja", ctx, known_first_party=top_package
     )
 

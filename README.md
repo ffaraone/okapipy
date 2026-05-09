@@ -64,9 +64,10 @@ per-node base classes) plus one-shot subclass stubs you can customize.
 Re-running the command refreshes `base/` and leaves your edits alone.
 
 Useful flags: `--rules path/to/rules.yaml` for project-local overrides,
-`--strip-prefix /api/v1` to drop a base prefix, `--no-models` to skip
-emitting `base/models.py` (operations end up untyped), `--check` for a CI
-dry-run that exits non-zero on any drift.
+`--strip-prefix /api/v1` to drop a base prefix, `--shape {models|dicts}` to
+lock the client to a single response shape (omit for dual-shape with
+`with_shape()`; `--shape dicts` also skips emitting `base/models.py`),
+`--check` for a CI dry-run that exits non-zero on any drift.
 
 ## Customize
 

@@ -80,13 +80,13 @@ def test_generation_error_is_exported() -> None:
     assert issubclass(GenerationError, Exception)
 
 
-def test_with_models_false_skips_models_file() -> None:
-    """`with_models=False` produces a project with no `base/models.py`.
+def test_shape_dicts_skips_models_file() -> None:
+    """`shape="dicts"` produces a project with no `base/models.py`.
 
-    Drives the `--no-models` / `--without-models` CLI flow: the skeleton is
-    still emitted, but dmcg is not invoked and the models file is absent from
-    the virtual FS. The walker's model-import filter then sees an empty set
-    and elides every `from ..models import ...` line.
+    Drives the `--shape dicts` CLI flow: the skeleton is still emitted, but
+    dmcg is not invoked and the models file is absent from the virtual FS.
+    The walker's model-import filter then sees an empty set and elides every
+    `from ..models import ...` line.
     """
     vfs = generate(
         APIModel(),
@@ -94,7 +94,7 @@ def test_with_models_false_skips_models_file() -> None:
         output_dir=Path("/tmp"),
         package="acme.client",
         client_class="AcmeClient",
-        with_models=False,
+        shape="dicts",
     )
 
     assert "src/acme/client/base/models.py" not in vfs
@@ -371,16 +371,16 @@ def test_inline_body_matching_existing_component_is_not_duplicated(
     assert "class Login1" not in models_src
 
 
-def test_with_models_false_drops_model_imports_from_generated_nodes(
+def test_shape_dicts_drops_model_imports_from_generated_nodes(
     tmp_path: Path,
 ) -> None:
-    """With models disabled, generated collection/resource/action files have no
+    """With `shape="dicts"`, generated collection/resource/action files have no
     `from ..models import ...` line — all model references are filtered out.
 
     The fixture exposes `/orders` (collection) and `/orders/{id}` (resource)
     that would normally pull `Order` / `OrderList` model imports; with
-    `with_models=False` those imports must vanish so the generated package
-    stays compilable in the absence of `models.py`.
+    `shape="dicts"` those imports must vanish so the generated package stays
+    compilable in the absence of `models.py`.
     """
     from okapipy.parser.api import parse  # local import to avoid cycle at module load
 
@@ -392,7 +392,7 @@ def test_with_models_false_drops_model_imports_from_generated_nodes(
         output_dir=tmp_path / "out",
         package="acme.client",
         client_class="AcmeClient",
-        with_models=False,
+        shape="dicts",
     )
 
     for path, file in vfs.items():

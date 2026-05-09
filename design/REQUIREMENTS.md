@@ -192,8 +192,18 @@ Non-fatal warnings go to `logging`. Errors raise a `ParserError` subclass
   packaged templates. Resolved before the packaged loader (ChoiceLoader).
 * `model_templates_dir: Path | None` — forwarded to dmcg's
   `custom_template_dir`.
-* `with_models: bool = True` — when `False`, skip emitting `base/models.py`
-  entirely; operations end up untyped (raw dicts / `Any`).
+* `shape: "auto" | "models" | "dicts" = "auto"` — selects the response-shape
+  policy of the generated client.
+  * `"auto"` (default) emits a dual-shape client. The constructor accepts a
+    `shape: "models" | "dicts"` keyword, `with_shape(...)` returns a sibling
+    switching shape at runtime, and bodies / returns admit both arms
+    (`Foo | dict[str, Any]` / `Foo | dict[str, Any] | None`).
+  * `"models"` locks the client to typed Pydantic models. The `shape=`
+    constructor option and `with_shape(...)` are dropped; bodies are typed
+    `Foo` and returns `Foo | None`. `base/models.py` is still emitted.
+  * `"dicts"` locks the client to raw dicts. `base/models.py` is skipped,
+    every model import is dropped, and bodies / returns are typed
+    `dict[str, Any]` / `dict[str, Any] | None`.
 
 ### 2.2 Output
 
@@ -260,7 +270,9 @@ The generated `<Client>Base` (and `Async<Client>Base`) accept:
 * `transport: httpx.BaseTransport | None` (sync) / `AsyncBaseTransport |
   None` (async) — escape hatch for tests / custom transports.
 * `headers: Mapping[str, str] | None`.
-* `shape: "models" | "dicts"` (default `"models"`).
+* `shape: "models" | "dicts"` (default `"models"`) — **only present when the
+  generator is invoked with `shape="auto"`.** Locked shapes (`shape="models"`
+  or `shape="dicts"` at generation time) drop this constructor option.
 * `pagination_strategy`, `filter_strategy`, `sort_strategy` — defaults are
   `LimitOffsetPagination(default_page_size=100)`, `KeyValueFilter`,
   `CommaSignedSort`.
@@ -270,10 +282,13 @@ The client also exposes:
 * `__enter__` / `__exit__` (sync) and `__aenter__` / `__aexit__` (async),
   plus `close()` / `aclose()`.
 * `with_shape("models" | "dicts")` — return a sibling client sharing
-  transport / strategies but a different shape.
+  transport / strategies but a different shape. **Only emitted when the
+  generator was invoked with `shape="auto"`.**
 * `from_response(model_cls, raw)` — deserialize one record per the
-  configured shape; returns `raw` when `model_cls is None` or shape is
-  `"dicts"`.
+  configured shape. In auto / models mode it returns `raw` when
+  `model_cls is None`; in auto mode it also returns `raw` when the runtime
+  shape is `"dicts"`. In the dicts-locked mode the helper always returns
+  `raw` and ignores `model_cls`.
 
 ### 2.5 Tree access
 
@@ -369,8 +384,13 @@ subclass. The hierarchy:
 * `--output PATH`, `--package`, `--client-class` are required.
 * `--project-name`, `--project-version`, `--python-version`, `--license`,
   `--rules`, `--lang`, `--strip-prefix`, `--nlp-cache-dir`,
-  `--templates-dir`, `--model-templates-dir`,
-  `--no-models` (alias `--without-models`).
+  `--templates-dir`, `--model-templates-dir`.
+* `--shape {models|dicts}` — lock the generated client to a single response
+  shape. Omit to produce a dual-shape client (constructor `shape=` +
+  `with_shape()` + both type arms). `--shape models` keeps `base/models.py`
+  and types every body / return with the recovered Pydantic model.
+  `--shape dicts` skips `base/models.py`, drops every model import, and
+  types every body / return as `dict[str, Any]`.
 * `--check` — dry run. Exits non-zero when any base file would change, when
   any drift warning would fire, or when any stale base file would be pruned.
   CI gate.
