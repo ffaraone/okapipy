@@ -9,9 +9,9 @@ from __future__ import annotations
 
 from collections.abc import AsyncIterator, Iterator, Mapping
 {% if resource or actions %}
-from typing import TYPE_CHECKING, Any, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar, cast
 {% else %}
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 {% endif %}
 from urllib.parse import urlencode
 
@@ -121,7 +121,7 @@ class {{ class_name }}:
         return self.client.from_response({{ create_op.response_model | py_class_or_none }}, response.json())
 {% endif %}
 
-    def first(self) -> {{ item_type }}:
+    def first(self) -> {{ item_type }} | None:
         """Return the first item in the result set, or `None`."""
         for item in self:
             return item
@@ -273,8 +273,12 @@ class {{ class_name }}Iterator(Iterator[{{ item_type }}]):
         )
         response.raise_for_status()
         strat = self.collection.client.pagination_strategy
+        # `from_response` widens the type with `| None` to cover 204/empty
+        # body responses on whole-document operations; the iterator only
+        # ever sees objects pulled out of a JSON page array, so the `None`
+        # arm is not reachable here.
         self.current_page = [
-            self.collection.client.from_response({{ fetch_item_model | py_class_or_none }}, raw)
+            cast("{{ item_type }}", self.collection.client.from_response({{ fetch_item_model | py_class_or_none }}, raw))
             for raw in strat.extract_items(response)
         ]
         self.index = 0
@@ -367,7 +371,8 @@ class Async{{ class_name }}:
         return self.client.from_response({{ create_op.response_model | py_class_or_none }}, response.json())
 {% endif %}
 
-    async def first(self) -> {{ item_type }}:
+    async def first(self) -> {{ item_type }} | None:
+        """Return the first item in the result set, or `None`."""
         async for item in self:
             return item
         return None
@@ -488,8 +493,12 @@ class Async{{ class_name }}Iterator(AsyncIterator[{{ item_type }}]):
         )
         response.raise_for_status()
         strat = self.collection.client.pagination_strategy
+        # `from_response` widens the type with `| None` to cover 204/empty
+        # body responses on whole-document operations; the iterator only
+        # ever sees objects pulled out of a JSON page array, so the `None`
+        # arm is not reachable here.
         self.current_page = [
-            self.collection.client.from_response({{ fetch_item_model | py_class_or_none }}, raw)
+            cast("{{ item_type }}", self.collection.client.from_response({{ fetch_item_model | py_class_or_none }}, raw))
             for raw in strat.extract_items(response)
         ]
         self.index = 0
