@@ -7,10 +7,12 @@ overwritten.
 
 from __future__ import annotations
 
+from collections.abc import Callable
+from typing import Any
+
 import pytest
 from pytest_httpx import HTTPXMock
 
-from tests.conftest import field
 from {{ package }}.client import {{ client_class }}, Async{{ client_class }}
 
 
@@ -18,6 +20,7 @@ from {{ package }}.client import {{ client_class }}, Async{{ client_class }}
 def test_{{ test_attr }}_run_invokes_method(
     httpx_mock: HTTPXMock,
     client: {{ client_class }},
+    field: Callable[[Any, str], Any],
 ) -> None:
     """`run()` issues a `{{ single_op.method }}` and returns the parsed body."""
     httpx_mock.add_response(
@@ -41,6 +44,7 @@ def test_{{ test_attr }}_run_invokes_method(
 async def test_async_{{ test_attr }}_run_invokes_method(
     httpx_mock: HTTPXMock,
     async_client: Async{{ client_class }},
+    field: Callable[[Any, str], Any],
 ) -> None:
     """Async `run()` issues a `{{ single_op.method }}` and returns the parsed body."""
     httpx_mock.add_response(
@@ -60,6 +64,7 @@ async def test_async_{{ test_attr }}_run_invokes_method(
 def test_{{ test_attr }}_{{ op.method | lower }}_invokes_method(
     httpx_mock: HTTPXMock,
     client: {{ client_class }},
+    field: Callable[[Any, str], Any],
 ) -> None:
     """`{{ op.method | lower }}()` issues a `{{ op.method }}` and returns the parsed body."""
     httpx_mock.add_response(
@@ -80,6 +85,7 @@ def test_{{ test_attr }}_{{ op.method | lower }}_invokes_method(
 async def test_async_{{ test_attr }}_{{ op.method | lower }}_invokes_method(
     httpx_mock: HTTPXMock,
     async_client: Async{{ client_class }},
+    field: Callable[[Any, str], Any],
 ) -> None:
     """Async `{{ op.method | lower }}()` issues a `{{ op.method }}` and returns the parsed body."""
     httpx_mock.add_response(

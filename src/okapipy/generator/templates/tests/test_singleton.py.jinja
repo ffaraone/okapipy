@@ -6,10 +6,12 @@ enclosing collection — e.g. `/me`). Emitted once and never overwritten.
 
 from __future__ import annotations
 
+from collections.abc import Callable
+from typing import Any
+
 import pytest
 from pytest_httpx import HTTPXMock
 
-from tests.conftest import field
 from {{ package }}.client import {{ client_class }}, Async{{ client_class }}
 
 
@@ -17,6 +19,7 @@ from {{ package }}.client import {{ client_class }}, Async{{ client_class }}
 def test_{{ test_attr }}_retrieve_returns_payload(
     httpx_mock: HTTPXMock,
     client: {{ client_class }},
+    field: Callable[[Any, str], Any],
 ) -> None:
     """`retrieve()` issues a `{{ retrieve_method }}` and returns the parsed body."""
     httpx_mock.add_response(
@@ -34,6 +37,7 @@ def test_{{ test_attr }}_retrieve_returns_payload(
 def test_{{ test_attr }}_update_sends_body(
     httpx_mock: HTTPXMock,
     client: {{ client_class }},
+    field: Callable[[Any, str], Any],
 ) -> None:
     """`update()` issues a `{{ update_method }}` and returns the parsed body."""
     httpx_mock.add_response(
@@ -51,6 +55,7 @@ def test_{{ test_attr }}_update_sends_body(
 def test_{{ test_attr }}_patch_sends_partial_body(
     httpx_mock: HTTPXMock,
     client: {{ client_class }},
+    field: Callable[[Any, str], Any],
 ) -> None:
     """`patch()` issues a `{{ patch_method }}` and returns the parsed body."""
     httpx_mock.add_response(
@@ -85,6 +90,7 @@ def test_{{ test_attr }}_delete_returns_none_on_204(
 async def test_async_{{ test_attr }}_retrieve_returns_payload(
     httpx_mock: HTTPXMock,
     async_client: Async{{ client_class }},
+    field: Callable[[Any, str], Any],
 ) -> None:
     """Async `retrieve()` issues a `{{ retrieve_method }}` and returns the parsed body."""
     httpx_mock.add_response(
@@ -103,6 +109,7 @@ async def test_async_{{ test_attr }}_retrieve_returns_payload(
 async def test_async_{{ test_attr }}_update_sends_body(
     httpx_mock: HTTPXMock,
     async_client: Async{{ client_class }},
+    field: Callable[[Any, str], Any],
 ) -> None:
     """Async `update()` issues a `{{ update_method }}` and returns the parsed body."""
     httpx_mock.add_response(
@@ -121,6 +128,7 @@ async def test_async_{{ test_attr }}_update_sends_body(
 async def test_async_{{ test_attr }}_patch_sends_partial_body(
     httpx_mock: HTTPXMock,
     async_client: Async{{ client_class }},
+    field: Callable[[Any, str], Any],
 ) -> None:
     """Async `patch()` issues a `{{ patch_method }}` and returns the parsed body."""
     httpx_mock.add_response(
