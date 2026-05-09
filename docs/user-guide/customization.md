@@ -413,14 +413,9 @@ Each `okapipy spec generate <spec>` run does:
 * **`okapipy spec generate --quiet`** — suppress drift-detection
   warnings. Pruning still runs.
 * **`--shape models\|dicts`** — lock the generated client to a single
-  response shape at generation time. Omit the flag for the dual-shape
-  default: a `shape=` constructor option plus `with_shape(...)` for
-  per-call-site flips. `--shape models` keeps `base/models.py` and types
-  every body / return strictly as the recovered Pydantic model;
-  `--shape dicts` skips `base/models.py`, drops every model import, and
-  types everything as `dict[str, Any]`. Useful when
-  `datamodel-code-generator` can't process the spec's schemas, or when
-  you prefer to bring your own types.
+  [response shape](shapes.md). Omit for the dual-shape default
+  (constructor `shape=` + `with_shape()`); `--shape dicts` also skips
+  `base/models.py`.
 * **`--templates-dir DIR`** and **`--model-templates-dir DIR`** — see
   [Templates](templates.md) for per-project overrides of the Jinja
   templates that drive code emission.

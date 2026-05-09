@@ -122,6 +122,7 @@ nav:
       - user-guide/installation.md
       - user-guide/quick-start.md
       - user-guide/client-usage.md
+      - user-guide/shapes.md
       - user-guide/rules.md
       - user-guide/strategies.md
       - user-guide/customization.md
