@@ -9,58 +9,8 @@ A user-layer subclass swaps the factory by reassigning the class attribute.
 from __future__ import annotations
 
 import importlib
-import sys
-from pathlib import Path
 
-import pytest
-
-from okapipy.generator import generate
-from okapipy.generator.vfs import GeneratedFile, write_to_disk
-from okapipy.parser.api import parse
-
-FIXTURE = Path(__file__).resolve().parent.parent / "fixtures" / "nested.yaml"
-
-
-@pytest.fixture
-def hooks_vfs(tmp_path: Path) -> dict[str, GeneratedFile]:
-    """Generate the nested fixture's tree and return the in-memory VFS."""
-    api = parse(FIXTURE)
-    return generate(
-        api,
-        raw_spec=FIXTURE,
-        output_dir=tmp_path,
-        package="hooks",
-        client_class="HooksClient",
-        project_name="hooks",
-    )
-
-
-@pytest.fixture
-def generated_base(tmp_path: Path):
-    """Generate the nested fixture, write to disk, import the `base` subpackage."""
-    package = "factorycli"
-    out = tmp_path / "out"
-    api = parse(FIXTURE)
-    vfs = generate(
-        api,
-        raw_spec=FIXTURE,
-        output_dir=out,
-        package=package,
-        client_class="FactoryClient",
-        project_name="factory-client",
-    )
-    write_to_disk(vfs, out)
-    sys.path.insert(0, str(out / "src"))
-    try:
-        if package in sys.modules:
-            del sys.modules[package]
-        module = importlib.import_module(f"{package}.base")
-        yield module
-    finally:
-        sys.path.remove(str(out / "src"))
-        for name in list(sys.modules):
-            if name == package or name.startswith(package + "."):
-                del sys.modules[name]
+from okapipy.generator.vfs import GeneratedFile
 
 
 def test_client_base_emits_factory_for_top_namespace(

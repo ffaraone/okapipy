@@ -51,7 +51,7 @@ def test_generated_models_round_trip(tmp_path: Path) -> None:
         order = module.Order.model_validate({"id": "42", "total": 9.99})
         assert order.id == "42"
         assert order.total == 9.99
-        with pytest.raises(ValidationError):
+        with pytest.raises(ValidationError, match="total"):
             module.Order.model_validate({"id": 42, "total": "not a number"})
     finally:
         sys.modules.pop(spec.name, None)

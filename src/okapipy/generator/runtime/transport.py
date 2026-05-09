@@ -20,6 +20,7 @@ retries entirely.
 
 from __future__ import annotations
 
+import asyncio
 import time
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
@@ -110,8 +111,6 @@ class AsyncRetryTransport(httpx.AsyncBaseTransport):
         self.policy = policy
 
     async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
-        import asyncio  # local import keeps sync-only users out of asyncio
-
         if request.method.upper() != "GET" or self.policy.total <= 0:
             return await self.wrapped.handle_async_request(request)
         attempt = 0

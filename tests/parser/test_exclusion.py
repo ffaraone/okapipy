@@ -184,7 +184,7 @@ def test_rules_rejects_non_list_non_star_exclude(tmp_path: Path) -> None:
     rules_file = tmp_path / "side.yaml"
     rules_file.write_text("paths:\n  /users/{id}:\n    x-okapipy-exclude: 42\n")
 
-    with pytest.raises(RulesFormatError):
+    with pytest.raises(RulesFormatError, match="x-okapipy-exclude"):
         load_rules(rules_file)
 
 
