@@ -324,7 +324,12 @@ def manifest_vfs(tmp_path: Path) -> dict[str, GeneratedFile]:
 
 @pytest.fixture
 def project_context() -> dict[str, str]:
-    """Project-level Jinja context shared across the test-emitter templates."""
+    """Project-level Jinja context shared across the test-emitter templates.
+
+    Carries `shape="auto"` to mirror the default `okapipy spec generate`
+    invocation; tests targeting the locked shapes override this via a
+    second fixture (`project_context_models`, `project_context_dicts`).
+    """
     return {
         "package": "demoapi",
         "client_class": "DemoClient",
@@ -332,4 +337,5 @@ def project_context() -> dict[str, str]:
         "project_version": "0.1.0",
         "python_version": "3.13",
         "license": "Proprietary",
+        "shape": "auto",
     }

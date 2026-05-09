@@ -10,6 +10,7 @@ from __future__ import annotations
 import pytest
 from pytest_httpx import HTTPXMock
 
+from tests.conftest import field
 from {{ package }}.client import {{ client_class }}, Async{{ client_class }}
 
 
@@ -29,7 +30,8 @@ def test_{{ test_attr }}_run_invokes_method(
     result = client.{{ accessor_chain }}.run()
     {% endif %}
 
-    assert result == {"ok": True}
+    assert result is not None
+    assert field(result, "ok") is True
     request = httpx_mock.get_request()
     assert request is not None
     assert request.method == "{{ single_op.method }}"
@@ -51,7 +53,8 @@ async def test_async_{{ test_attr }}_run_invokes_method(
     result = await async_client.{{ accessor_chain }}.run()
     {% endif %}
 
-    assert result == {"ok": True}
+    assert result is not None
+    assert field(result, "ok") is True
 {% else %}
 {% for op in operations %}
 def test_{{ test_attr }}_{{ op.method | lower }}_invokes_method(
@@ -69,7 +72,8 @@ def test_{{ test_attr }}_{{ op.method | lower }}_invokes_method(
     result = client.{{ accessor_chain }}.{{ op.method | lower }}()
     {% endif %}
 
-    assert result == {"ok": True}
+    assert result is not None
+    assert field(result, "ok") is True
 
 
 @pytest.mark.asyncio
@@ -88,7 +92,8 @@ async def test_async_{{ test_attr }}_{{ op.method | lower }}_invokes_method(
     result = await async_client.{{ accessor_chain }}.{{ op.method | lower }}()
     {% endif %}
 
-    assert result == {"ok": True}
+    assert result is not None
+    assert field(result, "ok") is True
 
 
 {% endfor %}

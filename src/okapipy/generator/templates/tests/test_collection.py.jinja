@@ -10,6 +10,7 @@ from __future__ import annotations
 import pytest
 from pytest_httpx import HTTPXMock
 
+from tests.conftest import field
 from {{ package }}.client import {{ client_class }}, Async{{ client_class }}
 
 
@@ -24,7 +25,7 @@ def test_{{ test_attr }}_iter_yields_items(
     )
     items = list(client.{{ accessor_chain }})
 
-    assert [item["id"] for item in items] == ["1", "2"]
+    assert [field(item, "id") for item in items] == ["1", "2"]
 
 
 def test_{{ test_attr }}_first_returns_initial_item(
@@ -38,7 +39,8 @@ def test_{{ test_attr }}_first_returns_initial_item(
     )
     first = client.{{ accessor_chain }}.first()
 
-    assert first == {"id": "1"}
+    assert first is not None
+    assert field(first, "id") == "1"
 
 
 {% if has_create %}
@@ -54,7 +56,8 @@ def test_{{ test_attr }}_create_posts_body(
     )
     result = client.{{ accessor_chain }}.create({"name": "Acme"})
 
-    assert result == {"id": "abc"}
+    assert result is not None
+    assert field(result, "id") == "abc"
     request = httpx_mock.get_request()
     assert request is not None
     assert request.method == "{{ create_method }}"
@@ -73,7 +76,7 @@ async def test_async_{{ test_attr }}_iter_yields_items(
     )
     items = [item async for item in async_client.{{ accessor_chain }}]
 
-    assert [item["id"] for item in items] == ["1", "2"]
+    assert [field(item, "id") for item in items] == ["1", "2"]
 
 
 @pytest.mark.asyncio
@@ -88,7 +91,8 @@ async def test_async_{{ test_attr }}_first_returns_initial_item(
     )
     first = await async_client.{{ accessor_chain }}.first()
 
-    assert first == {"id": "1"}
+    assert first is not None
+    assert field(first, "id") == "1"
 
 
 {% if has_create %}
@@ -105,7 +109,8 @@ async def test_async_{{ test_attr }}_create_posts_body(
     )
     result = await async_client.{{ accessor_chain }}.create({"name": "Acme"})
 
-    assert result == {"id": "abc"}
+    assert result is not None
+    assert field(result, "id") == "abc"
     request = httpx_mock.get_request()
     assert request is not None
     assert request.method == "{{ create_method }}"

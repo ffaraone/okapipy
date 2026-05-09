@@ -26,7 +26,7 @@ last so it captures the full set of base files.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 from okapipy.generator.edges import compute_manifest
 from okapipy.generator.emit.client import emit_client
@@ -40,6 +40,8 @@ from okapipy.generator.models import emit_models, public_names
 from okapipy.generator.templating import make_environment
 from okapipy.generator.vfs import GeneratedFile
 from okapipy.parser.model import APIModel
+
+Shape = Literal["auto", "models", "dicts"]
 
 
 def generate(
@@ -55,7 +57,7 @@ def generate(
     license: str = "Proprietary",
     templates_dir: Path | None = None,
     model_templates_dir: Path | None = None,
-    with_models: bool = True,
+    shape: Shape = "auto",
 ) -> dict[str, GeneratedFile]:
     """Build the virtual FS for the generated client project.
 
@@ -76,11 +78,18 @@ def generate(
             packaged defaults (ChoiceLoader).
         model_templates_dir: optional directory of `datamodel-code-generator`
             templates. Forwarded as dmcg's `custom_template_dir`.
-        with_models: when False, skip emitting `base/models.py` and drop every
-            model reference from the generated client (operations end up
-            untyped, returning raw dicts). Useful for specs whose schemas can't
-            be processed by dmcg or for clients that prefer to bring their own
-            types.
+        shape: response-shape policy for the generated client.
+
+            * `"auto"` (default) — emit a dual-shape client. The constructor
+              accepts a `shape: "models" | "dicts"` keyword and `with_shape(...)`
+              returns a sibling switching shape at runtime. Bodies and returns
+              are typed as `Foo | dict[str, Any]` / `Foo | dict[str, Any] | None`.
+            * `"models"` — lock the client to typed Pydantic models. The
+              `shape=` constructor option and `with_shape(...)` are dropped.
+              Bodies are typed as `Foo`; returns as `Foo | None`.
+            * `"dicts"` — lock the client to raw dicts. `base/models.py` is
+              skipped, model imports are dropped, and bodies / returns are
+              typed as `dict[str, Any]` / `dict[str, Any] | None`.
 
     Returns:
         A `dict[str, GeneratedFile]` mapping POSIX-style relative paths to
@@ -97,6 +106,7 @@ def generate(
         "project_version": project_version,
         "python_version": python_version,
         "license": license,
+        "shape": shape,
     }
     env = make_environment(templates_dir)
     vfs: dict[str, GeneratedFile] = {}
@@ -109,20 +119,23 @@ def generate(
     # Vendor the runtime + build base/__init__.py (re-exports `*Base` classes).
     runtime = emit_runtime(package_path, client_class, extra_imports, extra_public)
     _wrap(vfs, runtime, one_shot=False)
-    # Models from dmcg, regenerated. Skipped entirely when `with_models=False`;
-    # the walker then drops every `from ..models import ...` line and replaces
-    # response/request model types with `None`/dict in the generated client.
-    if with_models:
+    # Models from dmcg, regenerated. The dicts shape skips this step entirely;
+    # the walker then drops every `from ..models import ...` line and types
+    # every body / return as `dict[str, Any]` (or `Any` when no schema name
+    # was recovered).
+    if shape == "dicts":
+        available_models: set[str] = set()
+    else:
         models_source = emit_models(raw_spec, model_templates_dir, python_version)
         vfs[f"src/{package_path}/base/models.py"] = GeneratedFile(models_source)
         available_models = public_names(models_source)
-    else:
-        available_models = set()
     # Sync + async client base classes.
     client_files = emit_client(env, project_context, package_path, api)
     _wrap(vfs, client_files, one_shot=False)
     # Walk the parser tree → one base file per node.
-    tree_files = emit_tree(env, api, project_context, package_path, available_models)
+    tree_files = emit_tree(
+        env, api, project_context, package_path, available_models, shape=shape
+    )
     _wrap(vfs, tree_files, one_shot=False)
     # Empty markers on each populated base subdirectory so `from ..namespaces`
     # imports resolve.

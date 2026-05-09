@@ -13,15 +13,18 @@ from {{ package }}.client import {{ client_class }}, Async{{ client_class }}
 
 
 def test_client_constructable_and_exposes_base_url(base_url: str) -> None:
-    """The sync client constructs and exposes its `base_url` and shape."""
+    """The sync client constructs and exposes its `base_url`{% if shape == "auto" %} and shape{% endif %}."""
     client = {{ client_class }}(base_url)
     try:
         assert client.base_url == base_url
+{% if shape == "auto" %}
         assert client.shape == "models"
+{% endif %}
     finally:
         client.close()
 
 
+{% if shape == "auto" %}
 def test_client_with_shape_returns_sibling_sharing_transport(
     base_url: str,
 ) -> None:
@@ -36,17 +39,21 @@ def test_client_with_shape_returns_sibling_sharing_transport(
         client.close()
 
 
+{% endif %}
 @pytest.mark.asyncio
 async def test_async_client_constructable(base_url: str) -> None:
-    """The async client constructs and exposes its `base_url` and shape."""
+    """The async client constructs and exposes its `base_url`{% if shape == "auto" %} and shape{% endif %}."""
     client = Async{{ client_class }}(base_url)
     try:
         assert client.base_url == base_url
+{% if shape == "auto" %}
         assert client.shape == "models"
+{% endif %}
     finally:
         await client.aclose()
 
 
+{% if shape == "auto" %}
 @pytest.mark.asyncio
 async def test_async_client_with_shape_returns_sibling_sharing_transport(
     base_url: str,
@@ -60,3 +67,4 @@ async def test_async_client_with_shape_returns_sibling_sharing_transport(
         assert sibling._http is client._http
     finally:
         await client.aclose()
+{% endif %}

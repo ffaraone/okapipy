@@ -10,6 +10,7 @@ from __future__ import annotations
 import pytest
 from pytest_httpx import HTTPXMock
 
+from tests.conftest import field
 from {{ package }}.client import {{ client_class }}, Async{{ client_class }}
 
 
@@ -25,7 +26,8 @@ def test_{{ test_attr }}_retrieve_returns_payload(
     )
     result = client.{{ accessor_chain }}.retrieve()
 
-    assert result == {"id": "abc"}
+    assert result is not None
+    assert field(result, "id") == "abc"
 {% endif %}
 
 
@@ -41,7 +43,8 @@ def test_{{ test_attr }}_update_sends_body(
     )
     result = client.{{ accessor_chain }}.update({"name": "Acme"})
 
-    assert result == {"id": "abc"}
+    assert result is not None
+    assert field(result, "id") == "abc"
     request = httpx_mock.get_request()
     assert request is not None
     assert request.method == "{{ update_method }}"
@@ -60,7 +63,8 @@ def test_{{ test_attr }}_patch_sends_partial_body(
     )
     result = client.{{ accessor_chain }}.patch({"name": "Acme"})
 
-    assert result == {"id": "abc"}
+    assert result is not None
+    assert field(result, "id") == "abc"
 {% endif %}
 
 
@@ -93,7 +97,8 @@ async def test_async_{{ test_attr }}_retrieve_returns_payload(
     )
     result = await async_client.{{ accessor_chain }}.retrieve()
 
-    assert result == {"id": "abc"}
+    assert result is not None
+    assert field(result, "id") == "abc"
 {% endif %}
 
 
@@ -110,7 +115,8 @@ async def test_async_{{ test_attr }}_update_sends_body(
     )
     result = await async_client.{{ accessor_chain }}.update({"name": "Acme"})
 
-    assert result == {"id": "abc"}
+    assert result is not None
+    assert field(result, "id") == "abc"
 {% endif %}
 
 
@@ -127,7 +133,8 @@ async def test_async_{{ test_attr }}_patch_sends_partial_body(
     )
     result = await async_client.{{ accessor_chain }}.patch({"name": "Acme"})
 
-    assert result == {"id": "abc"}
+    assert result is not None
+    assert field(result, "id") == "abc"
 {% endif %}
 
 

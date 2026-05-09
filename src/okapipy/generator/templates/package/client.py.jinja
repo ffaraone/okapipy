@@ -9,14 +9,30 @@ from collections.abc import Mapping
 {% if top_namespaces or top_singletons %}
 from functools import cached_property
 {% endif %}
+{% if shape == "auto" %}
 {% if top_namespaces or top_collections or top_singletons or top_actions %}
 from typing import Any, ClassVar, Literal, TypeVar, cast
 {% else %}
 from typing import Any, Literal, TypeVar, cast
 {% endif %}
+{% elif shape == "dicts" %}
+{% if top_namespaces or top_collections or top_singletons or top_actions %}
+from typing import Any, ClassVar, cast
+{% else %}
+from typing import Any, cast
+{% endif %}
+{% else %}
+{% if top_namespaces or top_collections or top_singletons or top_actions %}
+from typing import Any, ClassVar, TypeVar, cast
+{% else %}
+from typing import Any, TypeVar, cast
+{% endif %}
+{% endif %}
 
 import httpx
+{% if shape != "dicts" %}
 from pydantic import BaseModel
+{% endif %}
 
 from .strategies import (
     CommaSignedSort,
@@ -42,11 +58,13 @@ from .singletons.{{ sing.module }} import {{ sing.class_name }}, Async{{ sing.cl
 from .actions.{{ act.module }} import {{ act.class_name }}, Async{{ act.class_name }}
 {% endfor %}
 
+{% if shape != "dicts" %}
 # Threaded by `from_response` so that `response_model=Foo` produces a return
 # type of `Foo | dict[str, Any] | None` — the runtime `dicts` shape and the
 # 204 / empty-body branches still permit the dict / None arms. Bounded to
 # `BaseModel` so `model_cls.model_validate(...)` resolves on the type.
 T = TypeVar("T", bound=BaseModel)
+{% endif %}
 
 
 class {{ client_class }}Base:
@@ -74,13 +92,17 @@ class {{ client_class }}Base:
         retries: RetryPolicy | None = None,
         transport: httpx.BaseTransport | None = None,
         headers: Mapping[str, str] | None = None,
+{% if shape == "auto" %}
         shape: Literal["models", "dicts"] = "models",
+{% endif %}
         pagination_strategy: PaginationStrategy | None = None,
         filter_strategy: FilterStrategy | None = None,
         sort_strategy: SortStrategy | None = None,
     ) -> None:
         self._base_url = base_url
+{% if shape == "auto" %}
         self._shape = shape
+{% endif %}
         self.pagination_strategy: PaginationStrategy = (
             pagination_strategy
             if pagination_strategy is not None
@@ -107,11 +129,13 @@ class {{ client_class }}Base:
             kwargs["transport"] = RetryTransport(httpx.HTTPTransport(), retries)
         self._http = httpx.Client(**kwargs)
 
+{% if shape == "auto" %}
     @property
     def shape(self) -> Literal["models", "dicts"]:
         """The currently configured response shape."""
         return self._shape
 
+{% endif %}
     @property
     def base_url(self) -> str:
         """Base URL the client is bound to."""
@@ -127,6 +151,7 @@ class {{ client_class }}Base:
         """Close the underlying httpx client."""
         self._http.close()
 
+{% if shape == "auto" %}
     def with_shape(self, shape: Literal["models", "dicts"]) -> {{ client_class }}Base:
         """Return a sibling client sharing the underlying httpx connection in a new shape."""
         sibling = object.__new__(type(self))
@@ -145,6 +170,22 @@ class {{ client_class }}Base:
         if model_cls is None or self._shape == "dicts":
             return cast("dict[str, Any] | None", raw)
         return model_cls.model_validate(raw)
+{% elif shape == "models" %}
+    def from_response(
+        self, model_cls: type[T] | None, raw: Any,
+    ) -> T | dict[str, Any] | None:
+        """Validate `raw` against `model_cls`; pass through when no class was recovered."""
+        if model_cls is None:
+            return cast("dict[str, Any] | None", raw)
+        return model_cls.model_validate(raw)
+{% else %}
+    def from_response(
+        self, model_cls: object, raw: Any,
+    ) -> dict[str, Any] | None:
+        """Pass `raw` through unchanged — the client is locked to the dicts shape."""
+        del model_cls
+        return cast("dict[str, Any] | None", raw)
+{% endif %}
 
 {% for ns in top_namespaces %}
     @cached_property
@@ -198,14 +239,18 @@ class Async{{ client_class }}Base:
         retries: RetryPolicy | None = None,
         transport: httpx.AsyncBaseTransport | None = None,
         headers: Mapping[str, str] | None = None,
+{% if shape == "auto" %}
         shape: Literal["models", "dicts"] = "models",
+{% endif %}
         default_page_size: int | None = None,
         pagination_strategy: PaginationStrategy | None = None,
         filter_strategy: FilterStrategy | None = None,
         sort_strategy: SortStrategy | None = None,
     ) -> None:
         self._base_url = base_url
+{% if shape == "auto" %}
         self._shape = shape
+{% endif %}
         self.default_page_size = default_page_size
         self.pagination_strategy: PaginationStrategy = (
             pagination_strategy
@@ -235,10 +280,12 @@ class Async{{ client_class }}Base:
             kwargs["transport"] = AsyncRetryTransport(httpx.AsyncHTTPTransport(), retries)
         self._http = httpx.AsyncClient(**kwargs)
 
+{% if shape == "auto" %}
     @property
     def shape(self) -> Literal["models", "dicts"]:
         return self._shape
 
+{% endif %}
     @property
     def base_url(self) -> str:
         return self._base_url
@@ -253,6 +300,7 @@ class Async{{ client_class }}Base:
         """Close the underlying async httpx client."""
         await self._http.aclose()
 
+{% if shape == "auto" %}
     def with_shape(self, shape: Literal["models", "dicts"]) -> Async{{ client_class }}Base:
         sibling = object.__new__(type(self))
         sibling._http = self._http
@@ -269,6 +317,20 @@ class Async{{ client_class }}Base:
         if model_cls is None or self._shape == "dicts":
             return cast("dict[str, Any] | None", raw)
         return model_cls.model_validate(raw)
+{% elif shape == "models" %}
+    def from_response(
+        self, model_cls: type[T] | None, raw: Any,
+    ) -> T | dict[str, Any] | None:
+        if model_cls is None:
+            return cast("dict[str, Any] | None", raw)
+        return model_cls.model_validate(raw)
+{% else %}
+    def from_response(
+        self, model_cls: object, raw: Any,
+    ) -> dict[str, Any] | None:
+        del model_cls
+        return cast("dict[str, Any] | None", raw)
+{% endif %}
 
 {% for ns in top_namespaces %}
     @cached_property

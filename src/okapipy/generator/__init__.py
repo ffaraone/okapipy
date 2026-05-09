@@ -24,7 +24,7 @@ project metadata survive regeneration.
 
 from __future__ import annotations
 
-from okapipy.generator.api import generate
+from okapipy.generator.api import Shape, generate
 from okapipy.generator.errors import (
     GenerationError,
     TemplateRenderError,
@@ -33,6 +33,7 @@ from okapipy.generator.errors import (
 
 __all__ = [
     "GenerationError",
+    "Shape",
     "TemplateRenderError",
     "UnknownTemplateError",
     "generate",

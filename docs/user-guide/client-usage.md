@@ -68,7 +68,7 @@ client = CommerceClient(
 | `retries` | `RetryPolicy \| None` | Wraps the transport in `RetryTransport` (GET only). |
 | `transport` | `httpx.BaseTransport \| None` | Custom transport (mock, fixture, instrumentation). |
 | `headers` | `Mapping[str, str] \| None` | Default headers merged into every request. |
-| `shape` | `"models" \| "dicts"` | See [Response shape](#response-shape). |
+| `shape` | `"models" \| "dicts"` | Only present when the client was generated without `--shape` (dual-shape mode). See [Response shape](#response-shape-models-vs-dicts). |
 | `pagination_strategy` | strategy or `None` | Defaults to `LimitOffsetPagination(default_page_size=100)`. |
 | `filter_strategy` | strategy or `None` | Defaults to `KeyValueFilter()`. |
 | `sort_strategy` | strategy or `None` | Defaults to `CommaSignedSort()`. |
@@ -383,29 +383,37 @@ client.commerce.orders.order_by(Sort("status") + Sort("-created_at"))
 
 ## Response shape: models vs. dicts
 
-The client deserializes responses one of two ways, controlled by the
-`shape` constructor option:
+Whether the client deserializes responses into Pydantic models or
+returns raw dicts is settled at generation time by the `--shape`
+flag of `okapipy spec generate`. Three modes are available:
+
+* **Dual shape (default).** Omit `--shape`. The constructor accepts a
+  `shape: "models" | "dicts"` keyword (default `"models"`) and the
+  client exposes `with_shape(...)` for runtime flips. Bodies and
+  returns are typed permissively as `Foo | dict[str, Any]` /
+  `Foo | dict[str, Any] | None` so callers can mix and match.
+* **`--shape models`.** Locks the client to typed Pydantic models. The
+  `shape=` constructor option and `with_shape(...)` method are not
+  emitted, and every body / return is typed strictly as the recovered
+  model (`Foo` / `Foo | None`). `base/models.py` is still emitted.
+* **`--shape dicts`.** Locks the client to raw dicts. `base/models.py`
+  is not emitted, the constructor and `with_shape(...)` shape switch
+  are dropped, and every body / return is typed as `dict[str, Any]` /
+  `dict[str, Any] | None`. Useful when
+  `datamodel-code-generator` can't process the spec, or for ad-hoc
+  scripts that don't want validation.
+
+In dual-shape mode, switch shape at runtime without rebuilding the
+client:
 
 ```python
 typed = CommerceClient(base_url=..., shape="models")     # default
 raw   = CommerceClient(base_url=..., shape="dicts")
-```
 
-* `shape="models"` (default) — every response is parsed into the
-  Pydantic model declared in the spec. Type hints work, validators run,
-  field aliases resolve.
-* `shape="dicts"` — responses pass through as raw `dict[str, Any]`
-  values. Useful for ad-hoc scripts, unknown / drifted schemas, or
-  performance-sensitive paths where you don't need validation.
-
-Switch shape at runtime without rebuilding the client:
-
-```python
-typed = client                          # configured with shape="models"
-raw   = client.with_shape("dicts")      # sibling sharing the connection pool
-
+# Or flip an existing client to a sibling sharing the connection pool:
+sibling = typed.with_shape("dicts")
 order = typed.commerce.orders["ord_42"].retrieve()        # Order instance
-order_dict = raw.commerce.orders["ord_42"].retrieve()     # plain dict
+order_dict = sibling.commerce.orders["ord_42"].retrieve() # plain dict
 ```
 
 `with_shape(...)` returns a new client wrapping the same `httpx.Client`

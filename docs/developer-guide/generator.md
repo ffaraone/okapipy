@@ -112,15 +112,21 @@ top-level class names. The walker uses that set to validate model
 references — anything not in the set becomes `Any` in the generated
 client.
 
-`--no-models` skips this step entirely. The walker then drops every
-`from ..models import ...` line and replaces request / response model
-types with `dict` and `None`. Operations end up untyped (raw dicts in /
-out). This is an escape hatch for two situations:
+`--shape dicts` skips this step entirely. The walker then drops every
+`from ..models import ...` line and types every body / return as
+`dict[str, Any]`. The client base also drops the `shape=` constructor
+option and `with_shape(...)` — there is nothing to switch to. This is an
+escape hatch for two situations:
 
 * `datamodel-code-generator` can't process the spec's schemas (rare,
   but it happens with very baroque `oneOf` graphs).
 * The consumer wants to bring their own model layer (e.g. they already
   have hand-written Pydantic types they prefer).
+
+`--shape models` keeps `models.py` but locks the runtime to validation:
+the `shape=` constructor option and `with_shape(...)` are dropped, and
+bodies / returns are typed strictly as the recovered model
+(`Foo` / `Foo | None`) rather than admitting a `dict[str, Any]` arm.
 
 ## The runtime (`runtime/` + `emit_runtime`)
 

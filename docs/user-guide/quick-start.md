@@ -148,7 +148,7 @@ warning fires, or any stale base file would be pruned.
 | `--strip-prefix /api/v1` | Drop a base prefix from every path before classification. |
 | `--lang en` | ISO language code for NLP (defaults to `en`). |
 | `--nlp-cache-dir DIR` | Where to look for / store the spaCy model. |
-| `--no-models` (a.k.a. `--without-models`) | Skip emitting `base/models.py`; operations end up untyped. Useful when `datamodel-code-generator` can't process the spec, or when you want to bring your own types. |
+| `--shape models\|dicts` | Lock the generated client to one response shape. Omit for the dual-shape default (constructor `shape=` + `with_shape()`). `--shape dicts` skips `base/models.py` (useful when `datamodel-code-generator` can't process the spec or you want raw dicts everywhere). |
 | `--templates-dir DIR` | Override packaged Jinja templates per project (see [Templates](templates.md)). |
 | `--model-templates-dir DIR` | Override `datamodel-code-generator`'s model templates. |
 | `--check` | CI dry-run: report drift, exit non-zero on any change. |

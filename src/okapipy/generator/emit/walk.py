@@ -11,7 +11,7 @@ from __future__ import annotations
 import re
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Literal
 
 from jinja2 import Environment
 
@@ -25,6 +25,8 @@ from okapipy.parser.model import (
     Resource,
     Singleton,
 )
+
+Shape = Literal["auto", "models", "dicts"]
 
 
 @dataclass(frozen=True)
@@ -55,6 +57,8 @@ def emit_tree(
     project_context: Mapping[str, Any],
     package_path: str,
     available_models: set[str] | None = None,
+    *,
+    shape: Shape = "auto",
 ) -> dict[str, str]:
     """Render every namespace, collection, resource, and action in `api`.
 
@@ -65,23 +69,34 @@ def emit_tree(
     names dmcg inlined or skipped (primitive aliases, empty objects, etc.).
     Passing `None` disables filtering (used in tests that mock the walker
     directly).
+
+    `shape` selects how body and response types are rendered: `"auto"` admits
+    both `Foo` and `dict[str, Any]` arms (today's runtime-switchable client);
+    `"models"` types body / return as `Foo` / `Foo | None`; `"dicts"` types
+    them as `dict[str, Any]` / `dict[str, Any] | None`.
     """
     out: dict[str, str] = {}
     available = available_models if available_models is not None else None
     # Top-level namespaces.
     for ns in api.namespaces:
-        out.update(_emit_namespace(env, ns, project_context, package_path, available))
+        out.update(
+            _emit_namespace(env, ns, project_context, package_path, available, shape)
+        )
     # Top-level collections.
     for coll in api.collections:
         out.update(
-            _emit_collection(env, coll, project_context, package_path, available)
+            _emit_collection(env, coll, project_context, package_path, available, shape)
         )
     # Top-level singletons.
     for sing in api.singletons:
-        out.update(_emit_singleton(env, sing, project_context, package_path, available))
+        out.update(
+            _emit_singleton(env, sing, project_context, package_path, available, shape)
+        )
     # Top-level actions.
     for action in api.actions:
-        out.update(_emit_action(env, action, project_context, package_path, available))
+        out.update(
+            _emit_action(env, action, project_context, package_path, available, shape)
+        )
     return out
 
 
@@ -137,6 +152,7 @@ def _emit_namespace(
     project_context: Mapping[str, Any],
     package_path: str,
     available_models: set[str] | None,
+    shape: Shape,
 ) -> dict[str, str]:
     out: dict[str, str] = {}
     child_namespaces: list[_ChildRef] = [
@@ -194,19 +210,27 @@ def _emit_namespace(
     )
     for child in ns.namespaces:
         out.update(
-            _emit_namespace(env, child, project_context, package_path, available_models)
+            _emit_namespace(
+                env, child, project_context, package_path, available_models, shape
+            )
         )
     for coll in ns.collections:
         out.update(
-            _emit_collection(env, coll, project_context, package_path, available_models)
+            _emit_collection(
+                env, coll, project_context, package_path, available_models, shape
+            )
         )
     for sing in ns.singletons:
         out.update(
-            _emit_singleton(env, sing, project_context, package_path, available_models)
+            _emit_singleton(
+                env, sing, project_context, package_path, available_models, shape
+            )
         )
     for action in ns.actions:
         out.update(
-            _emit_action(env, action, project_context, package_path, available_models)
+            _emit_action(
+                env, action, project_context, package_path, available_models, shape
+            )
         )
     return out
 
@@ -222,6 +246,7 @@ def _emit_collection(
     project_context: Mapping[str, Any],
     package_path: str,
     available_models: set[str] | None,
+    shape: Shape,
 ) -> dict[str, str]:
     out: dict[str, str] = {}
     resource_ref: dict[str, str] | None = None
@@ -257,7 +282,7 @@ def _emit_collection(
     if fetch_item_model is not None:
         import_names.add(fetch_item_model)
     model_imports = sorted(import_names)
-    create_op_ctx = _op_context(create_op, available_models)
+    create_op_ctx = _op_context(create_op, available_models, shape)
     # The class docstring comes from the fetch operation: the collection class
     # is the natural surface for "list these things", so its summary best
     # describes what the class represents. When fetch isn't populated, fall
@@ -295,7 +320,7 @@ def _emit_collection(
             else None
         ),
         "fetch_item_model": fetch_item_model,
-        "item_type": _iterator_item_type(fetch_item_model),
+        "item_type": _iterator_item_type(fetch_item_model, shape),
         "pagination_supported": (
             fetch_op.pagination_supported if fetch_op is not None else False
         ),
@@ -322,11 +347,14 @@ def _emit_collection(
                 project_context,
                 package_path,
                 available_models,
+                shape,
             )
         )
     for action in coll.actions:
         out.update(
-            _emit_action(env, action, project_context, package_path, available_models)
+            _emit_action(
+                env, action, project_context, package_path, available_models, shape
+            )
         )
     return out
 
@@ -343,6 +371,7 @@ def _emit_resource(
     project_context: Mapping[str, Any],
     package_path: str,
     available_models: set[str] | None,
+    shape: Shape,
 ) -> dict[str, str]:
     out: dict[str, str] = {}
     child_collections = [
@@ -395,10 +424,10 @@ def _emit_resource(
         **project_context,
         "class_name": resource_class(resource),
         "path_template": resource.path,
-        "retrieve_op": _op_context(resource.retrieve, available_models),
-        "update_op": _op_context(resource.update, available_models),
-        "patch_op": _op_context(resource.partial_update, available_models),
-        "delete_op": _op_context(resource.delete, available_models),
+        "retrieve_op": _op_context(resource.retrieve, available_models, shape),
+        "update_op": _op_context(resource.update, available_models, shape),
+        "patch_op": _op_context(resource.partial_update, available_models, shape),
+        "delete_op": _op_context(resource.delete, available_models, shape),
         "child_collections": child_collections,
         "child_singletons": child_singletons,
         "actions": actions,
@@ -418,15 +447,21 @@ def _emit_resource(
     )
     for coll in resource.collections:
         out.update(
-            _emit_collection(env, coll, project_context, package_path, available_models)
+            _emit_collection(
+                env, coll, project_context, package_path, available_models, shape
+            )
         )
     for sing in resource.singletons:
         out.update(
-            _emit_singleton(env, sing, project_context, package_path, available_models)
+            _emit_singleton(
+                env, sing, project_context, package_path, available_models, shape
+            )
         )
     for action in resource.actions:
         out.update(
-            _emit_action(env, action, project_context, package_path, available_models)
+            _emit_action(
+                env, action, project_context, package_path, available_models, shape
+            )
         )
     _ = parent_coll  # parent context kept for future use (e.g. type hints)
     return out
@@ -443,6 +478,7 @@ def _emit_singleton(
     project_context: Mapping[str, Any],
     package_path: str,
     available_models: set[str] | None,
+    shape: Shape,
 ) -> dict[str, str]:
     out: dict[str, str] = {}
     child_collections = [
@@ -495,10 +531,10 @@ def _emit_singleton(
         **project_context,
         "class_name": singleton_class(singleton),
         "path_template": singleton.path,
-        "retrieve_op": _op_context(singleton.retrieve, available_models),
-        "update_op": _op_context(singleton.update, available_models),
-        "patch_op": _op_context(singleton.partial_update, available_models),
-        "delete_op": _op_context(singleton.delete, available_models),
+        "retrieve_op": _op_context(singleton.retrieve, available_models, shape),
+        "update_op": _op_context(singleton.update, available_models, shape),
+        "patch_op": _op_context(singleton.partial_update, available_models, shape),
+        "delete_op": _op_context(singleton.delete, available_models, shape),
         "child_collections": child_collections,
         "child_singletons": child_singletons,
         "actions": actions,
@@ -518,15 +554,21 @@ def _emit_singleton(
     )
     for coll in singleton.collections:
         out.update(
-            _emit_collection(env, coll, project_context, package_path, available_models)
+            _emit_collection(
+                env, coll, project_context, package_path, available_models, shape
+            )
         )
     for sub in singleton.singletons:
         out.update(
-            _emit_singleton(env, sub, project_context, package_path, available_models)
+            _emit_singleton(
+                env, sub, project_context, package_path, available_models, shape
+            )
         )
     for action in singleton.actions:
         out.update(
-            _emit_action(env, action, project_context, package_path, available_models)
+            _emit_action(
+                env, action, project_context, package_path, available_models, shape
+            )
         )
     return out
 
@@ -542,8 +584,9 @@ def _emit_action(
     project_context: Mapping[str, Any],
     package_path: str,
     available_models: set[str] | None,
+    shape: Shape,
 ) -> dict[str, str]:
-    operations = [_op_context(op, available_models) for op in action.operations]
+    operations = [_op_context(op, available_models, shape) for op in action.operations]
     operations = [op for op in operations if op is not None]
     single_op = operations[0] if len(operations) == 1 else None
     model_imports = sorted(_collect_model_names(action.operations, available_models))
@@ -751,7 +794,9 @@ def _dmcg_class_name(name: str) -> str:
 
 
 def _op_context(
-    op: Operation | None, available_models: set[str] | None = None
+    op: Operation | None,
+    available_models: set[str] | None = None,
+    shape: Shape = "auto",
 ) -> dict[str, Any] | None:
     """Translate an Operation into the small dict templates need."""
     if op is None:
@@ -769,8 +814,8 @@ def _op_context(
         "response_model": response_model,
         "request_model": request_model,
         "request_model_members": members,
-        "body_type": _body_type(request_model, members),
-        "response_type": _response_type(response_model),
+        "body_type": _body_type(request_model, members, shape),
+        "response_type": _response_type(response_model, shape),
         "has_body": has_body,
         "pagination_supported": op.pagination_supported,
         "filter_supported": op.filter_supported,
@@ -778,45 +823,77 @@ def _op_context(
     }
 
 
-def _response_type(response_model: str | None) -> str:
+def _response_type(response_model: str | None, shape: Shape) -> str:
     """Render the Python return type for an operation that calls `from_response`.
 
-    When the response schema name was recovered (and dmcg emitted a class for
-    it), the runtime returns either a model instance or — under the `dicts`
-    shape — the raw JSON; either way the value may be `None` for 204 / empty
-    bodies. So the type is `ResponseModel | dict[str, Any] | None`. When no
-    response schema is known the model arm drops away.
+    The result depends on the configured `shape`:
+
+    * `auto` admits both arms — `Foo | dict[str, Any] | None` when a schema
+      name was recovered, `dict[str, Any] | None` otherwise.
+    * `models` types known schemas as `Foo | None`; unrecovered schemas fall
+      back to `dict[str, Any] | None` because the runtime returns raw JSON
+      when no class was emitted for the response.
+    * `dicts` always types the return as `dict[str, Any] | None` — the client
+      never validates, so the model arm is unreachable.
     """
+    if shape == "dicts":
+        return "dict[str, Any] | None"
+    if shape == "models":
+        if response_model:
+            return f"{response_model} | None"
+        return "dict[str, Any] | None"
     if response_model:
         return f"{response_model} | dict[str, Any] | None"
     return "dict[str, Any] | None"
 
 
-def _iterator_item_type(item_model: str | None) -> str:
+def _iterator_item_type(item_model: str | None, shape: Shape) -> str:
     """Render the per-item type yielded by a collection iterator.
 
     Distinct from `_response_type`: a collection iterator signals exhaustion
     by raising `StopIteration` / `StopAsyncIteration`, never by yielding
-    `None`. Each yielded value is either a parsed model instance or — under
-    the `dicts` shape — the raw JSON object, but never `None`. The
-    collection's `first()` accessor is the only place where `None` is a
-    legitimate return (no items at all); the template adds `| None` there.
+    `None`. Each yielded value is either a parsed model instance, a raw JSON
+    object, or both depending on `shape`; never `None`. The collection's
+    `first()` accessor is the only place where `None` is a legitimate return
+    (no items at all); the template adds `| None` there.
     """
+    if shape == "dicts":
+        return "dict[str, Any]"
+    if shape == "models":
+        return item_model if item_model else "dict[str, Any]"
     if item_model:
         return f"{item_model} | dict[str, Any]"
     return "dict[str, Any]"
 
 
-def _body_type(request_model: str | None, members: Sequence[str]) -> str:
+def _body_type(request_model: str | None, members: Sequence[str], shape: Shape) -> str:
     """Render the Python type expression for the operation's `body` parameter.
 
-    Always admits a plain `dict[str, Any]` alongside any typed model(s) so
-    callers may pass a raw payload without satisfying the Pydantic class —
-    the runtime `_build_request_kwargs` already serializes models or dicts
-    interchangeably. Multiple union members produce `A | B | dict[str, Any]`;
-    a single class produces `A | dict[str, Any]`; an empty/filtered request
-    schema falls back to `Any`.
+    The result depends on the configured `shape`:
+
+    * `auto` admits a plain `dict[str, Any]` alongside any typed model(s) so
+      callers may pass a raw payload without satisfying the Pydantic class —
+      the runtime serializes models or dicts interchangeably. Multiple
+      `anyOf` members produce `A | B | dict[str, Any]`; a single class
+      produces `A | dict[str, Any]`; an empty/filtered request schema falls
+      back to `Any`.
+    * `models` drops the dict arm — body must be the recovered model
+      (or anyOf union); falls back to `Any` when no schema name was
+      recovered.
+    * `dicts` types every body as `dict[str, Any]` regardless of any
+      recovered schema name (and `Any` when no schema was recovered, to
+      keep callers unconstrained).
     """
+    if shape == "dicts":
+        if request_model or members:
+            return "dict[str, Any]"
+        return "Any"
+    if shape == "models":
+        if members:
+            return " | ".join(members)
+        if request_model:
+            return request_model
+        return "Any"
     if members:
         return " | ".join([*members, "dict[str, Any]"])
     if request_model:

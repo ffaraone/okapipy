@@ -412,9 +412,13 @@ Each `okapipy spec generate <spec>` run does:
   pruned. CI gate to ensure regeneration is committed.
 * **`okapipy spec generate --quiet`** — suppress drift-detection
   warnings. Pruning still runs.
-* **`--no-models` / `--without-models`** — skip emitting
-  `base/models.py` and drop every model import from the generated
-  client. Operations end up untyped (raw dicts in / out). Useful when
+* **`--shape models\|dicts`** — lock the generated client to a single
+  response shape at generation time. Omit the flag for the dual-shape
+  default: a `shape=` constructor option plus `with_shape(...)` for
+  per-call-site flips. `--shape models` keeps `base/models.py` and types
+  every body / return strictly as the recovered Pydantic model;
+  `--shape dicts` skips `base/models.py`, drops every model import, and
+  types everything as `dict[str, Any]`. Useful when
   `datamodel-code-generator` can't process the spec's schemas, or when
   you prefer to bring your own types.
 * **`--templates-dir DIR`** and **`--model-templates-dir DIR`** — see
