@@ -295,7 +295,7 @@ def _emit_collection(
             else None
         ),
         "fetch_item_model": fetch_item_model,
-        "item_type": _response_type(fetch_item_model),
+        "item_type": _iterator_item_type(fetch_item_model),
         "pagination_supported": (
             fetch_op.pagination_supported if fetch_op is not None else False
         ),
@@ -790,6 +790,21 @@ def _response_type(response_model: str | None) -> str:
     if response_model:
         return f"{response_model} | dict[str, Any] | None"
     return "dict[str, Any] | None"
+
+
+def _iterator_item_type(item_model: str | None) -> str:
+    """Render the per-item type yielded by a collection iterator.
+
+    Distinct from `_response_type`: a collection iterator signals exhaustion
+    by raising `StopIteration` / `StopAsyncIteration`, never by yielding
+    `None`. Each yielded value is either a parsed model instance or — under
+    the `dicts` shape — the raw JSON object, but never `None`. The
+    collection's `first()` accessor is the only place where `None` is a
+    legitimate return (no items at all); the template adds `| None` there.
+    """
+    if item_model:
+        return f"{item_model} | dict[str, Any]"
+    return "dict[str, Any]"
 
 
 def _body_type(request_model: str | None, members: Sequence[str]) -> str:

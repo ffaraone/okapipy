@@ -400,3 +400,48 @@ def test_with_models_false_drops_model_imports_from_generated_nodes(
             continue
         assert "from ..models import" not in file.content, path
         assert "from .base.models import" not in file.content, path
+
+
+def test_collection_iterator_item_type_excludes_none(tmp_path: Path) -> None:
+    """The iterator's per-item type omits `None`; only `first()` admits it.
+
+    `__next__` / `__anext__` raise `StopIteration` / `StopAsyncIteration` to
+    signal exhaustion — they never yield `None`. So the `Iterator[...]`
+    parameter, the `current_page: list[...]` storage, and the `__next__`
+    return annotation must all be free of `| None`. The `first()` accessor
+    is the only spot that legitimately returns `None` (empty collection),
+    and its annotation keeps the `| None` arm.
+    """
+    from okapipy.parser.api import parse
+
+    api = parse(FIXTURE, nlp_cache_dir=Path(__file__).resolve().parents[2] / ".spacy")
+    vfs = generate(
+        api,
+        raw_spec=FIXTURE,
+        output_dir=tmp_path / "out",
+        package="acme.client",
+        client_class="AcmeClient",
+    )
+
+    orders_src = vfs["src/acme/client/base/collections/orders.py"].content
+
+    assert (
+        "class OrdersCollectionBaseIterator(Iterator[Order | dict[str, Any]]):"
+        in orders_src
+    )
+    assert (
+        "class AsyncOrdersCollectionBaseIterator(AsyncIterator[Order | dict[str, Any]]):"
+        in orders_src
+    )
+    assert "self.current_page: list[Order | dict[str, Any]] = []" in orders_src
+    assert "def __next__(self) -> Order | dict[str, Any]:" in orders_src
+    assert "async def __anext__(self) -> Order | dict[str, Any]:" in orders_src
+    assert "Iterator[Order | dict[str, Any] | None]" not in orders_src
+    assert "AsyncIterator[Order | dict[str, Any] | None]" not in orders_src
+    assert "def __next__(self) -> Order | dict[str, Any] | None:" not in orders_src
+    assert (
+        "async def __anext__(self) -> Order | dict[str, Any] | None:" not in orders_src
+    )
+
+    assert "def first(self) -> Order | dict[str, Any] | None:" in orders_src
+    assert "async def first(self) -> Order | dict[str, Any] | None:" in orders_src
