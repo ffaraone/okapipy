@@ -187,7 +187,10 @@ Non-fatal warnings go to `logging`. Errors raise a `ParserError` subclass
 * `output_dir: Path`, `package: str` (dotted, e.g. `acme.commerce`),
   `client_class: str` (PascalCase).
 * `project_name: str | None`, `project_version`, `python_version` (one of
-  `3.10` / `3.11` / `3.12` / `3.13`), `license` (SPDX id).
+  `3.10` / `3.11` / `3.12` / `3.13`), `license` (SPDX id),
+  `author: str | None` (copyright holder for `LICENSE` and PEP 621
+  `authors` entry; defaults to `project_name` in the LICENSE copyright line
+  and omits the `authors` block in `pyproject.toml` when not set).
 * `templates_dir: Path | None` — directory that overrides any of okapipy's
   packaged templates. Resolved before the packaged loader (ChoiceLoader).
 * `model_templates_dir: Path | None` — forwarded to dmcg's
@@ -383,7 +386,7 @@ subclass. The hierarchy:
 
 * `--output PATH`, `--package`, `--client-class` are required.
 * `--project-name`, `--project-version`, `--python-version`, `--license`,
-  `--rules`, `--lang`, `--strip-prefix`, `--nlp-cache-dir`,
+  `--author`, `--rules`, `--lang`, `--strip-prefix`, `--nlp-cache-dir`,
   `--templates-dir`, `--model-templates-dir`.
 * `--shape {models|dicts}` — lock the generated client to a single response
   shape. Omit to produce a dual-shape client (constructor `shape=` +
