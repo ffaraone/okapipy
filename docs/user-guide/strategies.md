@@ -47,11 +47,14 @@ from acme.commerce.base.sort import Sort
 class PaginationStrategy(Protocol):
     @property
     def supports_count(self) -> bool: ...
+    @property
+    def supports_random_access(self) -> bool: ...
     def initial(self, page_size: int | None) -> Mapping[str, Any]: ...
     def next(self, response, last_params) -> Mapping[str, Any] | None: ...
     def extract_items(self, response) -> list[Any]: ...
     def count_request_params(self, base_params) -> Mapping[str, Any]: ...
     def extract_count(self, response) -> int: ...
+    def page_params(self, page_num: int, page_size: int | None) -> Mapping[str, Any]: ...
 
 class FilterStrategy(Protocol):
     def encode(self, f: Filter | None) -> FilterEncoding: ...
@@ -86,12 +89,23 @@ deliberate: a `None` would let the backend choose, and the client would
 have no way to tell what page size each request actually carries.
 Per-call `.page_size(n)` always wins over the default.
 
-| Strategy | Wire form | Count source |
-| --- | --- | --- |
-| `LimitOffsetPagination` | `?offset=0&limit=50` | `total_field` (dotted path), `total_header`, or `Content-Range` |
-| `PageNumberPagination` | `?page=1&page_size=50` | `total_field` (dotted path) or `total_header` |
-| `CursorPagination` | `?cursor=<opaque>&page_size=50` | `Content-Range` (opt-in) |
-| `LinkHeaderPagination` | RFC 5988 `Link: <…>; rel="next"` | `Content-Range` or `total_header` |
+| Strategy | Wire form | Count source | Random page access |
+| --- | --- | --- | --- |
+| `LimitOffsetPagination` | `?offset=0&limit=50` | `total_field` (dotted path), `total_header`, or `Content-Range` | Yes |
+| `PageNumberPagination` | `?page=1&page_size=50` | `total_field` (dotted path) or `total_header` | Yes |
+| `CursorPagination` | `?cursor=<opaque>&page_size=50` | `Content-Range` (opt-in) | No (sequential) |
+| `LinkHeaderPagination` | RFC 5988 `Link: <…>; rel="next"` | `Content-Range` or `total_header` | No (sequential) |
+
+Random page access is what the collection's
+[`get_page(page_num)`](client-usage.md#fetch-a-single-page-directly)
+needs — the ability to compute the params for the N-th page directly,
+without consuming the N-1 pages before it. Offset and page-number
+strategies have it (offset = `page_num * size`; page = `start_page +
+page_num`). Cursor and link-header strategies are inherently sequential:
+the server hands you each next token alongside the current page, and
+there is no way to manufacture page N's token without page N-1's
+response. They report `supports_random_access=False` and reject
+`get_page` with `UnsupportedPaginationError`.
 
 ```python
 from acme.commerce.base.strategies import (
@@ -234,6 +248,8 @@ from typing import Any
 
 import httpx
 
+from acme.commerce.base.exceptions import UnsupportedPaginationError
+
 
 @dataclass
 class FromTakePagination:
@@ -246,6 +262,12 @@ class FromTakePagination:
     @property
     def supports_count(self) -> bool:
         return True
+
+    @property
+    def supports_random_access(self) -> bool:
+        # Page N's `from=` is the id of the last item on page N-1, so we
+        # can't compute a page directly — only by walking from the start.
+        return False
 
     def initial(self, page_size: int | None) -> Mapping[str, Any]:
         return {
@@ -269,6 +291,16 @@ class FromTakePagination:
 
     def extract_count(self, response: httpx.Response) -> int:
         return int(response.headers[self.total_header])
+
+    def page_params(
+        self, page_num: int, page_size: int | None
+    ) -> Mapping[str, Any]:
+        # Random access is impossible here; the collection won't call this
+        # because supports_random_access is False, but the Protocol requires
+        # the method to exist.
+        raise UnsupportedPaginationError(
+            "FromTakePagination is sequential — iterate the collection instead"
+        )
 ```
 
 Plug it in just like a built-in:
@@ -382,6 +414,10 @@ with a clear message:
   the strategy can't encode (e.g. an `OR` against `KeyValueFilter`).
 * `UnsupportedSortError` — the sort term list is incompatible (e.g.
   multi-term against `KeyDirectionSort`).
+* `UnsupportedPaginationError` — the collection asked the strategy for
+  something the wire protocol fundamentally doesn't allow (e.g.
+  `count()` against a strategy with no count source, or `get_page(...)`
+  against a sequential strategy like `CursorPagination`).
 * `ConfigurationError` — the strategy is missing configuration needed
   for the operation (e.g. `extract_count` called on a pagination
   strategy without a count source).

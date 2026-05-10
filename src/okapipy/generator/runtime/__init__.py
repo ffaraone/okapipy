@@ -16,6 +16,7 @@ from .exceptions import (
     ServerError,
     UnsupportedFilterError,
     UnsupportedFilterKeyError,
+    UnsupportedPaginationError,
     UnsupportedSortError,
     UnsupportedSortFieldError,
 )
@@ -77,6 +78,7 @@ __all__ = [
     "Unset",
     "UnsupportedFilterError",
     "UnsupportedFilterKeyError",
+    "UnsupportedPaginationError",
     "UnsupportedSortError",
     "UnsupportedSortFieldError",
 ]

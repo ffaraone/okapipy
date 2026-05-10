@@ -150,8 +150,49 @@ total = client.commerce.orders.filter(Filter(status="open")).count()
 `count()` issues one minimal request and reads the strategy-specific
 total (e.g. the `total` field in the response envelope, the
 `X-Total-Count` header, or the `Content-Range` header). It raises
-`NotImplementedError` if the configured pagination strategy doesn't
-support count.
+`UnsupportedPaginationError` if the configured pagination strategy
+doesn't support count.
+
+!!! warning "Breaking change in this release"
+    `count()` previously raised `NotImplementedError` when the strategy
+    had no count source. It now raises `UnsupportedPaginationError`
+    (importable from `<your_pkg>.base.exceptions`). If you were catching
+    `NotImplementedError` here, switch to the new exception.
+
+### Check whether the collection has any rows
+
+```python
+if client.commerce.orders.filter(Filter(status="open")).exists():
+    notify_oncall()
+```
+
+`exists()` is exactly `count() > 0` — it issues the same minimal
+request and short-circuits on the total. It raises the same
+`UnsupportedPaginationError` when the strategy has no count source.
+
+### Fetch a single page directly
+
+```python
+second_page = (
+    client.commerce.orders
+    .filter(Filter(status="open"))
+    .page_size(50)
+    .get_page(1)         # 0-indexed: 0 is the first page
+)
+```
+
+`get_page(page_num)` returns the items on the N-th page (zero-indexed)
+without walking the pages before it. Page size honors `.page_size(...)`
+or the strategy's default; filters, sort, and `with_options(...)` apply
+exactly as on iteration.
+
+This is the right primitive for **parallel page fetches** — see the
+[Cookbook](#parallel-page-fetches) for the full pattern.
+
+`get_page` raises `UnsupportedPaginationError` for pagination strategies
+that walk pages sequentially (`CursorPagination`, `LinkHeaderPagination`):
+they cannot reach page N without first consuming page N-1's continuation
+token.
 
 ### Create a record
 
@@ -505,20 +546,90 @@ Short recipes for common needs.
 ### Page-by-page processing (instead of row-by-row)
 
 `for order in collection:` flattens pages into rows. If you want the raw
-pages — for chunked persistence, batch processing, ETag handling —
-build the iterator yourself:
+pages — for chunked persistence, batch processing, ETag handling — drive
+the pages directly with `get_page`:
 
 ```python
-collection = client.commerce.orders.filter(Filter(status="open"))
-iterator = iter(collection)
+import math
 
-while True:
-    iterator.fetch_next_page()
-    if not iterator.current_page:
+collection = (
+    client.commerce.orders
+    .filter(Filter(status="open"))
+    .page_size(500)
+)
+
+page_size = 500
+total = collection.count()
+
+for page_num in range(math.ceil(total / page_size)):
+    page = collection.get_page(page_num)
+    if not page:                                # extra safety if total grew
         break
-    persist_batch(iterator.current_page)
-    iterator.index = len(iterator.current_page)        # mark consumed
+    persist_batch(page)
 ```
+
+### Parallel page fetches
+
+When pages are independent — bulk export, full-table sync, fan-out
+processing — `get_page` runs them concurrently. The collection is safe
+to share across threads or asyncio tasks for `get_page` calls because
+the method reads query state but never writes to it.
+
+!!! warning "Don't mutate the collection mid-flight"
+    Don't call `.filter(...)` / `.page_size(...)` / `.with_options(...)`
+    on the collection while parallel `get_page` calls are in flight —
+    those *do* mutate state and can poison in-flight requests. Configure
+    the collection up front, then fan out.
+
+=== "Sync (`ThreadPoolExecutor`)"
+    ```python
+    import math
+    from concurrent.futures import ThreadPoolExecutor
+
+    page_size = 500
+    collection = (
+        client.commerce.orders
+        .filter(Filter(status="open"))
+        .page_size(page_size)
+    )
+
+    total = collection.count()
+    num_pages = math.ceil(total / page_size)
+
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        pages = list(pool.map(collection.get_page, range(num_pages)))
+
+    orders = [order for page in pages for order in page]
+    ```
+
+=== "Async (`asyncio.gather`)"
+    ```python
+    import asyncio
+    import math
+
+    page_size = 500
+    collection = (
+        async_client.commerce.orders
+        .filter(Filter(status="open"))
+        .page_size(page_size)
+    )
+
+    total = await collection.count()
+    num_pages = math.ceil(total / page_size)
+
+    pages = await asyncio.gather(
+        *(collection.get_page(i) for i in range(num_pages))
+    )
+
+    orders = [order for page in pages for order in page]
+    ```
+
+`get_page` requires a pagination strategy that supports random access —
+`LimitOffsetPagination` and `PageNumberPagination`. Cursor and
+link-header strategies are sequential and reject the call with
+`UnsupportedPaginationError`. See [Pagination
+strategies](strategies.md#built-in-pagination-strategies) for the
+capability matrix.
 
 ### Tenant-scoped sub-clients
 

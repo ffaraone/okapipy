@@ -12,6 +12,7 @@ from collections.abc import Callable
 from typing import Any
 
 import httpx
+import pytest
 
 
 def _paged_handler(
@@ -420,6 +421,195 @@ def test_raw_query_filter_and_sort_compose_with_ampersand(client_module) -> None
     assert raw_query.startswith("/orders?and(eq(status,open))&ordering(-created_at)")
     assert "offset=0" in raw_query
     assert "limit=2" in raw_query
+    client.close()
+
+
+def test_exists_true_when_strategy_reports_positive_total(client_module) -> None:
+    """`exists()` returns True via `count()` when the strategy reports a positive total."""
+    transport = httpx.MockTransport(
+        _paged_handler([{"items": [{"id": "1"}], "total": 42}])
+    )
+    client = client_module.PagClientBase(
+        "https://api.example.com",
+        transport=transport,
+        pagination_strategy=client_module.LimitOffsetPagination(default_page_size=100),
+    )
+
+    assert client.orders.exists() is True
+    client.close()
+
+
+def test_exists_false_when_strategy_reports_zero_total(client_module) -> None:
+    """`exists()` returns False when the strategy reports a total of zero."""
+    transport = httpx.MockTransport(_paged_handler([{"items": [], "total": 0}]))
+    client = client_module.PagClientBase(
+        "https://api.example.com",
+        transport=transport,
+        pagination_strategy=client_module.LimitOffsetPagination(default_page_size=100),
+    )
+
+    assert client.orders.exists() is False
+    client.close()
+
+
+def test_count_raises_unsupported_pagination_error_when_no_count_source(
+    client_module,
+) -> None:
+    """`count()` raises `UnsupportedPaginationError` (not `NotImplementedError`).
+
+    Regression: the previous implementation raised `NotImplementedError`, which
+    misleadingly suggests the feature is a TODO rather than a wire-protocol
+    constraint of the configured strategy.
+    """
+    transport = httpx.MockTransport(_paged_handler([{"items": []}]))
+    client = client_module.PagClientBase(
+        "https://api.example.com",
+        transport=transport,
+        # CursorPagination with content_range=False has no count source.
+        pagination_strategy=client_module.CursorPagination(default_page_size=10),
+    )
+
+    with pytest.raises(client_module.UnsupportedPaginationError):
+        client.orders.count()
+    client.close()
+
+
+def test_get_page_zero_indexed_offset_for_limit_offset_strategy(client_module) -> None:
+    """`get_page(n)` issues a single request with `offset = n * page_size`."""
+    captured: list[httpx.URL] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        captured.append(request.url)
+        return httpx.Response(
+            200, json={"items": [{"id": "x"}, {"id": "y"}], "total": 100}
+        )
+
+    transport = httpx.MockTransport(handler)
+    client = client_module.PagClientBase(
+        "https://api.example.com",
+        transport=transport,
+        pagination_strategy=client_module.LimitOffsetPagination(default_page_size=100),
+    )
+
+    page = client.orders.page_size(20).get_page(3)
+
+    assert [item.id for item in page] == ["x", "y"]
+    assert len(captured) == 1
+    assert captured[0].params.get("offset") == "60"
+    assert captured[0].params.get("limit") == "20"
+    client.close()
+
+
+def test_get_page_uses_strategy_default_page_size_when_unset(client_module) -> None:
+    """`get_page(n)` falls back to the strategy's `default_page_size` without `.page_size(...)`."""
+    captured: list[httpx.URL] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        captured.append(request.url)
+        return httpx.Response(200, json={"items": [], "total": 0})
+
+    transport = httpx.MockTransport(handler)
+    client = client_module.PagClientBase(
+        "https://api.example.com",
+        transport=transport,
+        pagination_strategy=client_module.LimitOffsetPagination(default_page_size=42),
+    )
+
+    client.orders.get_page(2)
+
+    assert captured[0].params.get("offset") == "84"
+    assert captured[0].params.get("limit") == "42"
+    client.close()
+
+
+def test_get_page_zero_indexed_for_page_number_strategy(client_module) -> None:
+    """`get_page(0)` lands on `start_page`; `get_page(n)` lands on `start_page + n`."""
+    captured: list[httpx.URL] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        captured.append(request.url)
+        return httpx.Response(200, json={"items": [{"id": "p"}], "total": 100})
+
+    transport = httpx.MockTransport(handler)
+    client = client_module.PagClientBase(
+        "https://api.example.com",
+        transport=transport,
+        pagination_strategy=client_module.PageNumberPagination(default_page_size=10),
+    )
+
+    client.orders.page_size(5).get_page(0)
+    client.orders.page_size(5).get_page(4)
+
+    assert captured[0].params.get("page") == "1"  # start_page=1 + 0
+    assert captured[0].params.get("page_size") == "5"
+    assert captured[1].params.get("page") == "5"  # start_page=1 + 4
+    client.close()
+
+
+def test_get_page_raises_unsupported_for_cursor_strategy(client_module) -> None:
+    """`get_page(...)` rejects sequential strategies up front.
+
+    Cursor pagination cannot reach page N without first fetching the cursor
+    returned by page N-1, so the collection refuses the call rather than
+    silently walking pages — that would defeat the parallelism use case.
+    """
+    transport = httpx.MockTransport(_paged_handler([{"items": []}]))
+    client = client_module.PagClientBase(
+        "https://api.example.com",
+        transport=transport,
+        pagination_strategy=client_module.CursorPagination(default_page_size=10),
+    )
+
+    with pytest.raises(
+        client_module.UnsupportedPaginationError, match="random page access"
+    ):
+        client.orders.get_page(2)
+    client.close()
+
+
+def test_get_page_raises_unsupported_for_link_header_strategy(client_module) -> None:
+    """`get_page(...)` also rejects link-header pagination — it is sequential."""
+    transport = httpx.MockTransport(_paged_handler([{"items": []}]))
+    client = client_module.PagClientBase(
+        "https://api.example.com",
+        transport=transport,
+        pagination_strategy=client_module.LinkHeaderPagination(default_page_size=10),
+    )
+
+    with pytest.raises(
+        client_module.UnsupportedPaginationError, match="random page access"
+    ):
+        client.orders.get_page(1)
+    client.close()
+
+
+def test_get_page_threads_filter_and_with_options_into_request(client_module) -> None:
+    """`get_page(n)` carries filter params and `with_options(headers=...)` overrides."""
+    captured: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        captured.append(request)
+        return httpx.Response(200, json={"items": [], "total": 0})
+
+    transport = httpx.MockTransport(handler)
+    Filter = client_module.Filter
+    client = client_module.PagClientBase(
+        "https://api.example.com",
+        transport=transport,
+        pagination_strategy=client_module.LimitOffsetPagination(default_page_size=100),
+    )
+
+    (
+        client.orders.filter(Filter(status="open"))
+        .with_options(headers={"X-Trace": "abc"})
+        .page_size(10)
+        .get_page(2)
+    )
+
+    assert captured[0].url.params.get("status") == "open"
+    assert captured[0].url.params.get("offset") == "20"
+    assert captured[0].url.params.get("limit") == "10"
+    assert captured[0].headers.get("X-Trace") == "abc"
     client.close()
 
 

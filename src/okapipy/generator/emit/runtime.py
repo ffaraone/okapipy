@@ -122,6 +122,7 @@ RUNTIME_PUBLIC_NAMES: tuple[str, ...] = (
     "Unset",
     "UnsupportedFilterError",
     "UnsupportedFilterKeyError",
+    "UnsupportedPaginationError",
     "UnsupportedSortError",
     "UnsupportedSortFieldError",
 )
@@ -162,6 +163,7 @@ def _runtime_init(
         + "    ServerError,\n"
         + "    UnsupportedFilterError,\n"
         + "    UnsupportedFilterKeyError,\n"
+        + "    UnsupportedPaginationError,\n"
         + "    UnsupportedSortError,\n"
         + "    UnsupportedSortFieldError,\n"
         + ")\n"

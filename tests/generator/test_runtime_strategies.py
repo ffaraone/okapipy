@@ -9,6 +9,7 @@ import pytest
 
 from okapipy.generator.runtime.exceptions import (
     UnsupportedFilterError,
+    UnsupportedPaginationError,
     UnsupportedSortError,
 )
 from okapipy.generator.runtime.filters import Filter, Search
@@ -259,6 +260,76 @@ def test_link_header_pagination_stops_without_next_rel() -> None:
     response = _response({"items": []}, headers={"Link": '<...>; rel="prev"'})
 
     assert strat.next(response, last_params={}) is None
+
+
+# --- Random page access -----------------------------------------------------
+
+
+def test_offset_limit_supports_random_access_and_emits_offset_for_index() -> None:
+    """`LimitOffsetPagination.page_params(n, size)` emits `offset = n * size`."""
+    strat = LimitOffsetPagination(default_page_size=100)
+
+    assert strat.supports_random_access is True
+    assert strat.page_params(page_num=0, page_size=20) == {"offset": 0, "limit": 20}
+    assert strat.page_params(page_num=3, page_size=20) == {"offset": 60, "limit": 20}
+
+
+def test_offset_limit_page_params_falls_back_to_strategy_default_size() -> None:
+    """`page_size=None` reuses the strategy's `default_page_size`."""
+    strat = LimitOffsetPagination(default_page_size=50)
+
+    assert strat.page_params(page_num=2, page_size=None) == {"offset": 100, "limit": 50}
+
+
+def test_offset_limit_page_params_rejects_negative_index() -> None:
+    """A negative `page_num` is a programming error and raises `ValueError`."""
+    strat = LimitOffsetPagination(default_page_size=100)
+
+    with pytest.raises(ValueError, match="page_num"):
+        strat.page_params(page_num=-1, page_size=10)
+
+
+def test_page_number_supports_random_access_and_emits_index_offset_from_start() -> None:
+    """`PageNumberPagination.page_params(n, size)` emits `page = start_page + n`."""
+    strat = PageNumberPagination(default_page_size=20, start_page=1)
+
+    assert strat.supports_random_access is True
+    assert strat.page_params(page_num=0, page_size=10) == {"page": 1, "page_size": 10}
+    assert strat.page_params(page_num=4, page_size=10) == {"page": 5, "page_size": 10}
+
+
+def test_page_number_page_params_honors_zero_based_start_page() -> None:
+    """A `start_page=0` API still gets the 0-indexed `page_num` translation."""
+    strat = PageNumberPagination(default_page_size=20, start_page=0)
+
+    assert strat.page_params(page_num=0, page_size=10) == {"page": 0, "page_size": 10}
+    assert strat.page_params(page_num=2, page_size=10) == {"page": 2, "page_size": 10}
+
+
+def test_page_number_page_params_rejects_negative_index() -> None:
+    """A negative `page_num` is a programming error and raises `ValueError`."""
+    strat = PageNumberPagination(default_page_size=20)
+
+    with pytest.raises(ValueError, match="page_num"):
+        strat.page_params(page_num=-1, page_size=10)
+
+
+def test_cursor_does_not_support_random_access() -> None:
+    """Cursor pagination is sequential — `page_params` raises with a helpful message."""
+    strat = CursorPagination(default_page_size=10)
+
+    assert strat.supports_random_access is False
+    with pytest.raises(UnsupportedPaginationError, match="sequential"):
+        strat.page_params(page_num=2, page_size=10)
+
+
+def test_link_header_does_not_support_random_access() -> None:
+    """Link-header pagination is sequential — `page_params` raises with a helpful message."""
+    strat = LinkHeaderPagination(default_page_size=10)
+
+    assert strat.supports_random_access is False
+    with pytest.raises(UnsupportedPaginationError, match="sequential"):
+        strat.page_params(page_num=2, page_size=10)
 
 
 # --------------------------------------------------------------------------- #
