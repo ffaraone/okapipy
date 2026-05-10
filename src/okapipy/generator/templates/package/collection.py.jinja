@@ -144,12 +144,12 @@ class {{ class_name }}:
             raise NotImplementedError(
                 "configured pagination strategy does not support count()"
             )
-        params, raw_query = self.collect_filter_sort_params()
+        params, raw_query = self._collect_filter_sort_params()
         params = dict(self.client.pagination_strategy.count_request_params(params))
-        params = self.merge_options_params(params)
-        target_url, target_params = self.build_request_target(self.url, params, raw_query)
+        params = self._merge_options_params(params)
+        target_url, target_params = self._build_request_target(self.url, params, raw_query)
         response = self.client._http.request(
-            "GET", target_url, params=target_params, headers=self.collect_headers(),
+            "GET", target_url, params=target_params, headers=self._collect_headers(),
         )
         response.raise_for_status()
         return self.client.pagination_strategy.extract_count(response)
@@ -165,7 +165,7 @@ class {{ class_name }}:
         """Construct a fresh iterator bound to the current query state."""
         return {{ class_name }}Iterator(self)
 
-    def collect_filter_sort_params(self) -> tuple[dict[str, Any], str | None]:
+    def _collect_filter_sort_params(self) -> tuple[dict[str, Any], str | None]:
         """Encode `filter()` / `order_by()` accumulators.
 
         Returns the merged `params` dict plus an optional raw query string
@@ -187,20 +187,20 @@ class {{ class_name }}:
         raw_query = "&".join(raw_fragments) if raw_fragments else None
         return out, raw_query
 
-    def merge_options_params(self, params: dict[str, Any]) -> dict[str, Any]:
+    def _merge_options_params(self, params: dict[str, Any]) -> dict[str, Any]:
         """Merge `with_options(params=...)` overrides into the request params."""
         if self.options.params:
             params = {**params, **dict(self.options.params)}
         return params
 
-    def collect_headers(self) -> dict[str, str] | None:
+    def _collect_headers(self) -> dict[str, str] | None:
         """Return the header overrides accumulated by `with_options(headers=...)`."""
         if self.options.headers:
             return dict(self.options.headers)
         return None
 
     @staticmethod
-    def build_request_target(
+    def _build_request_target(
         url: str, params: Mapping[str, Any], raw_query: str | None,
     ) -> tuple[str, dict[str, Any] | None]:
         """Return `(url, params)` for `httpx.request(...)`.
@@ -241,9 +241,9 @@ class {{ class_name }}Iterator(Iterator[{{ item_type }}]):
     def __init__(self, collection: {{ class_name }}) -> None:
         self.collection = collection
         params = dict(collection.client.pagination_strategy.initial(collection.current_page_size))
-        filter_sort_params, raw_query = collection.collect_filter_sort_params()
+        filter_sort_params, raw_query = collection._collect_filter_sort_params()
         params.update(filter_sort_params)
-        self.next_params: Mapping[str, Any] | None = collection.merge_options_params(params)
+        self.next_params: Mapping[str, Any] | None = collection._merge_options_params(params)
         self.raw_query: str | None = raw_query
         self.current_page: list[{{ item_type }}] = []
         self.index: int = 0
@@ -255,12 +255,12 @@ class {{ class_name }}Iterator(Iterator[{{ item_type }}]):
         while self.index >= len(self.current_page):
             if self.next_params is None:
                 raise StopIteration
-            self.fetch_next_page()
+            self._fetch_next_page()
         item = self.current_page[self.index]
         self.index += 1
         return item
 
-    def fetch_next_page(self) -> None:
+    def _fetch_next_page(self) -> None:
         """Issue the next page request and load `current_page`."""
         if self.next_params is None:
             return
@@ -273,14 +273,14 @@ class {{ class_name }}Iterator(Iterator[{{ item_type }}]):
         if next_url is not None:
             url, params = next_url, request_params
         else:
-            url, params = self.collection.build_request_target(
+            url, params = self.collection._build_request_target(
                 self.collection.url, request_params, self.raw_query
             )
         response = self.collection.client._http.request(
             "GET",
             url,
             params=params,
-            headers=self.collection.collect_headers(),
+            headers=self.collection._collect_headers(),
         )
         response.raise_for_status()
         strat = self.collection.client.pagination_strategy
@@ -404,12 +404,12 @@ class Async{{ class_name }}:
             raise NotImplementedError(
                 "configured pagination strategy does not support count()"
             )
-        params, raw_query = self.collect_filter_sort_params()
+        params, raw_query = self._collect_filter_sort_params()
         params = dict(self.client.pagination_strategy.count_request_params(params))
-        params = self.merge_options_params(params)
-        target_url, target_params = self.build_request_target(self.url, params, raw_query)
+        params = self._merge_options_params(params)
+        target_url, target_params = self._build_request_target(self.url, params, raw_query)
         response = await self.client._http.request(
-            "GET", target_url, params=target_params, headers=self.collect_headers(),
+            "GET", target_url, params=target_params, headers=self._collect_headers(),
         )
         response.raise_for_status()
         return self.client.pagination_strategy.extract_count(response)
@@ -425,7 +425,7 @@ class Async{{ class_name }}:
         """Construct a fresh async iterator bound to the current query state."""
         return Async{{ class_name }}Iterator(self)
 
-    def collect_filter_sort_params(self) -> tuple[dict[str, Any], str | None]:
+    def _collect_filter_sort_params(self) -> tuple[dict[str, Any], str | None]:
         filter_encoding = self.client.filter_strategy.encode(self.filter_expr)
         sort_encoding = self.client.sort_strategy.encode(self.sort_expr)
         out: dict[str, Any] = dict(filter_encoding.params)
@@ -438,18 +438,18 @@ class Async{{ class_name }}:
         raw_query = "&".join(raw_fragments) if raw_fragments else None
         return out, raw_query
 
-    def merge_options_params(self, params: dict[str, Any]) -> dict[str, Any]:
+    def _merge_options_params(self, params: dict[str, Any]) -> dict[str, Any]:
         if self.options.params:
             params = {**params, **dict(self.options.params)}
         return params
 
-    def collect_headers(self) -> dict[str, str] | None:
+    def _collect_headers(self) -> dict[str, str] | None:
         if self.options.headers:
             return dict(self.options.headers)
         return None
 
     @staticmethod
-    def build_request_target(
+    def _build_request_target(
         url: str, params: Mapping[str, Any], raw_query: str | None,
     ) -> tuple[str, dict[str, Any] | None]:
         if not raw_query:
@@ -475,9 +475,9 @@ class Async{{ class_name }}Iterator(AsyncIterator[{{ item_type }}]):
     def __init__(self, collection: Async{{ class_name }}) -> None:
         self.collection = collection
         params = dict(collection.client.pagination_strategy.initial(collection.current_page_size))
-        filter_sort_params, raw_query = collection.collect_filter_sort_params()
+        filter_sort_params, raw_query = collection._collect_filter_sort_params()
         params.update(filter_sort_params)
-        self.next_params: Mapping[str, Any] | None = collection.merge_options_params(params)
+        self.next_params: Mapping[str, Any] | None = collection._merge_options_params(params)
         self.raw_query: str | None = raw_query
         self.current_page: list[{{ item_type }}] = []
         self.index: int = 0
@@ -489,12 +489,12 @@ class Async{{ class_name }}Iterator(AsyncIterator[{{ item_type }}]):
         while self.index >= len(self.current_page):
             if self.next_params is None:
                 raise StopAsyncIteration
-            await self.fetch_next_page()
+            await self._fetch_next_page()
         item = self.current_page[self.index]
         self.index += 1
         return item
 
-    async def fetch_next_page(self) -> None:
+    async def _fetch_next_page(self) -> None:
         if self.next_params is None:
             return
         request_params = dict(self.next_params)
@@ -504,14 +504,14 @@ class Async{{ class_name }}Iterator(AsyncIterator[{{ item_type }}]):
         if next_url is not None:
             url, params = next_url, request_params
         else:
-            url, params = self.collection.build_request_target(
+            url, params = self.collection._build_request_target(
                 self.collection.url, request_params, self.raw_query
             )
         response = await self.collection.client._http.request(
             "GET",
             url,
             params=params,
-            headers=self.collection.collect_headers(),
+            headers=self.collection._collect_headers(),
         )
         response.raise_for_status()
         strat = self.collection.client.pagination_strategy
