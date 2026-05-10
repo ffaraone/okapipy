@@ -39,6 +39,7 @@ import httpx
 from .exceptions import (
     ConfigurationError,
     UnsupportedFilterError,
+    UnsupportedPaginationError,
     UnsupportedSortError,
 )
 from .filters import AndFilter, Filter, NotFilter, OrFilter, Search
@@ -82,10 +83,21 @@ class SortEncoding:
 
 @runtime_checkable
 class PaginationStrategy(Protocol):
-    """Drives the iterator and (optionally) the count request."""
+    """Drives the iterator and (optionally) the count and random-access requests.
+
+    `supports_count` / `count_request_params` / `extract_count` form the count
+    capability. `supports_random_access` / `page_params` form the random-access
+    capability — the ability to fetch the N-th page directly without walking
+    pages 0..N-1. Cursor and link-header paginations are inherently sequential
+    and report `supports_random_access=False`; offset and page-number
+    paginations support it.
+    """
 
     @property
     def supports_count(self) -> bool: ...
+
+    @property
+    def supports_random_access(self) -> bool: ...
 
     def initial(self, page_size: int | None) -> Mapping[str, Any]: ...
 
@@ -100,6 +112,10 @@ class PaginationStrategy(Protocol):
     ) -> Mapping[str, Any]: ...
 
     def extract_count(self, response: httpx.Response) -> int: ...
+
+    def page_params(
+        self, page_num: int, page_size: int | None
+    ) -> Mapping[str, Any]: ...
 
 
 @runtime_checkable
@@ -191,6 +207,10 @@ class LimitOffsetPagination:
             or self.content_range
         )
 
+    @property
+    def supports_random_access(self) -> bool:
+        return True
+
     def initial(self, page_size: int | None) -> Mapping[str, Any]:
         return {
             self.offset_param: 0,
@@ -198,6 +218,12 @@ class LimitOffsetPagination:
             if page_size is not None
             else self.default_page_size,
         }
+
+    def page_params(self, page_num: int, page_size: int | None) -> Mapping[str, Any]:
+        if page_num < 0:
+            raise ValueError(f"page_num must be non-negative; got {page_num}")
+        size = page_size if page_size is not None else self.default_page_size
+        return {self.offset_param: page_num * size, self.limit_param: size}
 
     def next(
         self, response: httpx.Response, last_params: Mapping[str, Any]
@@ -265,9 +291,23 @@ class PageNumberPagination:
     def supports_count(self) -> bool:
         return self.total_field is not None or self.total_header is not None
 
+    @property
+    def supports_random_access(self) -> bool:
+        return True
+
     def initial(self, page_size: int | None) -> Mapping[str, Any]:
         return {
             self.page_param: self.start_page,
+            self.page_size_param: page_size
+            if page_size is not None
+            else self.default_page_size,
+        }
+
+    def page_params(self, page_num: int, page_size: int | None) -> Mapping[str, Any]:
+        if page_num < 0:
+            raise ValueError(f"page_num must be non-negative; got {page_num}")
+        return {
+            self.page_param: self.start_page + page_num,
             self.page_size_param: page_size
             if page_size is not None
             else self.default_page_size,
@@ -324,6 +364,10 @@ class CursorPagination:
     def supports_count(self) -> bool:
         return self.content_range
 
+    @property
+    def supports_random_access(self) -> bool:
+        return False
+
     def initial(self, page_size: int | None) -> Mapping[str, Any]:
         if self.page_size_param is None:
             return {}
@@ -332,6 +376,12 @@ class CursorPagination:
             if page_size is not None
             else self.default_page_size,
         }
+
+    def page_params(self, page_num: int, page_size: int | None) -> Mapping[str, Any]:
+        raise UnsupportedPaginationError(
+            "CursorPagination is sequential — fetching page N requires the "
+            "cursor returned by page N-1; iterate the collection instead"
+        )
 
     def next(
         self, response: httpx.Response, last_params: Mapping[str, Any]
@@ -382,6 +432,10 @@ class LinkHeaderPagination:
     def supports_count(self) -> bool:
         return self.content_range or self.total_header is not None
 
+    @property
+    def supports_random_access(self) -> bool:
+        return False
+
     def initial(self, page_size: int | None) -> Mapping[str, Any]:
         if self.page_size_param is None:
             return {}
@@ -390,6 +444,13 @@ class LinkHeaderPagination:
             if page_size is not None
             else self.default_page_size,
         }
+
+    def page_params(self, page_num: int, page_size: int | None) -> Mapping[str, Any]:
+        raise UnsupportedPaginationError(
+            "LinkHeaderPagination is sequential — page N is reachable only by "
+            'following the rel="next" link returned by page N-1; iterate the '
+            "collection instead"
+        )
 
     def next(
         self, response: httpx.Response, last_params: Mapping[str, Any]

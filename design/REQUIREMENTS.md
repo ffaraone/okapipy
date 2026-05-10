@@ -318,7 +318,9 @@ Every collection class exposes:
 | `with_options(**overrides)` | `self` | Per-collection request overrides (params, headers, timeout, auth, verify, retries). |
 | `all()` | `self` | Fluent identity. |
 | `first()` | item or `None` | Single request, smallest page. |
-| `count()` | `int` | Calls the configured `PaginationStrategy.count_request_params` + `extract_count`; raises `NotImplementedError` when the strategy's `supports_count` is `False`. |
+| `count()` | `int` | Calls the configured `PaginationStrategy.count_request_params` + `extract_count`; raises `UnsupportedPaginationError` when the strategy's `supports_count` is `False`. |
+| `exists()` | `bool` | Equivalent to `count() > 0`; inherits the same `UnsupportedPaginationError` constraint. |
+| `get_page(page_num: int)` | `list[item]` | 0-indexed direct page fetch via `PaginationStrategy.page_params`; raises `UnsupportedPaginationError` when the strategy's `supports_random_access` is `False` (cursor and link-header strategies are inherently sequential). Designed for parallel page fetches. |
 | `__iter__` / `__aiter__` | per-collection iterator | Drives the configured `PaginationStrategy`. |
 | `__getitem__(id)` | resource | Indexed accessor (no HTTP call). |
 | `create(body, **overrides)` | response | Emitted only when the parser populated `Collection.create`. |
@@ -353,7 +355,11 @@ The vendored runtime ships:
   `default_page_size` (the wire dialect carries it; `None` would leave the
   client unable to predict what size is being sent). Each declares a
   `supports_count` capability driven by configurable count sources
-  (`total_field` accepting a dotted path, `total_header`, `content_range`).
+  (`total_field` accepting a dotted path, `total_header`, `content_range`)
+  and a `supports_random_access` capability — `True` for offset and
+  page-number paginations (which can compute params for any page directly),
+  `False` for cursor and link-header paginations (which can only walk
+  pages sequentially).
 * **Filter:** `Filter` ABC + `AndFilter` / `OrFilter` / `NotFilter` /
   `Search`. Concrete strategies: `KeyValueFilter` (conjunctive equality),
   `KeyOpValueFilter` (Django-style suffixes), `SearchFilterStrategy` (single
@@ -378,6 +384,8 @@ subclass. The hierarchy:
   * `ResponseValidationError` (2xx body failed Pydantic validation)
   * `ConfigurationError` (invalid strategy / option)
   * `UnsupportedFilterError` / `UnsupportedFilterKeyError`
+  * `UnsupportedPaginationError` (strategy can't satisfy `count()` or
+    `get_page()` because the wire protocol fundamentally doesn't allow it)
   * `UnsupportedSortError` / `UnsupportedSortFieldError`
 
 ### 2.10 CLI

@@ -52,6 +52,19 @@ class UnsupportedSortError(ApiError):
     """The configured `SortStrategy` cannot encode this `Sort` term list."""
 
 
+class UnsupportedPaginationError(ApiError):
+    """The configured `PaginationStrategy` cannot satisfy this operation.
+
+    Raised when a collection method asks the strategy for something the
+    underlying wire protocol does not allow — e.g. `count()` against a
+    cursor strategy with no count source, or `get_page(n)` against any
+    strategy that walks pages sequentially (cursor, link header). The
+    capability is *fundamentally* absent from the protocol, not merely
+    unimplemented; callers should switch strategy or iterate sequentially
+    instead.
+    """
+
+
 class UnsupportedFilterKeyError(UnsupportedFilterError):
     """A filter key is not declared on the operation."""
 

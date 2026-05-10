@@ -47,6 +47,45 @@ def test_{{ test_attr }}_first_returns_initial_item(
     assert field(first, "id") == "1"
 
 
+def test_{{ test_attr }}_exists_true_when_total_positive(
+    httpx_mock: HTTPXMock,
+    client: {{ client_class }},
+) -> None:
+    """`exists()` returns True when the strategy-reported total is > 0."""
+    httpx_mock.add_response(
+        method="GET",
+        json={"items": [{"id": "1"}], "total": 7},
+    )
+    assert client.{{ accessor_chain }}.exists() is True
+
+
+def test_{{ test_attr }}_exists_false_when_total_zero(
+    httpx_mock: HTTPXMock,
+    client: {{ client_class }},
+) -> None:
+    """`exists()` returns False when the strategy-reported total is 0."""
+    httpx_mock.add_response(
+        method="GET",
+        json={"items": [], "total": 0},
+    )
+    assert client.{{ accessor_chain }}.exists() is False
+
+
+def test_{{ test_attr }}_get_page_returns_items_for_index(
+    httpx_mock: HTTPXMock,
+    client: {{ client_class }},
+    field: Callable[[Any, str], Any],
+) -> None:
+    """`get_page(n)` fetches a single page directly without walking earlier pages."""
+    httpx_mock.add_response(
+        method="GET",
+        json={"items": [{"id": "p2-a"}, {"id": "p2-b"}], "total": 100},
+    )
+    page = client.{{ accessor_chain }}.page_size(2).get_page(1)
+
+    assert [field(item, "id") for item in page] == ["p2-a", "p2-b"]
+
+
 {% if has_create %}
 def test_{{ test_attr }}_create_posts_body(
     httpx_mock: HTTPXMock,
@@ -100,6 +139,35 @@ async def test_async_{{ test_attr }}_first_returns_initial_item(
 
     assert first is not None
     assert field(first, "id") == "1"
+
+
+@pytest.mark.asyncio
+async def test_async_{{ test_attr }}_exists_true_when_total_positive(
+    httpx_mock: HTTPXMock,
+    async_client: Async{{ client_class }},
+) -> None:
+    """Async `exists()` returns True when the strategy-reported total is > 0."""
+    httpx_mock.add_response(
+        method="GET",
+        json={"items": [{"id": "1"}], "total": 7},
+    )
+    assert await async_client.{{ accessor_chain }}.exists() is True
+
+
+@pytest.mark.asyncio
+async def test_async_{{ test_attr }}_get_page_returns_items_for_index(
+    httpx_mock: HTTPXMock,
+    async_client: Async{{ client_class }},
+    field: Callable[[Any, str], Any],
+) -> None:
+    """Async `get_page(n)` fetches a single page directly."""
+    httpx_mock.add_response(
+        method="GET",
+        json={"items": [{"id": "p2-a"}, {"id": "p2-b"}], "total": 100},
+    )
+    page = await async_client.{{ accessor_chain }}.page_size(2).get_page(1)
+
+    assert [field(item, "id") for item in page] == ["p2-a", "p2-b"]
 
 
 {% if has_create %}

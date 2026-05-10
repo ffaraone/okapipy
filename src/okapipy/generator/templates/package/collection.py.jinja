@@ -15,6 +15,7 @@ from typing import TYPE_CHECKING, Any, cast
 {% endif %}
 from urllib.parse import urlencode
 
+from ..exceptions import UnsupportedPaginationError
 from ..filters import Filter
 from ..sort import Sort
 from ..types import RequestOptions
@@ -139,9 +140,14 @@ class {{ class_name }}:
             self.current_page_size = saved_page_size
 
     def count(self) -> int:
-        """Issue one minimal request and read the strategy-specific total."""
+        """Issue one minimal request and read the strategy-specific total.
+
+        Raises `UnsupportedPaginationError` when the configured pagination
+        strategy has no count source (e.g. cursor pagination without
+        `Content-Range`).
+        """
         if not self.client.pagination_strategy.supports_count:
-            raise NotImplementedError(
+            raise UnsupportedPaginationError(
                 "configured pagination strategy does not support count()"
             )
         params, raw_query = self._collect_filter_sort_params()
@@ -153,6 +159,53 @@ class {{ class_name }}:
         )
         response.raise_for_status()
         return self.client.pagination_strategy.extract_count(response)
+
+    def exists(self) -> bool:
+        """Return `True` iff the collection contains at least one item.
+
+        Equivalent to `count() > 0` and inherits the same constraint: raises
+        `UnsupportedPaginationError` when the configured strategy has no
+        count source.
+        """
+        return self.count() > 0
+
+    def get_page(self, page_num: int) -> list[{{ item_type }}]:
+        """Fetch a single page by 0-indexed position without walking prior pages.
+
+        `get_page(0)` returns the first page, `get_page(1)` the second, and so
+        on. Page size honors `.page_size(...)` (or the strategy's default).
+        Filters, sort terms, and `with_options(...)` overrides apply just like
+        on iteration.
+
+        Designed for parallel page fetches: call `count()` once, divide by
+        page size, then dispatch `get_page(i)` for each i to a thread pool or
+        gather them with `asyncio.gather`. The collection is safe to share
+        across concurrent `get_page(...)` calls — the method reads query state
+        but never mutates it. (Do *not* mutate the collection — `.filter()`,
+        `.page_size()`, etc. — while parallel calls are in flight.)
+
+        Raises `UnsupportedPaginationError` for strategies that walk pages
+        sequentially (cursor, link-header) — they cannot reach page N without
+        first traversing pages 0..N-1.
+        """
+        strat = self.client.pagination_strategy
+        if not strat.supports_random_access:
+            raise UnsupportedPaginationError(
+                "configured pagination strategy does not support random page access"
+            )
+        params = dict(strat.page_params(page_num, self.current_page_size))
+        filter_sort_params, raw_query = self._collect_filter_sort_params()
+        params.update(filter_sort_params)
+        params = self._merge_options_params(params)
+        target_url, target_params = self._build_request_target(self.url, params, raw_query)
+        response = self.client._http.request(
+            "GET", target_url, params=target_params, headers=self._collect_headers(),
+        )
+        response.raise_for_status()
+        return [
+            cast("{{ item_type }}", self.client.from_response({{ fetch_item_model | py_class_or_none }}, raw))
+            for raw in strat.extract_items(response)
+        ]
 
 {% for action in actions %}
     @property
@@ -401,7 +454,7 @@ class Async{{ class_name }}:
 
     async def count(self) -> int:
         if not self.client.pagination_strategy.supports_count:
-            raise NotImplementedError(
+            raise UnsupportedPaginationError(
                 "configured pagination strategy does not support count()"
             )
         params, raw_query = self._collect_filter_sort_params()
@@ -413,6 +466,31 @@ class Async{{ class_name }}:
         )
         response.raise_for_status()
         return self.client.pagination_strategy.extract_count(response)
+
+    async def exists(self) -> bool:
+        """Return `True` iff the collection contains at least one item."""
+        return await self.count() > 0
+
+    async def get_page(self, page_num: int) -> list[{{ item_type }}]:
+        """Fetch a single page by 0-indexed position. See sync sibling for details."""
+        strat = self.client.pagination_strategy
+        if not strat.supports_random_access:
+            raise UnsupportedPaginationError(
+                "configured pagination strategy does not support random page access"
+            )
+        params = dict(strat.page_params(page_num, self.current_page_size))
+        filter_sort_params, raw_query = self._collect_filter_sort_params()
+        params.update(filter_sort_params)
+        params = self._merge_options_params(params)
+        target_url, target_params = self._build_request_target(self.url, params, raw_query)
+        response = await self.client._http.request(
+            "GET", target_url, params=target_params, headers=self._collect_headers(),
+        )
+        response.raise_for_status()
+        return [
+            cast("{{ item_type }}", self.client.from_response({{ fetch_item_model | py_class_or_none }}, raw))
+            for raw in strat.extract_items(response)
+        ]
 
 {% for action in actions %}
     @property

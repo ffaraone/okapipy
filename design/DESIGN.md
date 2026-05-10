@@ -451,6 +451,27 @@ parallel pair. The iterator constructor pulls `next_params` from
 overlays per-collection `RequestOptions`, and the iterator's `__next__`
 loop calls `client.from_response(item_model_cls, raw)` for each row.
 
+`get_page(page_num)` is the iterator's random-access sibling: it asks the
+strategy for `page_params(page_num, page_size)` directly, threads the same
+filter/sort/options accumulators, issues one request, and returns
+`extract_items(...)` parsed through `client.from_response(...)`. It is
+read-only on the collection — none of `filter_expr`, `sort_expr`,
+`current_page_size`, or `options` is mutated — so multiple `get_page`
+calls on the same collection from different threads or asyncio tasks are
+safe as long as no caller is concurrently mutating those accumulators.
+`first()` remains the odd one out (it temporarily writes
+`current_page_size`); `get_page` deliberately reads only.
+
+`exists()` is `count() > 0`. The collection routes both through the
+strategy's `supports_count` / `count_request_params` / `extract_count`
+trio; when `supports_count` is `False` they raise
+`UnsupportedPaginationError`. `get_page(...)` does the same check against
+`supports_random_access` — `True` for `LimitOffsetPagination` (offset =
+`page_num * size`) and `PageNumberPagination` (page = `start_page +
+page_num`); `False` for `CursorPagination` and `LinkHeaderPagination`,
+which reject up front because the wire protocol cannot reach page N
+without first consuming page N-1's continuation token.
+
 `templates/package/resource.py.jinja` and `singleton.py.jinja` produce the
 CRUD-method surface from the parser slot booleans (`if retrieve_op`, etc.)
 and forward to a shared `_request` helper that issues the call, raises on
