@@ -25,6 +25,7 @@ last so it captures the full set of base files.
 
 from __future__ import annotations
 
+from datetime import date
 from pathlib import Path
 from typing import Any, Literal
 
@@ -43,6 +44,15 @@ from okapipy.parser.model import APIModel
 
 Shape = Literal["auto", "models", "dicts"]
 
+# SPDX identifiers the LICENSE template renders verbatim text for. Drives the
+# `license = "..."` line in the generated `pyproject.toml`: hatchling validates
+# this field as an SPDX expression, so we only emit it for recognised ids and
+# omit it (rather than fail at `uv sync` time) for free-form values like
+# `"Proprietary"`.
+_SPDX_LICENSES = frozenset(
+    {"MIT", "Apache-2.0", "BSD-3-Clause", "BSD-2-Clause", "MPL-2.0"}
+)
+
 
 def generate(
     api: APIModel,
@@ -55,6 +65,7 @@ def generate(
     project_version: str = "0.1.0",
     python_version: str = "3.13",
     license: str = "Proprietary",
+    author: str | None = None,
     templates_dir: Path | None = None,
     model_templates_dir: Path | None = None,
     shape: Shape = "auto",
@@ -74,6 +85,10 @@ def generate(
         project_version: initial version string emitted into `pyproject.toml`.
         python_version: pinned Python version for the generated project.
         license: SPDX identifier; drives the `LICENSE` placeholder.
+        author: copyright holder for the generated `LICENSE` and PEP 621
+            `authors` entry in `pyproject.toml`. When omitted, the LICENSE
+            falls back to the project name and `pyproject.toml` omits the
+            `authors` block.
         templates_dir: optional directory of user templates. Resolved before the
             packaged defaults (ChoiceLoader).
         model_templates_dir: optional directory of `datamodel-code-generator`
@@ -106,6 +121,9 @@ def generate(
         "project_version": project_version,
         "python_version": python_version,
         "license": license,
+        "license_is_spdx": license in _SPDX_LICENSES,
+        "author": author,
+        "current_year": date.today().year,
         "shape": shape,
     }
     env = make_environment(templates_dir)

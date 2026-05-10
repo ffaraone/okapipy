@@ -86,9 +86,9 @@ them on demand, delete the file and re-run.
 
 | Template | Output | Variables |
 | --- | --- | --- |
-| `project/pyproject.toml.jinja` | `pyproject.toml` | `project_name`, `project_version`, `python_version`, `package`, `top_package`, `client_class`, `license` |
+| `project/pyproject.toml.jinja` | `pyproject.toml` | `project_name`, `project_version`, `python_version`, `package`, `top_package`, `client_class`, `license`, `license_is_spdx` (gates the `license = "..."` line), `author` (gates the PEP 621 `authors` block). |
 | `project/README.md.jinja` | `README.md` | Same as above. |
-| `project/LICENSE.jinja` | `LICENSE` | `license` (SPDX), `project_name`, current year. |
+| `project/LICENSE.jinja` | `LICENSE` | `license` (SPDX), `author` (copyright holder; falls back to `project_name`), `current_year`. |
 | `project/gitignore.jinja` | `.gitignore` | (no variables) |
 | `project/python-version.jinja` | `.python-version` | `python_version` |
 

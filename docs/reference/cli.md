@@ -98,7 +98,8 @@ okapipy spec generate <SOURCE> --output DIR --package PKG --client-class NAME [O
 | `--project-name NAME` | last segment of `--package` | PEP 503 distribution name. |
 | `--project-version V` | `0.1.0` | Initial version string emitted into `pyproject.toml`. |
 | `--python-version V` | `3.13` | Pinned Python version for the generated project. |
-| `--license SPDX` | `Proprietary` | SPDX license identifier; drives the `LICENSE` placeholder. |
+| `--license SPDX` | `Proprietary` | SPDX license identifier. Recognised values (`MIT`, `Apache-2.0`, `BSD-3-Clause`, `BSD-2-Clause`, `MPL-2.0`) emit the full license text into `LICENSE` and the `license` field in `pyproject.toml`; any other value emits a TODO placeholder and omits the `license` field. |
+| `--author NAME` | none | Copyright holder. When set, written into the `LICENSE` copyright line and as a PEP 621 `authors = [{ name = "NAME" }]` entry in `pyproject.toml`. When unset, `LICENSE` falls back to the project name and `pyproject.toml` omits the `authors` block. |
 
 **Parser options** (forwarded to `okapipy spec parse`):
 

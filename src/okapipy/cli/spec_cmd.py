@@ -240,6 +240,14 @@ def generate_command(
         "--license",
         help="SPDX license identifier; drives the LICENSE placeholder.",
     ),
+    author: str | None = typer.Option(
+        None,
+        "--author",
+        help=(
+            "Copyright holder for the generated LICENSE and PEP 621 "
+            "`authors` entry in pyproject.toml."
+        ),
+    ),
     rules: Path | None = typer.Option(
         None,
         "--rules",
@@ -321,6 +329,7 @@ def generate_command(
                 project_version=project_version,
                 python_version=python_version,
                 license=license_id,
+                author=author,
                 templates_dir=templates_dir,
                 model_templates_dir=model_templates_dir,
                 shape=resolved_shape,

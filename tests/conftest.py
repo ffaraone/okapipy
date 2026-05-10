@@ -7,6 +7,7 @@ import sys
 from collections.abc import Iterator
 from pathlib import Path
 from types import ModuleType
+from typing import Any
 
 import pytest
 from spacy.language import Language
@@ -323,7 +324,7 @@ def manifest_vfs(tmp_path: Path) -> dict[str, GeneratedFile]:
 
 
 @pytest.fixture
-def project_context() -> dict[str, str]:
+def project_context() -> dict[str, Any]:
     """Project-level Jinja context shared across the test-emitter templates.
 
     Carries `shape="auto"` to mirror the default `okapipy spec generate`
@@ -337,5 +338,8 @@ def project_context() -> dict[str, str]:
         "project_version": "0.1.0",
         "python_version": "3.13",
         "license": "Proprietary",
+        "license_is_spdx": False,
+        "author": None,
+        "current_year": 2026,
         "shape": "auto",
     }

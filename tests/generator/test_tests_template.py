@@ -10,6 +10,7 @@ in `test_end_to_end.py`.
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 from okapipy.generator.emit.tests import emit_tests
 from okapipy.generator.templating import make_environment
@@ -19,7 +20,7 @@ FIXTURES = Path(__file__).resolve().parent.parent / "fixtures"
 
 
 def test_emit_tests_writes_conftest_and_client_test(
-    project_context: dict[str, str],
+    project_context: dict[str, Any],
 ) -> None:
     """`emit_tests` always emits a `conftest.py` + `test_client.py` under the package path."""
     api = parse(FIXTURES / "simple.yaml")
@@ -36,7 +37,7 @@ def test_emit_tests_writes_conftest_and_client_test(
 
 
 def test_emit_tests_emits_init_markers_along_package_path(
-    project_context: dict[str, str],
+    project_context: dict[str, Any],
 ) -> None:
     """Empty `__init__.py` markers exist at each level so pytest's default importer
     can disambiguate same-named test modules that live under different flavors of the
@@ -59,7 +60,7 @@ def test_emit_tests_emits_init_markers_along_package_path(
 
 
 def test_emit_tests_one_file_per_collection_and_resource(
-    project_context: dict[str, str],
+    project_context: dict[str, Any],
 ) -> None:
     """A spec with one collection + resource produces one test module per node."""
     api = parse(FIXTURES / "simple.yaml")
@@ -74,7 +75,7 @@ def test_emit_tests_one_file_per_collection_and_resource(
 
 
 def test_emit_tests_walks_namespaces_and_actions(
-    project_context: dict[str, str],
+    project_context: dict[str, Any],
 ) -> None:
     """A namespace fixture produces namespace + action test modules with chained access."""
     api = parse(FIXTURES / "nested.yaml")
@@ -89,7 +90,7 @@ def test_emit_tests_walks_namespaces_and_actions(
 
 
 def test_emit_tests_skips_create_block_when_collection_has_no_create_op(
-    project_context: dict[str, str],
+    project_context: dict[str, Any],
 ) -> None:
     """The `create()` test is only emitted when the collection's create op exists."""
     api = parse(FIXTURES / "simple.yaml")  # /orders has GET only — no create
@@ -103,7 +104,7 @@ def test_emit_tests_skips_create_block_when_collection_has_no_create_op(
 
 
 def test_emit_tests_uses_pytest_httpx_for_http_mocking(
-    project_context: dict[str, str],
+    project_context: dict[str, Any],
 ) -> None:
     """Emitted tests pull the `httpx_mock: HTTPXMock` fixture from `pytest-httpx`."""
     api = parse(FIXTURES / "simple.yaml")
@@ -118,7 +119,7 @@ def test_emit_tests_uses_pytest_httpx_for_http_mocking(
 
 
 def test_emit_tests_emits_async_tests_with_pytest_asyncio_marker(
-    project_context: dict[str, str],
+    project_context: dict[str, Any],
 ) -> None:
     """Async tests carry the `@pytest.mark.asyncio` decorator and use `await`."""
     api = parse(FIXTURES / "simple.yaml")
