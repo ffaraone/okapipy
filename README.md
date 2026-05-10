@@ -24,6 +24,11 @@ client — sync **and** async, sharing one tree. It lifts flat paths into
 the wiring and a one-shot user layer carries your customizations. Re-run
 the generator after a spec change and your code is left strictly alone.
 
+The generated client is built to be navigated by hover: every class
+docstring opens with a short summary and lists the children you can
+reach from it — so `client.` in your IDE shows the whole tree without
+opening a single file.
+
 📚 **Full documentation:** <https://ffaraone.github.io/okapipy/>
 
 ## Install

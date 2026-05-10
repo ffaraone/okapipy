@@ -44,6 +44,7 @@ class {{ class_name }}:
 
     @cached_property
     def {{ child.attr }}(self) -> {{ child.class_name }}:
+{{ child.docstring }}
         return self.{{ child.factory_attr }}(self.client)
 
 {% endfor %}
@@ -61,6 +62,7 @@ class {{ class_name }}:
 
     @cached_property
     def {{ child.attr }}(self) -> {{ child.class_name }}:
+{{ child.docstring }}
         return self.{{ child.factory_attr }}(client=self.client)
 
 {% endfor %}
@@ -69,6 +71,7 @@ class {{ class_name }}:
 
     @property
     def {{ child.attr }}(self) -> {{ child.class_name }}:
+{{ child.docstring }}
         return self.{{ child.factory_attr }}(client=self.client)
 
 {% endfor %}
@@ -85,6 +88,7 @@ class Async{{ class_name }}:
 
     @cached_property
     def {{ child.attr }}(self) -> Async{{ child.class_name }}:
+{{ child.docstring }}
         return self.{{ child.factory_attr }}(self.client)
 
 {% endfor %}
@@ -102,6 +106,7 @@ class Async{{ class_name }}:
 
     @cached_property
     def {{ child.attr }}(self) -> Async{{ child.class_name }}:
+{{ child.docstring }}
         return self.{{ child.factory_attr }}(client=self.client)
 
 {% endfor %}
@@ -110,6 +115,7 @@ class Async{{ class_name }}:
 
     @property
     def {{ child.attr }}(self) -> Async{{ child.class_name }}:
+{{ child.docstring }}
         return self.{{ child.factory_attr }}(client=self.client)
 
 {% endfor %}

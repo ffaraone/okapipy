@@ -163,6 +163,15 @@ intermediate singular noun would otherwise default to `NAMESPACE`.
 `_resolve_paginated` follows precedence: per-method rules → per-method spec
 extension → path-item rules → path-item spec extension → default `True`.
 
+After every path is walked, `_apply_tag_descriptions` pulls root
+`tags[]` (indexed by `_collect_tag_descriptions` into a `{name →
+description}` map) and copies each matching tag's description onto the
+namespace of the same name when the namespace doesn't already carry one.
+Tags with blank descriptions and tags that match no namespace are
+dropped silently. This is the only post-walk pass on the tree — its
+job is purely to populate human-readable prose that path segments
+themselves cannot supply.
+
 `_request_info` and `_response_info` recover schema names from the raw
 spec by reading the trailing segment of the `$ref` string
 (`#/components/schemas/Order` → `Order`), with a fallback to inline
@@ -375,10 +384,17 @@ recursively emits one templated file per node. For each node it computes:
   `force-reimport` becomes `force_reimport` rather than something
   PascalCase-derived.
 * The `__<attr>_factory__` ClassVar hook (`factory_attr(attr)`).
-* A `_ChildRef` dataclass per child.
-* Docstrings via `build_docstring` (class) and `collection_property_docstring`
-  (the property accessor, sourced from the collection's `fetch` operation
-  so the call-site docs describe what listing yields).
+* A `ChildRef` dataclass per child carrying the property name, class
+  name, factory hook name, the accessor's own docstring, and the
+  one-line / `meta_inline` snippets the parent class's docstring map
+  uses for that child.
+* Docstrings via the kind-specific class builders
+  (`_build_namespace_class_docstring`, `_build_collection_class_docstring`,
+  `_build_resource_class_docstring`, `_build_singleton_class_docstring`)
+  for class-level docstrings, and via `namespace_accessor_docstring`,
+  `singleton_accessor_docstring`, `action_accessor_docstring`,
+  `getitem_accessor_docstring`, and `collection_property_docstring` for
+  property-level accessors.
 
 The walker also computes the resource's path-parameter name by diffing
 parent / child paths (`_new_path_param`); collections type their
@@ -388,6 +404,37 @@ parent / child paths (`_new_path_param`); collections type their
 on collection files; `_collect_response_model_names` pulls only response
 names for resource / singleton / action files (their `body` parameters are
 typed `Any`, so request-model imports would lint as unused).
+
+#### Class-docstring composition
+
+The four kind-specific builders share a thin `_compose_class_doc_body`
+helper. Each call hands it a `lead` string (sourced from the node's
+`summary` / `description` — falling back to the appropriate operation
+summary or a structural string per §2.12 of `REQUIREMENTS.md`) and a
+sequence of `(title, items)` pairs where `items` is a `Sequence[ChildRef]`
+or a `Sequence[_StaticBullet]`. Empty sections are dropped. Bullets are
+rendered by `_render_bullet`, which knows how to format both kinds: a
+`ChildRef` produces the `**`{attr}`** → `{ClassName}` …` head; a
+`_StaticBullet` (used for the standard collection helpers `.first()` /
+`.count()` / `.exists()` / `.get_page(n)`, the iteration hint, and the
+CRUD entries) produces a label-only head. Both kinds carry an optional
+`meta_inline` (e.g. `` `POST /admin/reindex` ``) and a `one_line`; the
+renderer joins them with a period.
+
+`build_client_class_docstring` is the only class-docstring builder that
+lives at the public surface of `walk.py` — `emit/client.py` calls it
+directly to compose the sync and async client class docstrings off the
+top-level child lists.
+
+#### Sync/async parity
+
+Class docstrings name the **sync** sibling in their bullet targets — the
+async tree is structurally identical, and the IDE's go-to-definition
+threading from the property's own type annotation already lands on the
+right async class. Property-accessor docstrings, by contrast, never name
+a class explicitly: the same string is reused for the sync and async
+property bodies, so pinning either prefix would mislead one of the two
+readers.
 
 ### 2.9 Vendored runtime (`runtime/`)
 

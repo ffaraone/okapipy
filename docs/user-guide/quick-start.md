@@ -113,6 +113,12 @@ That's the whole rhythm. Three observations to internalize:
    exposed as `submit.run()`, not `submit()`, because the action object
    itself can carry per-call state (overrides, headers, options).
 
+The generated client is also built to be navigated by hover: every
+class lists the children you can reach from it (sub-namespaces,
+collections, actions, ...) right in its docstring, so typing `client.`
+and reading the IDE tooltip is enough to discover the surface. See
+[IDE tooltips](client-usage.md#ide-tooltips) for the full story.
+
 ## 5. Iterate
 
 When the upstream spec changes, re-run the same command:

@@ -1,0 +1,28 @@
+openapi: 3.0.0
+info:
+  title: Tags API
+  version: 1.0.0
+tags:
+  - name: admin
+    description: Administrative endpoints (users, audit, billing).
+  - name: orphan
+    description: Tag with no matching path; should be ignored by the merger.
+  - name: blank
+    description: ""
+x-okapipy-ns:
+  - admin
+  - public
+paths:
+  /admin/users:
+    get:
+      summary: List users
+      tags: [admin]
+      responses:
+        '200':
+          description: OK
+  /public/docs:
+    get:
+      summary: Read public docs
+      responses:
+        '200':
+          description: OK

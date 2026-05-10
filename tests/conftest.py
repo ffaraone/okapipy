@@ -126,6 +126,12 @@ def singletons_spec_path(fixtures_dir: Path) -> Path:
     return fixtures_dir / "singletons.yaml"
 
 
+@pytest.fixture
+def tags_spec_path(fixtures_dir: Path) -> Path:
+    """Path to a spec whose root `tags[]` should populate matching namespaces."""
+    return fixtures_dir / "tags.yaml"
+
+
 @pytest.fixture(scope="session")
 def english_nlp() -> Language:
     """A loaded English spaCy pipeline reused across tests for speed."""

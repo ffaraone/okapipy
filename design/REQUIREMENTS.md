@@ -160,7 +160,26 @@ Non-fatal warnings go to `logging`. Errors raise a `ParserError` subclass
 (`SpecLoadError`, `RulesFormatError`, `NlpModelMissingError`,
 `InvalidStructureError`).
 
-### 1.10 Dump & CLI
+### 1.10 OpenAPI tag descriptions → namespace prose
+
+Namespaces are synthesized from path segments and have no spec-level
+`summary` / `description` of their own. To give them readable prose the
+parser reads the document's root `tags[]` array and copies
+`tag.description` onto any namespace whose `name` exactly matches
+`tag.name`. The merge is conservative:
+
+* Empty / missing `description` is ignored — never overwrites with a
+  blank string.
+* A namespace that already carries a description (e.g. set by a future
+  spec extension) is left alone.
+* Tags that match no namespace synthesize nothing — they are not
+  promoted into the tree.
+
+The resulting prose flows into the generator's class-docstring builder
+(see §2.13) so a hover on a namespace class shows the API author's own
+words rather than a structural fallback.
+
+### 1.11 Dump & CLI
 
 * `okapipy.parser.dump.write(api, path)` writes the APIModel as JSON
   (`.json`) or YAML (`.yaml` / `.yml`); other extensions raise `ValueError`.
@@ -422,6 +441,58 @@ subclass. The hierarchy:
 * The walker filters every `from ..models import ...` line against the set
   of identifiers `models.py` actually emits, so the generated tree never
   references a symbol dmcg dropped (primitive aliases, empty objects, etc.).
+
+### 2.12 Generated client docstrings
+
+Every class in the regenerated `base/` tree carries an IDE-friendly
+docstring composed of two parts: a **lead paragraph** sourced from the
+parser node's `summary` / `description` (or a structural fallback when
+neither is set), followed by a **markdown map** of the immediately
+reachable children. Maps use only the markdown subset every popular IDE
+renders inside hover tooltips — ATX headings (`#### …`), bullet lists
+(`-`), inline `code`, and **bold**. No tables, no HTML, no fenced links.
+
+The required sections per node kind:
+
+| Class | Sections (omitted when empty) |
+|---|---|
+| `<Client>Base` / `Async<Client>Base` | `Top-level collections`, `Top-level singletons`, `Top-level namespaces`, `Top-level actions`. |
+| `<Ns>NamespaceBase` | `Sub-namespaces`, `Collections`, `Singletons`, `Actions`. |
+| `<Coll>CollectionBase` | `Item access`, `Operations on the collection`, `Actions`. The first is omitted when the collection has no resource child. |
+| `<Res>ResourceBase` | `Operations` (CRUD verbs the spec actually declared), `Sub-collections`, `Sub-singletons`, `Actions`. |
+| `<Sing>SingletonBase` | Same shape as Resource minus `[id]` access. |
+| `<Action>ActionBase` | Single-op: the operation's own summary/description. Multi-op: `#### Operations` listing every HTTP verb with its method and path. |
+
+Bullet entries follow the same template:
+
+```
+- **`{attr}`** → `{ClassName}` — {optional `METHOD path` meta}. {one-line summary}.
+```
+
+Where `{ClassName}` always names the **sync** sibling (the async sibling
+is reachable via the property's own type annotation) and the optional
+`METHOD path` meta appears for action children and for the `.create(body)`
+/ CRUD entries on collections / resources / singletons. The static
+`Operations on the collection` section additionally lists `.first()`,
+`.count()`, `.exists()`, `.get_page(n)`, and the `for item in collection: ...`
+iteration hint regardless of spec content — those are surface guarantees
+of the runtime.
+
+Property accessors (every `@property` / `@cached_property` and the
+`__getitem__` of a collection) carry a separate, shorter docstring — a
+one-liner intended for the call-site hover. Accessor docstrings are
+sync/async-agnostic: they never name a class explicitly, because the
+same string is reused for both siblings and pinning either prefix would
+mislead the other reader. The actual return type comes from the
+property's own annotation.
+
+Sources for the lead paragraph and one-liner, in priority order:
+
+* the node's own `summary` and `description`;
+* for collections, the fetch operation's `summary` / `description`;
+* for singletons, the retrieve operation's `summary` / `description`;
+* for single-op actions, the only operation's `summary` / `description`;
+* a structural fallback (e.g. `` "Collection at `/orders`." ``).
 
 ---
 

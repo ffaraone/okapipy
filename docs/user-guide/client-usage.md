@@ -539,6 +539,63 @@ The `<package>.base.exceptions` module also defines `ApiError`,
 `ResponseValidationError` — these are the shape future versions will
 move toward as the runtime evolves.
 
+## IDE tooltips
+
+The generated client is built to be navigated by hover. Every class
+your IDE shows when you type `client.` carries a markdown docstring
+that opens with a one-line summary and lists the children you can
+reach from there — sub-namespaces, collections, singletons, actions —
+each with the property name, the class it returns, and a short
+description.
+
+For example, hovering the client class itself surfaces something like:
+
+```text
+HTTP client for `acme-commerce` (v1.4.2).
+
+Construct with `base_url=...`. Configure pagination, filter, and sort
+strategies via the matching keyword arguments.
+
+#### Top-level collections
+
+- **`orders`** → `OrdersCollectionBase` — List orders.
+
+#### Top-level namespaces
+
+- **`auth`** → `AuthNamespaceBase` — Login and token endpoints.
+```
+
+Hovering a collection class shows the same kind of map plus the
+runtime's standard query helpers (`.first()`, `.count()`, `.exists()`,
+`.get_page(n)`) and any `.create(body)` the spec declared. Hovering a
+resource class lists the CRUD verbs the spec actually populated, plus
+sub-collections, sub-singletons, and actions reachable from the
+resource.
+
+The text comes from your OpenAPI document:
+
+* **Operations** — the `summary` and `description` of each operation
+  (`get`, `post`, …) flow into the matching method's docstring and
+  into the bullet for that method's class.
+* **Namespaces** — namespaces are synthesized from path segments and
+  carry no spec-level prose of their own. Add a root `tags[]` entry
+  whose `name` matches the namespace and your `description` shows up
+  as the lead paragraph of the namespace class. A tag that matches no
+  namespace is silently ignored, so tag descriptions are safe to add.
+
+Property accessors (every `@property` and the collection's
+`__getitem__`) carry a separate, shorter docstring intended for the
+call-site hover. Those one-liners are deliberately sync/async-agnostic
+— they never name a class explicitly, because the same accessor body
+is reused for `Client` and `AsyncClient` and pinning either side would
+mislead the other.
+
+Class-docstring bullet targets always name the **sync** sibling
+(`OrdersCollectionBase`, not `AsyncOrdersCollectionBase`); the actual
+return type comes from the property's own annotation, which already
+carries the right `Async`-prefixed name. Pylance, PyCharm, and Sphinx
+all auto-link the bare name.
+
 ## Cookbook
 
 Short recipes for common needs.

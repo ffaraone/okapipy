@@ -68,7 +68,7 @@ T = TypeVar("T", bound=BaseModel)
 
 
 class {{ client_class }}Base:
-    """Synchronous client base for `{{ project_name }}`."""
+{{ client_class_docstring }}
 
 {% for ns in top_namespaces %}
     {{ ns.factory_attr }}: ClassVar[type[{{ ns.class_name }}]] = {{ ns.class_name }}
@@ -190,6 +190,7 @@ class {{ client_class }}Base:
 {% for ns in top_namespaces %}
     @cached_property
     def {{ ns.attr }}(self) -> {{ ns.class_name }}:
+{{ ns.docstring }}
         return self.{{ ns.factory_attr }}(self)
 
 {% endfor %}
@@ -203,19 +204,21 @@ class {{ client_class }}Base:
 {% for sing in top_singletons %}
     @cached_property
     def {{ sing.attr }}(self) -> {{ sing.class_name }}:
+{{ sing.docstring }}
         return self.{{ sing.factory_attr }}(client=self)
 
 {% endfor %}
 {% for act in top_actions %}
     @property
     def {{ act.attr }}(self) -> {{ act.class_name }}:
+{{ act.docstring }}
         return self.{{ act.factory_attr }}(client=self)
 
 {% endfor %}
 
 
 class Async{{ client_class }}Base:
-    """Asynchronous sibling of `{{ client_class }}Base`."""
+{{ async_client_class_docstring }}
 
 {% for ns in top_namespaces %}
     {{ ns.factory_attr }}: ClassVar[type[Async{{ ns.class_name }}]] = Async{{ ns.class_name }}
@@ -335,6 +338,7 @@ class Async{{ client_class }}Base:
 {% for ns in top_namespaces %}
     @cached_property
     def {{ ns.attr }}(self) -> Async{{ ns.class_name }}:
+{{ ns.docstring }}
         return self.{{ ns.factory_attr }}(self)
 
 {% endfor %}
@@ -348,12 +352,14 @@ class Async{{ client_class }}Base:
 {% for sing in top_singletons %}
     @cached_property
     def {{ sing.attr }}(self) -> Async{{ sing.class_name }}:
+{{ sing.docstring }}
         return self.{{ sing.factory_attr }}(client=self)
 
 {% endfor %}
 {% for act in top_actions %}
     @property
     def {{ act.attr }}(self) -> Async{{ act.class_name }}:
+{{ act.docstring }}
         return self.{{ act.factory_attr }}(client=self)
 
 {% endfor %}

@@ -149,7 +149,59 @@ def build(
             )
         except InvalidStructureError as exc:
             log.warning("skipping path %s: %s", path, exc)
+    _apply_tag_descriptions(api, _collect_tag_descriptions(spec))
     return api
+
+
+def _collect_tag_descriptions(spec: dict[str, Any]) -> dict[str, str]:
+    """Index OpenAPI root `tags[]` by name → description.
+
+    Skips entries that lack a name or a non-empty description; the resulting
+    map is used to enrich namespace prose so synthesized namespaces (which
+    carry no spec-level summary/description on their own) can still surface
+    the description the API author wrote on the matching tag.
+    """
+    tags = spec.get("tags")
+    if not isinstance(tags, list):
+        return {}
+    out: dict[str, str] = {}
+    for entry in tags:
+        if not isinstance(entry, dict):
+            continue
+        name = entry.get("name")
+        description = entry.get("description")
+        if not isinstance(name, str) or not name:
+            continue
+        if not isinstance(description, str) or not description.strip():
+            continue
+        out[name] = description.strip()
+    return out
+
+
+def _apply_tag_descriptions(api: APIModel, tag_descriptions: dict[str, str]) -> None:
+    """Copy matching tag descriptions onto namespaces that have none.
+
+    Namespaces are synthesized from path segments and start with `description=None`;
+    when a tag's `name` exactly matches a namespace's `name` and the namespace
+    has no description yet, the tag's description is copied over. Already-set
+    descriptions are never overwritten.
+    """
+    if not tag_descriptions:
+        return
+    for ns in api.namespaces:
+        _apply_tag_descriptions_to_namespace(ns, tag_descriptions)
+
+
+def _apply_tag_descriptions_to_namespace(
+    ns: Namespace, tag_descriptions: dict[str, str]
+) -> None:
+    """Recursive sibling of `_apply_tag_descriptions` that walks one namespace subtree."""
+    if ns.description is None:
+        candidate = tag_descriptions.get(ns.name)
+        if candidate is not None:
+            ns.description = candidate
+    for child in ns.namespaces:
+        _apply_tag_descriptions_to_namespace(child, tag_descriptions)
 
 
 def _collect_spec_path_kinds(paths: dict[str, dict[str, Any]]) -> dict[str, str]:
