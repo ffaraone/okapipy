@@ -218,6 +218,7 @@ If a change requires a new third-party open-source library:
    not the obvious **how**.
 4. Surface **non-obvious invariants** (e.g. "rules-file values win over
    spec values") in the docstring of the function that enforces them.
+5. Docstrings must honour the project max line length.
 
 ## Skills
 

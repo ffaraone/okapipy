@@ -99,6 +99,7 @@ class {{ class_name }}:
 
 {% if resource %}
     def __getitem__(self, {{ resource.id_param }}: Any) -> {{ resource.class_name }}:
+{{ resource.docstring }}
         return self.{{ resource.factory_attr }}(
             client=self.client,
             path_params={**self.path_params, "{{ resource.id_param }}": {{ resource.id_param }}},
@@ -210,6 +211,7 @@ class {{ class_name }}:
 {% for action in actions %}
     @property
     def {{ action.attr }}(self) -> {{ action.class_name }}:
+{{ action.docstring }}
         return self.{{ action.factory_attr }}(client=self.client, path_params=self.path_params)
 
 {% endfor %}
@@ -412,6 +414,7 @@ class Async{{ class_name }}:
 
 {% if resource %}
     def __getitem__(self, {{ resource.id_param }}: Any) -> Async{{ resource.class_name }}:
+{{ resource.docstring }}
         return self.{{ resource.factory_attr }}(
             client=self.client,
             path_params={**self.path_params, "{{ resource.id_param }}": {{ resource.id_param }}},
@@ -495,6 +498,7 @@ class Async{{ class_name }}:
 {% for action in actions %}
     @property
     def {{ action.attr }}(self) -> Async{{ action.class_name }}:
+{{ action.docstring }}
         return self.{{ action.factory_attr }}(client=self.client, path_params=self.path_params)
 
 {% endfor %}

@@ -108,6 +108,7 @@ class {{ class_name }}:
 
     @property
     def {{ child.attr }}(self) -> {{ child.class_name }}:
+{{ child.docstring }}
         return self.{{ child.factory_attr }}(client=self.client, path_params=self.path_params)
 
 {% endfor %}
@@ -117,6 +118,7 @@ class {{ class_name }}:
 
     @property
     def {{ action.attr }}(self) -> {{ action.class_name }}:
+{{ action.docstring }}
         return self.{{ action.factory_attr }}(client=self.client, path_params=self.path_params)
 
 {% endfor %}
@@ -223,6 +225,7 @@ class Async{{ class_name }}:
 
     @property
     def {{ child.attr }}(self) -> Async{{ child.class_name }}:
+{{ child.docstring }}
         return self.{{ child.factory_attr }}(client=self.client, path_params=self.path_params)
 
 {% endfor %}
@@ -232,6 +235,7 @@ class Async{{ class_name }}:
 
     @property
     def {{ action.attr }}(self) -> Async{{ action.class_name }}:
+{{ action.docstring }}
         return self.{{ action.factory_attr }}(client=self.client, path_params=self.path_params)
 
 {% endfor %}
