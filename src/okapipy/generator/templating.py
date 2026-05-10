@@ -25,6 +25,7 @@ from jinja2 import (
     TemplateError,
 )
 
+from okapipy.generator import branding
 from okapipy.generator.errors import (
     FormatError,
     TemplateRenderError,
@@ -58,6 +59,11 @@ def make_environment(templates_dir: Path | None) -> Environment:
     env.filters["tojson"] = _tojson
     env.filters["py_repr"] = _py_repr
     env.filters["py_class_or_none"] = _py_class_or_none
+    env.globals["okapipy_repo_url"] = branding.OKAPIPY_REPO_URL
+    env.globals["okapipy_brand_color"] = branding.OKAPIPY_BRAND_COLOR
+    env.globals["okapipy_brand_label_color"] = branding.OKAPIPY_BRAND_LABEL_COLOR
+    env.globals["okapipy_logo_data_uri"] = branding.OKAPIPY_LOGO_DATA_URI
+    env.globals["okapipy_footer_badge_url"] = branding.OKAPIPY_FOOTER_BADGE_URL
     return env
 
 

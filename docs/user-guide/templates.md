@@ -47,6 +47,23 @@ canonical-formatted on the way out. What you do need to do is emit
 *valid* Python; if ruff can't parse it, the run aborts with a
 `FormatError` pointing at the template name.
 
+### okapipy branding globals
+
+These constants are registered as Jinja globals and are always available
+to every template (default or user override) without needing to be
+passed through context. The default `project/README.md.jinja` uses them
+to stamp a "generated with okapipy" badge on the rendered README; you
+can drop them into your own override to keep — or replace — the
+attribution.
+
+| Global | Meaning |
+| --- | --- |
+| `okapipy_repo_url` | Canonical URL of the okapipy GitHub repository. |
+| `okapipy_brand_color` | Brand color (hex, no `#`) for the message half of a shields.io badge. |
+| `okapipy_brand_label_color` | Darker brand color (hex, no `#`) for the label half of a shields.io badge. |
+| `okapipy_logo_data_uri` | Inline `data:image/png;base64,…` URI of the okapipy mascot, sized for use as a shields.io `logo=` value. |
+| `okapipy_footer_badge_url` | Direct URL of the full-size "generated with okapipy" badge image, suitable for an `<img src="…">` footer. |
+
 ## Available templates
 
 `--templates-dir` looks for templates under `package/`,

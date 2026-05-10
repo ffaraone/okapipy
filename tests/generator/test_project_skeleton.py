@@ -9,7 +9,7 @@ import pytest
 from typer.testing import CliRunner
 
 from okapipy.cli import app
-from okapipy.generator import generate
+from okapipy.generator import branding, generate
 from okapipy.generator.vfs import GeneratedFile
 from okapipy.parser.model import APIModel
 
@@ -134,6 +134,42 @@ def test_pyproject_emits_authors_when_author_set() -> None:
     pyproject = _generate(author="Alice Example")["pyproject.toml"].content
     assert "authors = [" in pyproject
     assert '{ name = "Alice Example" }' in pyproject
+
+
+def test_readme_emits_shields_io_badge_with_brand_color() -> None:
+    """The README header carries a shields.io static badge stamped with the okapipy brand color."""
+    readme = _generate()["README.md"].content
+    expected_badge_src = (
+        f"https://img.shields.io/badge/generated_with-okapipy-{branding.OKAPIPY_BRAND_COLOR}"
+        f"?logo={branding.OKAPIPY_LOGO_DATA_URI}"
+    )
+    assert expected_badge_src in readme
+
+
+def test_readme_badge_omits_label_color_override() -> None:
+    """The header badge does not pin a labelColor, so shields.io renders the default gray label."""
+    readme = _generate()["README.md"].content
+    assert "labelColor=" not in readme
+
+
+def test_readme_header_badge_links_to_okapipy_repo() -> None:
+    """The header badge wraps a link back to the okapipy GitHub repository."""
+    readme = _generate()["README.md"].content
+    assert f"]({branding.OKAPIPY_REPO_URL})" in readme
+
+
+def test_readme_footer_embeds_okapipy_badge_image() -> None:
+    """The README footer renders the okapipy badge.png hosted on the okapipy repo."""
+    readme = _generate()["README.md"].content
+    assert branding.OKAPIPY_FOOTER_BADGE_URL in readme
+    assert 'alt="generated with okapipy"' in readme
+
+
+def test_readme_footer_links_to_okapipy_repo() -> None:
+    """The footer image is wrapped in an anchor pointing at the okapipy GitHub repository."""
+    readme = _generate()["README.md"].content
+    expected_anchor = f'<a href="{branding.OKAPIPY_REPO_URL}">'
+    assert expected_anchor in readme
 
 
 def test_cli_author_flag_propagates_to_license_and_pyproject(tmp_path: Path) -> None:
