@@ -87,6 +87,13 @@ at the first match:
   are named after the path's last segment unless that segment is a path
   parameter, in which case the name falls back to
   `<ParentName><Method>` (`PasswordRecoveryRequestPost`).
+* Path segments may contain characters that are not valid in Python
+  identifiers — notably a leading `.` in well-known paths
+  (`/.well-known/openid-configuration`). A literal `.` is expanded to the
+  word `Dot` (PascalCase) or `dot` (snake_case) so the generated class,
+  module, and attribute names remain valid Python symbols. The raw
+  segment is preserved on the parsed `Namespace.name` (used for HTTP
+  routing); identifier sanitization happens at render time.
 
 ### 1.5 Operation routing
 
