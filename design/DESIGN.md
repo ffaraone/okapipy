@@ -382,7 +382,9 @@ recursively emits one templated file per node. For each node it computes:
 * The property name on parents (`snake_case(_path_segment(node.path))`) —
   drawn from the original path segment, not the class name, so
   `force-reimport` becomes `force_reimport` rather than something
-  PascalCase-derived.
+  PascalCase-derived. A literal `.` in the segment (e.g. `.well-known`)
+  is expanded by `snake_case`/`_pascal_case` to the word `dot`/`Dot`,
+  keeping the resulting identifier valid Python.
 * The `__<attr>_factory__` ClassVar hook (`factory_attr(attr)`).
 * A `ChildRef` dataclass per child carrying the property name, class
   name, factory hook name, the accessor's own docstring, and the

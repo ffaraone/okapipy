@@ -168,9 +168,15 @@ _CAMEL_BOUNDARY = re.compile(r"(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])")
 
 
 def snake_case(value: str) -> str:
-    """Convert PascalCase / camelCase / kebab-case input to snake_case."""
-    normalized = value.replace("-", "_").replace(" ", "_")
-    return _CAMEL_BOUNDARY.sub("_", normalized).lower()
+    """Convert PascalCase / camelCase / kebab-case input to snake_case.
+
+    A literal ``.`` is expanded to the word ``dot`` so segments like
+    ``.well-known`` produce a valid Python identifier (``dot_well_known``)
+    rather than the syntactically invalid ``.well_known``.
+    """
+    normalized = value.replace(".", "_dot_").replace("-", "_").replace(" ", "_")
+    snake = _CAMEL_BOUNDARY.sub("_", normalized).lower()
+    return re.sub(r"_+", "_", snake).strip("_")
 
 
 def _pascal_case(value: str) -> str:

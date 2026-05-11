@@ -184,27 +184,43 @@ def test_setup_logging_level_mapping() -> None:
 
 
 def test_setup_logging_replaces_handlers_each_call() -> None:
-    """Repeated `setup_logging` calls leave exactly one handler attached."""
+    """Repeated `setup_logging` calls keep exactly one user-visible RichHandler.
+
+    The shared `WarningCounter` is registered once and preserved across calls so
+    its tally survives, but stale `RichHandler`s from prior invocations are
+    discarded; the surviving rich handler reflects the latest verbosity.
+    """
+    from rich.logging import RichHandler
+
     setup_logging(0)
     setup_logging(2)
     logger = logging.getLogger(LOGGER_NAME)
-    assert len(logger.handlers) == 1
-    assert logger.handlers[0].level == logging.DEBUG
+    rich_handlers = [h for h in logger.handlers if isinstance(h, RichHandler)]
+    assert len(rich_handlers) == 1
+    assert rich_handlers[0].level == logging.DEBUG
 
 
 def test_top_level_verbose_flag_sets_handler_level(
     mocker: MockerFixture, simple_spec_path: Path
 ) -> None:
     """`-v` raises the rich handler to INFO; `-vv` raises it to DEBUG."""
+    from rich.logging import RichHandler
+
     from okapipy.parser.model import APIModel
 
     mocker.patch("okapipy.cli.spec_cmd._run_pipeline", return_value=APIModel())
 
+    def rich_handler() -> RichHandler:
+        for handler in logging.getLogger(LOGGER_NAME).handlers:
+            if isinstance(handler, RichHandler):
+                return handler
+        raise AssertionError("no RichHandler attached to the okapipy logger")
+
     runner.invoke(app, ["-v", "spec", "parse", str(simple_spec_path)])
-    assert logging.getLogger(LOGGER_NAME).handlers[0].level == logging.INFO
+    assert rich_handler().level == logging.INFO
 
     runner.invoke(app, ["-vv", "spec", "parse", str(simple_spec_path)])
-    assert logging.getLogger(LOGGER_NAME).handlers[0].level == logging.DEBUG
+    assert rich_handler().level == logging.DEBUG
 
 
 def test_default_verbosity_silences_info_logs(

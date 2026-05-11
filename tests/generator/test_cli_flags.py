@@ -10,6 +10,28 @@ from okapipy.cli import app
 
 runner = CliRunner()
 
+NOISY_SPEC = """
+openapi: 3.0.0
+info: {title: Noisy, version: 1.0.0}
+paths:
+  /orders:
+    get:
+      summary: List orders
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Order'}
+    put:
+      summary: Bare PUT — no canonical slot, no x-okapipy-kind override.
+      responses:
+        '200': {description: OK}
+components:
+  schemas:
+    Order: {type: object, properties: {id: {type: string}}}
+"""
+
 
 def _generate_args(spec: Path, output: Path) -> list[str]:
     return [
@@ -151,3 +173,47 @@ def test_shape_models_keeps_models_file_and_drops_runtime_switch(
     )
     assert "with_shape" not in client_src
     assert 'shape: Literal["models", "dicts"]' not in client_src
+
+
+def _flatten_panel(rendered: str) -> str:
+    """Strip rich panel borders and reflow wrapped lines into a single string.
+
+    Rich wraps long summary lines and prefixes each line with a `│` border, so
+    `"... 1 warning emitted"` may be split across two visual rows. Tests assert
+    against the flattened form so wrap points (which depend on terminal width
+    and on the temp-dir path length) don't make the assertions flaky.
+    """
+    return " ".join(rendered.replace("│", " ").split())
+
+
+def test_summary_panel_reports_warning_count_when_warnings_emitted(
+    tmp_path: Path,
+) -> None:
+    """The final summary panel includes a `N warning(s) emitted` tail when warnings fire.
+
+    A PUT on a bare collection has no canonical slot and is dropped by the parser
+    with a warning. The CLI surfaces a single run-wide tally so users notice
+    parser-level skips that may have scrolled past in the terminal.
+    """
+    spec = tmp_path / "noisy.yaml"
+    spec.write_text(NOISY_SPEC, encoding="utf-8")
+    out = tmp_path / "out"
+
+    result = runner.invoke(app, _generate_args(spec, out))
+
+    assert result.exit_code == 0, result.stderr
+    assert "1 warning emitted" in _flatten_panel(result.stderr)
+
+
+def test_summary_panel_omits_warning_count_when_no_warnings(
+    orders_only_spec_file: Path, tmp_path: Path
+) -> None:
+    """A clean run renders the summary without any `warning(s) emitted` tail."""
+    out = tmp_path / "out"
+
+    result = runner.invoke(app, _generate_args(orders_only_spec_file, out))
+
+    assert result.exit_code == 0, result.stderr
+    flat = _flatten_panel(result.stderr)
+    assert "warning emitted" not in flat
+    assert "warnings emitted" not in flat

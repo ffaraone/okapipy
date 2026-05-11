@@ -852,6 +852,11 @@ _PASCAL_SPLIT = re.compile(r"[-_\s]+")
 
 
 def _pascal_case(token: str) -> str:
-    """Convert a kebab-, snake-, or space-cased token to PascalCase."""
-    parts = [p for p in _PASCAL_SPLIT.split(token) if p]
+    """Convert a kebab-, snake-, or space-cased token to PascalCase.
+
+    A literal ``.`` is expanded to the word ``Dot`` so segments like
+    ``.well-known`` produce valid Python identifiers (``DotWellKnown``)
+    rather than the syntactically invalid ``.WellKnown``.
+    """
+    parts = [p for p in _PASCAL_SPLIT.split(token.replace(".", "-dot-")) if p]
     return "".join(part[:1].upper() + part[1:] for part in parts) or token

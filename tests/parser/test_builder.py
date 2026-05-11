@@ -32,6 +32,20 @@ def test_contextual_name_normalizes_kebab_case() -> None:
     assert contextual_name(["User"], "reset-password") == "UserResetPassword"
 
 
+def test_contextual_name_expands_leading_dot_to_dot_token() -> None:
+    """A path segment starting with `.` (e.g. `.well-known`) renders as `DotWellKnown`.
+
+    Without the expansion the result would start with a literal `.`, which is not
+    a valid Python identifier and would crash the generator downstream.
+    """
+    assert contextual_name([], ".well-known") == "DotWellKnown"
+
+
+def test_contextual_name_expands_embedded_dot_to_dot_token() -> None:
+    """An embedded `.` (e.g. `api.v1`) is rendered as the word `Dot` between parts."""
+    assert contextual_name([], "api.v1") == "ApiDotV1"
+
+
 def test_singularize_returns_lemma_for_plural_noun(english_nlp: Language) -> None:
     """A plural noun like `orders` is reduced to its singular lemma `order`."""
     assert singularize("orders", english_nlp) == "order"
@@ -169,6 +183,38 @@ def test_build_handles_empty_paths_object(english_nlp: Language) -> None:
     api = build({"paths": {}}, Rules(), english_nlp)
 
     assert api == APIModel()
+
+
+def test_build_renames_dot_well_known_segment_to_dot_token(
+    english_nlp: Language,
+) -> None:
+    """A `/.well-known/openid-configuration` path yields Python-safe identifiers.
+
+    The leading `.` is expanded to the word `Dot` in PascalCase forms so the
+    generated client compiles. The namespace name on the parsed node keeps the
+    raw segment (it is sanitized at render time by the generator).
+    """
+    spec = {
+        "x-okapipy-ns": [".well-known"],
+        "paths": {
+            "/.well-known/openid-configuration": {
+                "get": {"responses": {"200": {"description": "OK"}}},
+            },
+        },
+    }
+
+    api = build(spec, Rules(), english_nlp)
+
+    well_known = next(ns for ns in api.namespaces if ns.name == ".well-known")
+    children = (
+        [c.name for c in well_known.collections]
+        + [s.name for s in well_known.singletons]
+        + [a.name for a in well_known.actions]
+    )
+    assert children, "expected the .well-known namespace to host at least one child"
+    for name in children:
+        assert "." not in name
+        assert name.isidentifier()
 
 
 def test_build_creates_top_level_collection_for_simple_spec(

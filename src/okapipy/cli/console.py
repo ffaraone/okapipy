@@ -25,12 +25,38 @@ stdout = Console()
 stderr = Console(stderr=True)
 
 
+class _WarningCounter(logging.Handler):
+    """Logging handler that tallies records at WARNING level or above.
+
+    Attached to the okapipy logger alongside the user-facing `RichHandler` so the
+    CLI can report a final "N warning(s)" tally without scraping rendered output.
+    """
+
+    def __init__(self) -> None:
+        super().__init__(level=logging.WARNING)
+        self.count = 0
+
+    def emit(self, record: logging.LogRecord) -> None:
+        """Increment the running tally for each WARNING-or-higher record."""
+        if record.levelno >= logging.WARNING:
+            self.count += 1
+
+
+_warning_counter = _WarningCounter()
+
+
+def warnings_emitted() -> int:
+    """Return the number of WARNING-or-higher records seen since the last `setup_logging`."""
+    return _warning_counter.count
+
+
 def setup_logging(verbosity: int, *, stderr_console: Console | None = None) -> None:
     """Install a `RichHandler` on the okapipy logger and set its level from `verbosity`.
 
     Verbosity mapping: 0 → WARNING, 1 → INFO, 2+ → DEBUG. Existing handlers on the
     `okapipy` logger are removed so repeated calls (e.g. across CLI invocations in
-    the same process during tests) leave a clean state.
+    the same process during tests) leave a clean state. The shared warning counter
+    is also reset so each invocation reports its own tally.
 
     Args:
         verbosity: Count of `-v` flags from the CLI.
@@ -49,8 +75,12 @@ def setup_logging(verbosity: int, *, stderr_console: Console | None = None) -> N
     handler.setLevel(level)
     logger = logging.getLogger(LOGGER_NAME)
     for existing in list(logger.handlers):
-        logger.removeHandler(existing)
+        if not isinstance(existing, _WarningCounter):
+            logger.removeHandler(existing)
     logger.addHandler(handler)
+    if _warning_counter not in logger.handlers:
+        logger.addHandler(_warning_counter)
+    _warning_counter.count = 0
     logger.setLevel(logging.DEBUG)
 
 
