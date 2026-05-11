@@ -14,7 +14,14 @@ from rich.panel import Panel
 from rich.syntax import Syntax
 from rich.table import Table
 
-from okapipy.cli.console import is_piped, print_error, stderr, stdout, write_stream
+from okapipy.cli.console import (
+    is_piped,
+    print_error,
+    stderr,
+    stdout,
+    warnings_emitted,
+    write_stream,
+)
 from okapipy.generator import GenerationError, Shape, generate
 from okapipy.generator.vfs import write_to_disk
 from okapipy.parser.builder import build
@@ -347,11 +354,13 @@ def generate_command(
                     warning, border_style="yellow", title="WARNING", title_align="left"
                 )
             )
+    warning_count = warnings_emitted()
+    warning_tail = _warning_tail(warning_count)
     if check:
         if report.would_change or report.warnings:
             stderr.print(
                 Panel(
-                    _check_summary(report),
+                    _check_summary(report) + warning_tail,
                     border_style="red",
                     title="--check failed",
                     title_align="left",
@@ -360,7 +369,7 @@ def generate_command(
             raise typer.Exit(code=1)
         stderr.print(
             Panel(
-                "No changes; no drift.",
+                "No changes; no drift." + warning_tail,
                 border_style="green",
                 title="--check passed",
                 title_align="left",
@@ -372,6 +381,7 @@ def generate_command(
         summary += f"; skipped {len(report.skipped)} existing user-layer files"
     if report.pruned:
         summary += f"; pruned {len(report.pruned)} stale base files"
+    summary += warning_tail
     stderr.print(Panel(summary, border_style="green", title_align="left"))
 
 
@@ -385,3 +395,16 @@ def _check_summary(report) -> str:  # type: ignore[no-untyped-def]
     if report.pruned:
         parts.append(f"{len(report.pruned)} stale base file(s) would be pruned")
     return "; ".join(parts) or "no changes"
+
+
+def _warning_tail(count: int) -> str:
+    """Return `"; N warning(s) emitted"` when `count > 0`, otherwise an empty string.
+
+    Used to append the run-wide warning tally to the final summary panel so the
+    user notices parser-level skips (`skipping path …`) that scrolled off-screen
+    above the panel.
+    """
+    if count <= 0:
+        return ""
+    suffix = "" if count == 1 else "s"
+    return f"; {count} warning{suffix} emitted"
