@@ -39,3 +39,30 @@ class InvalidStructureError(ParserError):
     Currently this signals an attempt to attach an Action directly under a Namespace,
     which is not permitted: every Action must live under a Collection or a Resource.
     """
+
+
+class UnmatchedNamespaceCollisionError(ParserError):
+    """Raised when `--unmatched <name>` collides with an existing top-level node.
+
+    The synthesized container for unmatched operations must not share a
+    snake_case identifier with any top-level Namespace, Collection,
+    Singleton, or Action: that would produce two attributes with the same
+    name on the generated client class. The caller picks a different name.
+
+    Attributes:
+        requested: The name passed via `unmatched_namespace`.
+        conflict_kind: The kind of the conflicting node (`"namespace"`,
+            `"collection"`, `"singleton"`, or `"action"`).
+        conflict_name: The original (pre-snake_case) name of the
+            conflicting top-level node.
+    """
+
+    def __init__(self, requested: str, conflict_kind: str, conflict_name: str) -> None:
+        self.requested = requested
+        self.conflict_kind = conflict_kind
+        self.conflict_name = conflict_name
+        message = (
+            f"--unmatched namespace {requested!r} collides with top-level "
+            f"{conflict_kind} {conflict_name!r}. Pick a different name."
+        )
+        super().__init__(message)

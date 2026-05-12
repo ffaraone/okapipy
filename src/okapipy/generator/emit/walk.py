@@ -1610,6 +1610,8 @@ def action_module(action: Action) -> str:
 
 
 def action_attr(action: Action) -> str:
+    if action.attr_override:
+        return snake_case(action.attr_override)
     return snake_case(_path_segment(action.path))
 
 

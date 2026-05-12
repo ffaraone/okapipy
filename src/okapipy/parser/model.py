@@ -56,12 +56,19 @@ class Action(BaseModel):
 
     Actions may attach at the root of the API, under a Namespace, under a
     Collection, under a Resource, or under a Singleton.
+
+    `attr_override` decouples the surface attribute name from the path's
+    last segment. The generator uses it when set (otherwise it falls back
+    to the path-derived snake_case). It exists to support `--unmatched`,
+    where the attribute should reflect the operation's `operationId`
+    rather than wherever in the URL it happens to land.
     """
 
     name: str
     path: str
     summary: str | None = None
     description: str | None = None
+    attr_override: str | None = None
     operations: list[Operation] = Field(default_factory=list)
 
 

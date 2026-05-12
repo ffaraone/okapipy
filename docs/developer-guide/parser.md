@@ -157,6 +157,12 @@ Anything that doesn't fit (e.g. `POST /users/{id}` with no
 with a warning**, not coerced into a synthetic action. Synthetic
 actions only exist for explicit `x-okapipy-kind: action` opt-ins.
 
+Pass `--unmatched <name>` to opt out of the drop and keep those
+operations as flat actions under a synthetic top-level namespace —
+useful when you don't own the spec and per-op annotation isn't
+practical. See [Rules and extensions](../user-guide/rules.md#i-have-many-non-conforming-endpoints-and-i-dont-want-to-annotate-each-one)
+for the worked example.
+
 ### Allowed structural shapes
 
 `_attach` enforces a deliberately strict parent table. Singletons and

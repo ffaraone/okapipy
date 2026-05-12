@@ -21,6 +21,7 @@ def parse(
     *,
     strip_prefix: str | None = None,
     nlp_cache_dir: Path = DEFAULT_NLP_CACHE_DIR,
+    unmatched_namespace: str | None = None,
 ) -> APIModel:
     """Parse an OpenAPI 3.x document into an APIModel tree.
 
@@ -36,6 +37,11 @@ def parse(
             inferred from `servers[].url`.
         nlp_cache_dir: Directory under which spaCy models are stored and looked up.
             On a cache miss the model is downloaded into this directory.
+        unmatched_namespace: When set, operations that would otherwise be
+            dropped by the routing table are retained as synthetic actions
+            under a top-level namespace of this name. Raises
+            `UnmatchedNamespaceCollisionError` if the name collides with
+            an existing top-level node.
 
     Returns:
         The fully-built APIModel rooted at the namespaces it discovered.
@@ -44,4 +50,10 @@ def parse(
     spec = flatten_inline_schemas(spec)
     loaded_rules = load_rules(rules)
     nlp = load_pipeline(lang, cache_dir=nlp_cache_dir)
-    return build(spec, loaded_rules, nlp, strip_prefix=strip_prefix)
+    return build(
+        spec,
+        loaded_rules,
+        nlp,
+        strip_prefix=strip_prefix,
+        unmatched_namespace=unmatched_namespace,
+    )

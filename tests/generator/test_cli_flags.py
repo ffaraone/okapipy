@@ -217,3 +217,41 @@ def test_summary_panel_omits_warning_count_when_no_warnings(
     flat = _flatten_panel(result.stderr)
     assert "warning emitted" not in flat
     assert "warnings emitted" not in flat
+
+
+def test_unmatched_flag_emits_synthetic_namespace_module(tmp_path: Path) -> None:
+    """`--unmatched ops` materializes a top-level `ops` namespace and emits its module.
+
+    The NOISY_SPEC fixture has a `PUT /orders` that is normally dropped by
+    the routing table. With `--unmatched ops` that op becomes a flat
+    action under `ops`, and the generator writes the corresponding
+    base-layer module.
+    """
+    spec = tmp_path / "noisy.yaml"
+    spec.write_text(NOISY_SPEC, encoding="utf-8")
+    out = tmp_path / "out"
+
+    result = runner.invoke(app, [*_generate_args(spec, out), "--unmatched", "ops"])
+
+    assert result.exit_code == 0, result.stderr
+    assert (out / "src" / "cli" / "base" / "namespaces" / "ops.py").exists()
+    actions_dir = out / "src" / "cli" / "base" / "actions"
+    assert any(actions_dir.iterdir()), "expected at least one synthetic action module"
+
+
+def test_unmatched_flag_aborts_on_collision(tmp_path: Path) -> None:
+    """`--unmatched <name>` exits non-zero when the name collides with a top-level node.
+
+    `NOISY_SPEC` exposes an `/orders` collection; asking for `--unmatched
+    orders` must surface `UnmatchedNamespaceCollisionError` and not write
+    any output.
+    """
+    spec = tmp_path / "noisy.yaml"
+    spec.write_text(NOISY_SPEC, encoding="utf-8")
+    out = tmp_path / "out"
+
+    result = runner.invoke(app, [*_generate_args(spec, out), "--unmatched", "orders"])
+
+    assert result.exit_code == 1
+    assert "UnmatchedNamespaceCollisionError" in result.stderr
+    assert not out.exists()

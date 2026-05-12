@@ -61,6 +61,7 @@ okapipy spec parse <SOURCE> [OPTIONS]
 | `--lang CODE` | `en` | ISO language code for NLP. |
 | `--strip-prefix STRING` | `None` | Path prefix to strip from every path before classification (e.g. `/public/v1`). Overrides the prefix inferred from `servers[].url`. |
 | `--nlp-cache-dir DIR` | `./.spacy` | Where to look for / store the spaCy model. |
+| `--unmatched NAME` | none | Bulk escape hatch: keep operations that would otherwise be dropped by the routing table as flat actions under a top-level namespace called `NAME`. Each action is named after its `operationId`, falling back to `<method>_<path>` when no `operationId` is declared. `NAME` must not collide with any existing top-level node. See [Rules and extensions](../user-guide/rules.md#i-have-many-non-conforming-endpoints-and-i-dont-want-to-annotate-each-one). |
 | `--output PATH` | none | Write the parsed tree to a file. Format inferred from `.json` / `.yaml` / `.yml` extension. |
 
 Output:
@@ -109,6 +110,7 @@ okapipy spec generate <SOURCE> --output DIR --package PKG --client-class NAME [O
 | `--lang CODE` | `en` | ISO language code for NLP. |
 | `--strip-prefix STRING` | `None` | Path prefix to strip before classification. |
 | `--nlp-cache-dir DIR` | `./.spacy` | spaCy model cache. |
+| `--unmatched NAME` | none | Bulk escape hatch for operations that don't fit the routing table. See [`spec parse`](#okapipy-spec-parse) above and the [worked example](../user-guide/rules.md#i-have-many-non-conforming-endpoints-and-i-dont-want-to-annotate-each-one). |
 
 **Generator options**:
 

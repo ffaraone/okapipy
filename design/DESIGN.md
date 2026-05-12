@@ -169,6 +169,33 @@ Three invariants live in this module:
   off-pattern operation is to mark it `x-okapipy-kind: action` (operation
   level), at which point `_attach_synthetic_action` synthesizes an
   `Action` under the parent.
+* **Optional bulk capture of unmatched ops.** When `parse(...)` is
+  called with `unmatched_namespace=<name>`, `_route` records every
+  would-be-dropped `(method, path, operation)` triple in an
+  `unmatched: list[_UnmatchedOp]` buffer instead of warning and
+  returning. After the main walk completes the builder runs
+  `_attach_unmatched_namespace(api, name, unmatched)`:
+    1. Compute the snake_case form of `name` and compare against the
+       snake_case form of every top-level `Namespace`, `Collection`,
+       `Singleton`, and `Action` name. On match, raise
+       `UnmatchedNamespaceCollisionError(name, conflict)`. The check
+       runs even when the buffer is empty so a stale flag doesn't go
+       unnoticed.
+    2. Otherwise, synthesize a `Namespace(name=name, path="")` and
+       attach one `Action` per buffered op. Each action's `name` is
+       `operationId` when declared, else `<method>_<sanitized_path>`
+       (the same helper synthetic actions already use). The
+       contextual-PascalCase pass produces the class name from this
+       attribute; namespaces don't contribute to the breadcrumb so the
+       class shape is the same as a top-level action.
+    3. operationId collisions across buffered ops are resolved by
+       suffixing `_<n>` to the second and subsequent occurrence —
+       `logging.warning(...)` so the customer can clean up the spec.
+
+  The synthesized container's path is the empty string by design: it
+  has no spec-level URL, only its child actions do. Generation downstream
+  is unaffected — the synthetic namespace renders through the existing
+  namespace + action templates with no special-case branches.
 
 `_collect_spec_path_kinds` indexes path-item-level `x-okapipy-kind` hints
 by cumulative path so a hint declared on `/me` propagates to `/me/refresh`
@@ -222,10 +249,14 @@ no body (`204 No Content`, etc.).
 ### 1.10 Errors
 
 `ParserError` is the base; `SpecLoadError`, `RulesFormatError`,
-`NlpModelMissingError`, `InvalidStructureError` are the typed leaves. The
-CLI catches `ParserError` at its boundary, prints to stderr, and exits
+`NlpModelMissingError`, `InvalidStructureError`,
+`UnmatchedNamespaceCollisionError` are the typed leaves. The CLI
+catches `ParserError` at its boundary, prints to stderr, and exits
 non-zero. `NlpModelMissingError`'s message includes the exact
 `okapipy nlp fetch <lang> --cache-dir <dir>` command to fix it.
+`UnmatchedNamespaceCollisionError`'s message names both the requested
+namespace and the conflicting top-level node so the customer knows
+which segment to rename or which name to pick.
 
 ---
 

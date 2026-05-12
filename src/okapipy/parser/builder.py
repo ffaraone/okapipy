@@ -39,12 +39,16 @@ from __future__ import annotations
 
 import logging
 import re
+from dataclasses import dataclass
 from typing import Any
 
 from spacy.language import Language
 
 from okapipy.parser.classifier import SegmentKind, classify_segment
-from okapipy.parser.errors import InvalidStructureError
+from okapipy.parser.errors import (
+    InvalidStructureError,
+    UnmatchedNamespaceCollisionError,
+)
 from okapipy.parser.extension import (
     operation_extension,
     operation_paginated_extension,
@@ -87,12 +91,28 @@ EXCLUDE_ALL = "*"
 type ContainerNode = APIModel | Namespace | Collection | Resource | Singleton | Action
 
 
+@dataclass(slots=True)
+class _UnmatchedOp:
+    """One operation that would otherwise be dropped by the routing table.
+
+    Buffered during the path walk when `--unmatched <namespace>` is set
+    and materialized into a synthetic `Action` after the main walk
+    completes.
+    """
+
+    path: str
+    method: str
+    operation_id: str | None
+    operation: Operation
+
+
 def build(
     spec: dict[str, Any],
     rules: Rules,
     nlp: Language,
     *,
     strip_prefix: str | None = None,
+    unmatched_namespace: str | None = None,
 ) -> APIModel:
     """Construct an APIModel from an OpenAPI document.
 
@@ -107,6 +127,11 @@ def build(
         strip_prefix: Optional path prefix to strip from every path before
             classification, e.g. `/public/v1`. When set, this overrides the prefix
             inferred from `servers[].url`.
+        unmatched_namespace: When set, operations that would otherwise be
+            dropped by the routing table are retained as synthetic actions
+            under a top-level namespace of this name. Raises
+            `UnmatchedNamespaceCollisionError` when the name collides with
+            an existing top-level node identifier.
 
     Returns:
         A populated APIModel.
@@ -114,11 +139,16 @@ def build(
     api = APIModel()
     paths_obj = spec.get("paths") or {}
     if not paths_obj:
+        if unmatched_namespace is not None:
+            _attach_unmatched_namespace(api, unmatched_namespace, [])
         return api
     base = strip_prefix if strip_prefix is not None else detect_base_path(spec)
     paths = strip_base_path(paths_obj, base)
     ns_registry = root_namespaces(spec) | extra_namespaces(rules)
     spec_path_kinds = _collect_spec_path_kinds(paths)
+    unmatched: list[_UnmatchedOp] | None = (
+        [] if unmatched_namespace is not None else None
+    )
     log.debug(
         "builder starting: %d paths, %d namespace hints, %d path-kind hints, base=%r",
         len(paths),
@@ -146,10 +176,13 @@ def build(
                 spec_path_kinds=spec_path_kinds,
                 excluded_methods=excluded_methods,
                 spec=spec,
+                unmatched=unmatched,
             )
         except InvalidStructureError as exc:
             log.warning("skipping path %s: %s", path, exc)
     _apply_tag_descriptions(api, _collect_tag_descriptions(spec))
+    if unmatched_namespace is not None:
+        _attach_unmatched_namespace(api, unmatched_namespace, unmatched or [])
     return api
 
 
@@ -335,6 +368,7 @@ def _walk_path(
     spec_path_kinds: dict[str, str],
     excluded_methods: set[str],
     spec: dict[str, Any],
+    unmatched: list[_UnmatchedOp] | None,
 ) -> None:
     """Walk a single OpenAPI path and attach its operations to the tree."""
     log.debug("walking path %s", path)
@@ -396,6 +430,7 @@ def _walk_path(
         action_path=last_path,
         excluded_methods=excluded_methods,
         spec=spec,
+        unmatched=unmatched,
     )
 
 
@@ -483,6 +518,7 @@ def _install_operations(
     action_path: str,
     excluded_methods: set[str],
     spec: dict[str, Any],
+    unmatched: list[_UnmatchedOp] | None,
 ) -> None:
     """Attach Operation entries onto the terminal node according to its kind."""
     item_paginated = _resolve_paginated(
@@ -515,13 +551,18 @@ def _install_operations(
             pagination_supported=op_paginated,
             spec=spec,
         )
+        operation_id = op_data.get("operationId")
+        if not isinstance(operation_id, str) or not operation_id.strip():
+            operation_id = None
         _route(
             cursor=cursor,
             terminal_kind=terminal_kind,
             method=method,
             operation=operation,
+            operation_id=operation_id,
             action_path=action_path,
             is_action_method=is_action_method,
+            unmatched=unmatched,
         )
 
 
@@ -545,17 +586,23 @@ def _route(
     terminal_kind: SegmentKind,
     method: str,
     operation: Operation,
+    operation_id: str | None,
     action_path: str,
     is_action_method: bool,
+    unmatched: list[_UnmatchedOp] | None,
 ) -> None:
     """Place a single Operation on the terminal node based on its kind and method."""
     if isinstance(cursor, (APIModel, Namespace)):
-        log.warning(
-            "skipping %s %s: a bare namespace path has no operation slot. "
-            "Mark it with x-okapipy-kind to expose it as a collection, singleton, "
-            "or action.",
-            method.upper(),
-            action_path,
+        _drop_or_buffer(
+            unmatched=unmatched,
+            method=method,
+            action_path=action_path,
+            operation_id=operation_id,
+            operation=operation,
+            reason=(
+                "a bare namespace path has no operation slot. Mark it with "
+                "x-okapipy-kind to expose it as a collection, singleton, or action."
+            ),
         )
         return
     if terminal_kind is SegmentKind.ACTION and isinstance(cursor, Action):
@@ -570,13 +617,18 @@ def _route(
         elif method == "post":
             cursor.create = operation
         else:
-            log.warning(
-                "skipping %s %s: method has no canonical slot on collection %r and "
-                "the operation does not fit the namespace/collection/resource/action "
-                "hierarchy. Mark it with x-okapipy-kind: action to keep it.",
-                method.upper(),
-                action_path,
-                cursor.name,
+            _drop_or_buffer(
+                unmatched=unmatched,
+                method=method,
+                action_path=action_path,
+                operation_id=operation_id,
+                operation=operation,
+                reason=(
+                    f"method has no canonical slot on collection {cursor.name!r} "
+                    f"and the operation does not fit the namespace/collection/"
+                    f"resource/action hierarchy. Mark it with x-okapipy-kind: "
+                    f"action to keep it."
+                ),
             )
         return
     if isinstance(cursor, (Resource, Singleton)):
@@ -593,16 +645,181 @@ def _route(
             cursor.delete = operation
         else:
             kind_label = "resource" if isinstance(cursor, Resource) else "singleton"
-            log.warning(
-                "skipping %s %s: method has no canonical slot on %s %r and "
-                "the operation does not fit the namespace/collection/resource/"
-                "singleton/action hierarchy. Mark it with x-okapipy-kind: action "
-                "to keep it.",
-                method.upper(),
-                action_path,
-                kind_label,
-                cursor.name,
+            _drop_or_buffer(
+                unmatched=unmatched,
+                method=method,
+                action_path=action_path,
+                operation_id=operation_id,
+                operation=operation,
+                reason=(
+                    f"method has no canonical slot on {kind_label} "
+                    f"{cursor.name!r} and the operation does not fit the "
+                    f"namespace/collection/resource/singleton/action hierarchy. "
+                    f"Mark it with x-okapipy-kind: action to keep it."
+                ),
             )
+
+
+def _drop_or_buffer(
+    *,
+    unmatched: list[_UnmatchedOp] | None,
+    method: str,
+    action_path: str,
+    operation_id: str | None,
+    operation: Operation,
+    reason: str,
+) -> None:
+    """Either log+drop the operation or stash it for the unmatched namespace.
+
+    When `unmatched` is `None` (the flag is off) this preserves the prior
+    behaviour: emit a `logging.warning(...)` and discard the operation.
+    When `unmatched` is a list the operation is appended verbatim and the
+    `_attach_unmatched_namespace` post-walk pass synthesizes an `Action`
+    from it.
+    """
+    if unmatched is not None:
+        unmatched.append(
+            _UnmatchedOp(
+                path=action_path,
+                method=method,
+                operation_id=operation_id,
+                operation=operation,
+            )
+        )
+        return
+    log.warning("skipping %s %s: %s", method.upper(), action_path, reason)
+
+
+def _attach_unmatched_namespace(
+    api: APIModel,
+    requested: str,
+    unmatched: list[_UnmatchedOp],
+) -> None:
+    """Synthesize a top-level Namespace holding one Action per unmatched op.
+
+    Validates that `requested` does not collide with any existing top-level
+    node identifier (snake_case form) before adding anything to the tree.
+    When `unmatched` is empty the collision check still runs — so a stale
+    flag against a clean spec surfaces — but no namespace is attached.
+
+    Raises:
+        UnmatchedNamespaceCollisionError: when `requested` matches the
+            snake_case identifier of an existing top-level Namespace,
+            Collection, Singleton, or Action.
+    """
+    normalized = _snake_case(requested)
+    if not normalized:
+        raise UnmatchedNamespaceCollisionError(requested, "namespace", requested)
+    _check_unmatched_collision(api, requested, normalized)
+    if not unmatched:
+        return
+    namespace = Namespace(name=requested)
+    used_attrs: set[str] = set()
+    used_classes: set[str] = set()
+    for entry in unmatched:
+        attr_base, class_base = _unmatched_action_names(entry)
+        attr_name, class_name = _disambiguate_unmatched(
+            attr_base, class_base, used_attrs, used_classes
+        )
+        if attr_name != attr_base:
+            log.warning(
+                "unmatched operationId %r already in use; emitting as %r",
+                attr_base,
+                attr_name,
+            )
+        used_attrs.add(attr_name)
+        used_classes.add(class_name)
+        namespace.actions.append(
+            Action(
+                name=class_name,
+                path=entry.path,
+                attr_override=attr_name,
+                operations=[entry.operation],
+            )
+        )
+    api.namespaces.append(namespace)
+
+
+def _check_unmatched_collision(api: APIModel, requested: str, normalized: str) -> None:
+    """Raise if `normalized` collides with any top-level identifier in `api`."""
+    for ns in api.namespaces:
+        if _snake_case(ns.name) == normalized:
+            raise UnmatchedNamespaceCollisionError(requested, "namespace", ns.name)
+    for coll in api.collections:
+        if _snake_case(_last_non_template_segment(coll.path)) == normalized:
+            raise UnmatchedNamespaceCollisionError(requested, "collection", coll.name)
+    for sing in api.singletons:
+        if _snake_case(_last_non_template_segment(sing.path)) == normalized:
+            raise UnmatchedNamespaceCollisionError(requested, "singleton", sing.name)
+    for act in api.actions:
+        attr = act.attr_override or _last_non_template_segment(act.path)
+        if _snake_case(attr) == normalized:
+            raise UnmatchedNamespaceCollisionError(requested, "action", act.name)
+
+
+def _unmatched_action_names(entry: _UnmatchedOp) -> tuple[str, str]:
+    """Return `(attr_name, class_name)` for one unmatched op.
+
+    `operationId` drives both names when declared. The fallback derives
+    `<method>_<sanitized_path>` (attr) and `<Method><PascalCasePath>`
+    (class) — the same pattern flat-style generators use when no
+    `operationId` is present.
+    """
+    if entry.operation_id is not None:
+        return _snake_case(entry.operation_id), _pascal_case(entry.operation_id)
+    sanitized = _sanitize_path_for_id(entry.path)
+    attr = f"{entry.method}_{sanitized}" if sanitized else entry.method
+    pascal_path = _pascal_case(sanitized) if sanitized else ""
+    class_name = (
+        f"{entry.method.capitalize()}{pascal_path}" or entry.method.capitalize()
+    )
+    return attr, class_name
+
+
+def _disambiguate_unmatched(
+    attr_base: str,
+    class_base: str,
+    used_attrs: set[str],
+    used_classes: set[str],
+) -> tuple[str, str]:
+    """Suffix `_N` / `N` until both attr and class names are unique."""
+    if attr_base not in used_attrs and class_base not in used_classes:
+        return attr_base, class_base
+    counter = 2
+    while True:
+        attr_candidate = f"{attr_base}_{counter}"
+        class_candidate = f"{class_base}{counter}"
+        if attr_candidate not in used_attrs and class_candidate not in used_classes:
+            return attr_candidate, class_candidate
+        counter += 1
+
+
+def _sanitize_path_for_id(path: str) -> str:
+    """Turn `/users/{id}/admin` into `users_id_admin` for fallback naming.
+
+    Path parameters keep their inner name (so `{org_id}` becomes `org_id`)
+    rather than being dropped — that way the fallback identifier still
+    distinguishes `/users/{id}` from `/users/{other_id}` when both are
+    unmatched.
+    """
+    parts: list[str] = []
+    for segment in path.split("/"):
+        if not segment:
+            continue
+        if segment.startswith("{") and segment.endswith("}"):
+            parts.append(segment[1:-1])
+        else:
+            parts.append(segment)
+    return _snake_case("_".join(parts))
+
+
+def _last_non_template_segment(path: str) -> str:
+    """Return the last `/`-separated segment of `path` that is not `{template}`."""
+    for segment in reversed([s for s in path.split("/") if s]):
+        if segment.startswith("{") and segment.endswith("}"):
+            continue
+        return segment
+    return ""
 
 
 def _attach_synthetic_action(
@@ -859,6 +1076,20 @@ def _merge_hint(rules_hint: str | None, spec_hint: str | None) -> str | None:
 
 
 _PASCAL_SPLIT = re.compile(r"[-_\s]+")
+_CAMEL_BOUNDARY = re.compile(r"(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])")
+
+
+def _snake_case(value: str) -> str:
+    """Convert PascalCase / camelCase / kebab-case input to snake_case.
+
+    Mirrors the generator's `templating.snake_case` so the parser's
+    collision check sees the same identifier the generator will emit.
+    Kept local rather than imported to preserve the parser's
+    independence from the generator package.
+    """
+    normalized = value.replace(".", "_dot_").replace("-", "_").replace(" ", "_")
+    snake = _CAMEL_BOUNDARY.sub("_", normalized).lower()
+    return re.sub(r"_+", "_", snake).strip("_")
 
 
 def _pascal_case(token: str) -> str:
