@@ -148,6 +148,40 @@ def test_spec_parse_passes_url_source_through(
     assert pipeline.call_args.kwargs["source"] == url
 
 
+def test_spec_parse_forwards_unmatched_flag_to_pipeline(
+    mocker: MockerFixture, simple_spec_path: Path
+) -> None:
+    """`--unmatched <name>` on `spec parse` flows into `_run_pipeline` as a kwarg."""
+    from okapipy.parser.model import APIModel
+
+    pipeline = mocker.patch(
+        "okapipy.cli.spec_cmd._run_pipeline", return_value=APIModel()
+    )
+
+    result = runner.invoke(
+        app, ["spec", "parse", str(simple_spec_path), "--unmatched", "ops"]
+    )
+
+    assert result.exit_code == 0
+    assert pipeline.call_args.kwargs["unmatched_namespace"] == "ops"
+
+
+def test_spec_parse_omits_unmatched_kwarg_when_flag_absent(
+    mocker: MockerFixture, simple_spec_path: Path
+) -> None:
+    """Without `--unmatched`, the kwarg defaults to `None` (no synthetic namespace)."""
+    from okapipy.parser.model import APIModel
+
+    pipeline = mocker.patch(
+        "okapipy.cli.spec_cmd._run_pipeline", return_value=APIModel()
+    )
+
+    result = runner.invoke(app, ["spec", "parse", str(simple_spec_path)])
+
+    assert result.exit_code == 0
+    assert pipeline.call_args.kwargs["unmatched_namespace"] is None
+
+
 def test_spec_parse_renders_summary_table(
     mocker: MockerFixture, simple_spec_path: Path
 ) -> None:

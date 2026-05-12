@@ -72,6 +72,17 @@ def parse_command(
         "--nlp-cache-dir",
         help="Directory in which spaCy models are stored and looked up.",
     ),
+    unmatched: str | None = typer.Option(
+        None,
+        "--unmatched",
+        help=(
+            "Top-level namespace to hold operations that would otherwise be "
+            "dropped by the hierarchical routing table (e.g. PUT on a "
+            "collection, GET on a bare namespace path). Each such op becomes "
+            "a flat action named after its operationId. The name must not "
+            "collide with an existing top-level node."
+        ),
+    ),
     output: Path | None = typer.Option(
         None,
         "--output",
@@ -87,6 +98,7 @@ def parse_command(
             lang=lang,
             cache_dir=nlp_cache_dir,
             strip_prefix=strip_prefix,
+            unmatched_namespace=unmatched,
         )
     except ParserError as exc:
         print_error(exc, debug=verbose >= 2)
@@ -110,6 +122,7 @@ def _run_pipeline(
     lang: str,
     cache_dir: Path,
     strip_prefix: str | None,
+    unmatched_namespace: str | None = None,
 ) -> APIModel:
     """Run the full parser pipeline with a spinner for each phase."""
     with _phase("Loading OpenAPI spec"):
@@ -120,7 +133,13 @@ def _run_pipeline(
     with _phase(f"Loading spaCy pipeline ({lang})"):
         nlp = load_pipeline(lang, cache_dir=cache_dir)
     with _phase("Building structural tree"):
-        return build(spec, loaded_rules, nlp, strip_prefix=strip_prefix)
+        return build(
+            spec,
+            loaded_rules,
+            nlp,
+            strip_prefix=strip_prefix,
+            unmatched_namespace=unmatched_namespace,
+        )
 
 
 @contextmanager
@@ -271,6 +290,17 @@ def generate_command(
         "--nlp-cache-dir",
         help="Directory in which spaCy models are stored and looked up.",
     ),
+    unmatched: str | None = typer.Option(
+        None,
+        "--unmatched",
+        help=(
+            "Top-level namespace to hold operations that would otherwise be "
+            "dropped by the hierarchical routing table (e.g. PUT on a "
+            "collection, GET on a bare namespace path). Each such op becomes "
+            "a flat action named after its operationId. The name must not "
+            "collide with an existing top-level node."
+        ),
+    ),
     templates_dir: Path | None = typer.Option(
         None,
         "--templates-dir",
@@ -319,6 +349,7 @@ def generate_command(
             lang=lang,
             cache_dir=nlp_cache_dir,
             strip_prefix=strip_prefix,
+            unmatched_namespace=unmatched,
         )
     except ParserError as exc:
         print_error(exc, debug=verbose >= 2)

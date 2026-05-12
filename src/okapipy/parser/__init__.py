@@ -11,6 +11,7 @@ from okapipy.parser.errors import (
     ParserError,
     RulesFormatError,
     SpecLoadError,
+    UnmatchedNamespaceCollisionError,
 )
 from okapipy.parser.model import (
     Action,
@@ -36,5 +37,6 @@ __all__ = [
     "RulesFormatError",
     "Singleton",
     "SpecLoadError",
+    "UnmatchedNamespaceCollisionError",
     "parse",
 ]

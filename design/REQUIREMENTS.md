@@ -114,6 +114,27 @@ otherwise-dropped operation, mark it `x-okapipy-kind: action` (operation- or
 path-item-level); the builder then synthesizes an `Action` under the
 collection / resource / singleton.
 
+**Optional bulk escape hatch: `--unmatched <namespace>`.** When the
+parser is invoked with a non-`None` `unmatched_namespace`, every
+operation that would otherwise be dropped by the routing table above is
+instead retained as a synthetic `Action` under a single top-level
+`Namespace` of the supplied name. The synthetic actions carry their
+original path verbatim. Each is named after its `operationId`
+(snake_case for the attribute, PascalCase for the class); when no
+`operationId` is declared, the name falls back to
+`<method>_<sanitized_path>`, the same pattern flat-style generators
+use. The flag is **CLI-only by design** — there is no rules-file key
+that toggles it, because the choice is per-invocation and should not be
+baked into a shared rules document.
+
+The supplied namespace name must not collide with any existing
+top-level node. Before synthesizing the container the builder compares
+the snake_case form of `unmatched_namespace` against the snake_case
+form of every top-level `Namespace`, `Collection`, `Singleton`, and
+`Action` name. On collision the builder raises
+`UnmatchedNamespaceCollisionError` naming the conflicting node, and no
+tree is returned — the customer must pick a different name.
+
 ### 1.6 OpenAPI extensions
 
 Read both from the spec and from the rules file (rules-file values win):
@@ -164,12 +185,13 @@ okapipy.parser.parse(
     *,
     strip_prefix: str | None = None,
     nlp_cache_dir: Path = Path.cwd() / ".spacy",
+    unmatched_namespace: str | None = None,
 ) -> APIModel
 ```
 
 Non-fatal warnings go to `logging`. Errors raise a `ParserError` subclass
 (`SpecLoadError`, `RulesFormatError`, `NlpModelMissingError`,
-`InvalidStructureError`).
+`InvalidStructureError`, `UnmatchedNamespaceCollisionError`).
 
 ### 1.10 OpenAPI tag descriptions → namespace prose
 
@@ -197,9 +219,9 @@ words rather than a structural fallback.
 * CLI:
   * `okapipy nlp fetch <LANG> [--cache-dir PATH]` — pre-warm a spaCy model.
   * `okapipy spec parse <SOURCE> [--rules] [--lang] [--strip-prefix]
-    [--nlp-cache-dir] [--output]` — parse a spec; print a counts panel +
-    JSON tree (or write the chosen format). Errors print to stderr,
-    exit non-zero.
+    [--nlp-cache-dir] [--unmatched NAMESPACE] [--output]` — parse a
+    spec; print a counts panel + JSON tree (or write the chosen
+    format). Errors print to stderr, exit non-zero.
 * `-v` enables INFO logs; `-vv` enables DEBUG and prints tracebacks on error.
 
 ---
@@ -426,6 +448,13 @@ subclass. The hierarchy:
 * `--project-name`, `--project-version`, `--python-version`, `--license`,
   `--author`, `--rules`, `--lang`, `--strip-prefix`, `--nlp-cache-dir`,
   `--templates-dir`, `--model-templates-dir`.
+* `--unmatched NAMESPACE` — opt in to keeping operations that don't fit
+  the hierarchical routing table. The supplied name becomes a
+  top-level namespace populated with one synthetic action per
+  unmatched operation (named after `operationId`, falling back to
+  `<method>_<sanitized_path>`). The flag is **CLI-only**: it has no
+  rules-file counterpart. Collision with an existing top-level node
+  aborts generation with `UnmatchedNamespaceCollisionError`.
 * `--shape {models|dicts}` — lock the generated client to a single response
   shape. Omit to produce a dual-shape client (constructor `shape=` +
   `with_shape()` + both type arms). `--shape models` keeps `base/models.py`

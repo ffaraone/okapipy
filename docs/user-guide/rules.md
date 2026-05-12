@@ -205,6 +205,52 @@ paths:
     get:  { ... }                # also routed to Action.operations
 ```
 
+### "I have many non-conforming endpoints and I don't want to annotate each one"
+
+Some specs are full of operations that don't fit the
+namespace/collection/resource/singleton/action hierarchy — `PUT /users`
+for bulk updates, `GET /admin/health`, one-off RPCs that share a
+collection path with regular CRUD. By default each one is dropped with
+a warning, and the per-op fix is `x-okapipy-kind: action` on every one
+of them.
+
+When that's impractical — usually because you don't own the spec, or
+there are too many — pass `--unmatched <name>` to keep them as flat
+actions under a synthetic top-level namespace:
+
+```bash
+okapipy spec generate openapi.yaml \
+    --output ./my-client --package acme.commerce --client-class CommerceClient \
+    --unmatched ops
+```
+
+Now every otherwise-dropped operation lands under `client.ops` as its
+own action, named after its `operationId`:
+
+```python
+client.ops.bulk_update_users.run(body={...})   # PUT /users
+client.ops.admin_health.run()                  # GET /admin/health
+```
+
+Operations without an `operationId` fall back to
+`<method>_<sanitized_path>` — e.g. a bare `PUT /users` becomes
+`put_users`. Two unmatched ops sharing an `operationId` produce
+`bulk_update`, `bulk_update_2`, … and a parser warning so you can clean
+up the spec.
+
+The namespace name is **CLI-only** — there's no rules-file key for it,
+because the choice is per-invocation, not a shared project setting.
+`<name>` must not collide with the snake_case identifier of any
+existing top-level node; on collision the generator exits non-zero with
+`UnmatchedNamespaceCollisionError` and writes nothing.
+
+!!! tip "Per-op `x-okapipy-kind: action` is still preferred when you own the spec"
+    `--unmatched` is the bulk fallback — it puts everything under one
+    flat container. When you control the spec and there's a natural
+    home for the endpoint (under a collection, a resource, a
+    singleton), `x-okapipy-kind: action` keeps the operation in the
+    right place in the hierarchy.
+
 ### "An endpoint shouldn't be in the client at all"
 
 ```yaml
