@@ -156,6 +156,14 @@ Three invariants live in this module:
   `/orgs/current/members` (where `current` is a singleton-style
   pseudo-resource) model cleanly. A singleton is "a resource without an
   `{id}`," so what works on a resource works on a singleton.
+* **Singleton-under-collection.** `_attach` accepts `Collection` as a
+  parent for `SINGLETON` segments. The pattern models collection-level
+  aggregate views (`/orders/stats`, `/datasets/summary`,
+  `/workspaces/current/secrets/encrypted`) that aren't one of the
+  items in the bag but a summary derived from them. The generated
+  collection class exposes the sub-singleton as a `@property`
+  alongside iteration; the sub-singleton file lives under
+  `base/singletons/<name>.py` as usual.
 * **Drop, don't coerce.** `_route` warns and returns when a method has no
   canonical slot for the terminal kind. The only way to keep an
   off-pattern operation is to mark it `x-okapipy-kind: action` (operation

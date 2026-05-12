@@ -120,6 +120,14 @@ okapipy spec generate <SOURCE> --output DIR --package PKG --client-class NAME [O
 | `--check` | off | Dry-run; report drift, exit non-zero on any change. CI gate. |
 | `--quiet`, `-q` | off | Suppress drift-detection warnings. Pruning still runs. |
 
+Output:
+
+* **stderr** — a green summary panel naming the output directory and the
+  file count (`Wrote 35 files to ./my-client`). When the parser emitted
+  any warnings during the run, the panel appends `; N warning(s)
+  emitted` so the count is visible even if individual warnings scrolled
+  past in the terminal.
+
 Exit codes:
 
 * `0` — generated successfully (or `--check` passed with no drift).

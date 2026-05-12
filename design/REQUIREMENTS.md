@@ -43,7 +43,7 @@ A populated `APIModel` (Pydantic v2) consisting of five node kinds:
 | `Namespace` | Folder-style grouping; no operations of its own | Root or another `Namespace` |
 | `Collection` | Plural endpoint with `fetch` (GET) / `create` (POST) and a `Resource` child | Root, `Namespace`, `Resource`, or `Singleton` |
 | `Resource` | Single item under a collection, reached via a path-parameter segment | Inside a `Collection` |
-| `Singleton` | Resourceful endpoint with no enclosing collection (`/me`, `/health`) | Root, `Namespace`, `Resource`, `Singleton` |
+| `Singleton` | Resourceful endpoint with no enclosing collection (`/me`, `/health`); also collection-level aggregate views (`/orders/stats`) | Root, `Namespace`, `Collection`, `Resource`, `Singleton` |
 | `Action` | Non-CRUD verb endpoint (`/login`, `/orders/{id}/submit`) | Root, `Namespace`, `Collection`, `Resource`, `Singleton` |
 
 `Operation` is the leaf payload that records HTTP method, content types,

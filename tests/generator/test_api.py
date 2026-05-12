@@ -246,6 +246,66 @@ components:
     assert "def create" in orders_src
 
 
+def test_collection_hosts_sub_singleton_in_generated_client(tmp_path: Path) -> None:
+    """A collection with an aggregate-view sub-singleton (`/orders/stats`) generates cleanly.
+
+    Collections may host singleton "summary" / "stats" endpoints that aggregate
+    over the items. The generator emits the singleton file, wires the
+    accessor on the collection class, and the user can call
+    `client.orders.stats.retrieve()`.
+    """
+    from okapipy.parser.api import parse
+
+    spec_yaml = """
+openapi: 3.0.0
+info: {title: Sub-singleton, version: 1.0.0}
+paths:
+  /orders:
+    get:
+      summary: List orders
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Order'}
+  /orders/stats:
+    x-okapipy-kind: singleton
+    get:
+      summary: Aggregate stats over orders
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Stats'}
+components:
+  schemas:
+    Order: {type: object, properties: {id: {type: string}}}
+    Stats: {type: object, properties: {total: {type: integer}}}
+"""
+    spec_path = tmp_path / "spec.yaml"
+    spec_path.write_text(spec_yaml, encoding="utf-8")
+    api = parse(spec_path, nlp_cache_dir=Path(__file__).resolve().parents[2] / ".spacy")
+
+    vfs = generate(
+        api,
+        raw_spec=spec_path,
+        output_dir=tmp_path / "out",
+        package="acme.client",
+        client_class="AcmeClient",
+    )
+
+    assert "src/acme/client/base/collections/orders.py" in vfs
+    assert "src/acme/client/base/singletons/order_stats.py" in vfs
+    orders_src = vfs["src/acme/client/base/collections/orders.py"].content
+    assert "OrderStatsSingletonBase" in orders_src
+    assert "def stats(self) -> OrderStatsSingletonBase" in orders_src
+    stats_src = vfs["src/acme/client/base/singletons/order_stats.py"].content
+    assert "class OrderStatsSingletonBase" in stats_src
+    assert "def retrieve" in stats_src
+
+
 def test_root_actions_fixture_emits_action_files(tmp_path: Path) -> None:
     """Root and namespace-level actions land in `base/actions/` and the client/namespace wires them.
 

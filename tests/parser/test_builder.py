@@ -976,6 +976,37 @@ def test_build_attaches_collection_under_singleton(english_nlp: Language) -> Non
     assert orders.resource.retrieve is not None
 
 
+def test_build_attaches_singleton_under_collection(english_nlp: Language) -> None:
+    """A singleton segment under a collection (`/orders/stats`) attaches as a sub-singleton.
+
+    Collection-level aggregate views (`/orders/stats`, `/datasets/summary`) are
+    real-world REST patterns. Modeled as singletons hosted by the parent
+    collection, the generated client exposes `client.orders.stats.retrieve()`
+    alongside iteration over the collection itself.
+    """
+    spec = {
+        "paths": {
+            "/orders": {
+                "get": {"responses": {"200": {"description": "OK"}}},
+            },
+            "/orders/stats": {
+                "x-okapipy-kind": "singleton",
+                "get": {"responses": {"200": {"description": "OK"}}},
+            },
+        }
+    }
+
+    api = build(spec, Rules(), english_nlp)
+
+    orders = api.collections[0]
+    assert orders.name == "Orders"
+    assert len(orders.singletons) == 1
+    stats = orders.singletons[0]
+    assert stats.name == "OrderStats"
+    assert stats.path == "/orders/stats"
+    assert stats.retrieve is not None
+
+
 def test_build_action_under_singleton(english_nlp: Language) -> None:
     """An action segment under a singleton (`/me/refresh`) attaches as a Singleton action.
 

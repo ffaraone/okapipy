@@ -8,7 +8,7 @@ Project: `{{ project_name }}`.
 from __future__ import annotations
 
 from collections.abc import AsyncIterator, Iterator, Mapping
-{% if resource or actions %}
+{% if resource or actions or child_singletons %}
 from typing import TYPE_CHECKING, Any, ClassVar, cast
 {% else %}
 from typing import TYPE_CHECKING, Any, cast
@@ -25,6 +25,9 @@ from ..models import {{ model_imports | join(", ") }}
 {% if resource %}
 from ..resources.{{ resource.module }} import {{ resource.class_name }}, Async{{ resource.class_name }}
 {% endif %}
+{% for child in child_singletons %}
+from ..singletons.{{ child.module }} import {{ child.class_name }}, Async{{ child.class_name }}
+{% endfor %}
 {% for action in actions %}
 from ..actions.{{ action.module }} import {{ action.class_name }}, Async{{ action.class_name }}
 {% endfor %}
@@ -41,6 +44,9 @@ class {{ class_name }}:
 {% if resource %}
     {{ resource.factory_attr }}: ClassVar[type[{{ resource.class_name }}]] = {{ resource.class_name }}
 {% endif %}
+{% for child in child_singletons %}
+    {{ child.factory_attr }}: ClassVar[type[{{ child.class_name }}]] = {{ child.class_name }}
+{% endfor %}
 {% for action in actions %}
     {{ action.factory_attr }}: ClassVar[type[{{ action.class_name }}]] = {{ action.class_name }}
 {% endfor %}
@@ -208,6 +214,13 @@ class {{ class_name }}:
             for raw in strat.extract_items(response)
         ]
 
+{% for child in child_singletons %}
+    @property
+    def {{ child.attr }}(self) -> {{ child.class_name }}:
+{{ child.docstring }}
+        return self.{{ child.factory_attr }}(client=self.client, path_params=self.path_params)
+
+{% endfor %}
 {% for action in actions %}
     @property
     def {{ action.attr }}(self) -> {{ action.class_name }}:
@@ -362,6 +375,9 @@ class Async{{ class_name }}:
 {% if resource %}
     {{ resource.factory_attr }}: ClassVar[type[Async{{ resource.class_name }}]] = Async{{ resource.class_name }}
 {% endif %}
+{% for child in child_singletons %}
+    {{ child.factory_attr }}: ClassVar[type[Async{{ child.class_name }}]] = Async{{ child.class_name }}
+{% endfor %}
 {% for action in actions %}
     {{ action.factory_attr }}: ClassVar[type[Async{{ action.class_name }}]] = Async{{ action.class_name }}
 {% endfor %}
@@ -495,6 +511,13 @@ class Async{{ class_name }}:
             for raw in strat.extract_items(response)
         ]
 
+{% for child in child_singletons %}
+    @property
+    def {{ child.attr }}(self) -> Async{{ child.class_name }}:
+{{ child.docstring }}
+        return self.{{ child.factory_attr }}(client=self.client, path_params=self.path_params)
+
+{% endfor %}
 {% for action in actions %}
     @property
     def {{ action.attr }}(self) -> Async{{ action.class_name }}:

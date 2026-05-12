@@ -444,7 +444,9 @@ def _attach(
             cursor.resource = Resource(name=resource_name, path=cumulative_path)
         return cursor.resource, breadcrumb
     if kind is SegmentKind.SINGLETON:
-        if not isinstance(cursor, (APIModel, Namespace, Resource, Singleton)):
+        if not isinstance(
+            cursor, (APIModel, Namespace, Collection, Resource, Singleton)
+        ):
             raise InvalidStructureError(
                 f"singleton {segment!r} cannot be attached under {type(cursor).__name__}"
             )

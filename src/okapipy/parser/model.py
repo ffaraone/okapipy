@@ -104,7 +104,13 @@ class Resource(BaseModel):
 
 
 class Collection(BaseModel):
-    """A plural endpoint that fetches a list, creates, and contains a Resource."""
+    """A plural endpoint that fetches a list, creates, and contains a Resource.
+
+    Collections may also host sub-singletons that represent collection-level
+    aggregate views — `/orders/stats`, `/datasets/summary` — alongside the
+    per-item `Resource` reached via `{id}`. Sub-collections are not allowed
+    (collection-under-collection has no canonical meaning).
+    """
 
     name: str
     path: str
@@ -114,6 +120,7 @@ class Collection(BaseModel):
     create: Operation | None = None
     resource: Resource | None = None
     actions: list[Action] = Field(default_factory=list)
+    singletons: list[Singleton] = Field(default_factory=list)
 
 
 class Namespace(BaseModel):
