@@ -247,6 +247,23 @@ orders = client.commerce.orders.all()        # returns self; reads nicer at call
 client.commerce.orders.all().filter(...).order_by(...)
 ```
 
+### Aggregate views on a collection
+
+A collection can host singleton sub-views — endpoints that aggregate
+over the items rather than being one of them. `/orders/stats`,
+`/datasets/summary`, and `/workspaces/current/secrets/encrypted` all fit
+this shape. The generator wires them as `@property` on the collection
+class, so the call site reads naturally:
+
+```python
+stats = client.commerce.orders.stats.retrieve()    # → OrderStatsSingleton
+```
+
+Iteration and filtering on the collection itself still work as before;
+the sub-singleton just sits alongside them. See
+[Rules and extensions → Aggregate view on a collection](rules.md#an-aggregate-view-on-a-collection-ordersstats)
+for the rules-file hint that triggers this shape.
+
 ## Resources
 
 A resource is one item by id. You get to it by indexing the parent

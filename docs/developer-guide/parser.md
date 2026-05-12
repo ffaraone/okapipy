@@ -125,14 +125,23 @@ draft/wrapper types. Key invariants:
 ### Naming
 
 `contextual_name(breadcrumb, current)` joins the **full** breadcrumb
-(every singular collection name accumulated so far). So:
+(every singular collection or singleton name accumulated so far). So:
 
 * `/organizations/{id}/datasources/{id}/force-reimport` →
   `OrganizationDatasourceForceReimport`.
+* `/me/orders/{id}` → `MeOrders` collection and `MeOrder` resource —
+  the singleton contributes `Me` to the breadcrumb so the sub-collection
+  doesn't collide with a top-level `/orders`.
 * Resource names use `"".join(breadcrumb)` for the same reason.
 
 Namespaces don't enter the breadcrumb — they're folders, not type
 names. `/auth/login` is `Login`; `/users/{id}/avatar` is `UserAvatar`.
+
+A literal `.` in a path segment (e.g. `/.well-known/openid-configuration`)
+is expanded to the word `Dot` so the resulting identifier is valid Python:
+`DotWellKnown` (PascalCase) and `dot_well_known` (snake_case). The raw
+segment is preserved on the parsed `Namespace.name` for HTTP routing;
+sanitization happens at render time in the generator.
 
 ### Operation routing
 
@@ -147,6 +156,37 @@ Anything that doesn't fit (e.g. `POST /users/{id}` with no
 `x-okapipy-kind: action` hint, PUT on a bare collection) is **dropped
 with a warning**, not coerced into a synthetic action. Synthetic
 actions only exist for explicit `x-okapipy-kind: action` opt-ins.
+
+### Allowed structural shapes
+
+`_attach` enforces a deliberately strict parent table. Singletons and
+resources are interchangeable as parents — a singleton is "a resource
+without an `{id}`", so what hangs off a resource also hangs off a
+singleton:
+
+| Child kind | Allowed parents |
+| --- | --- |
+| `Namespace` | root, `Namespace` |
+| `Collection` | root, `Namespace`, `Resource`, `Singleton` |
+| `Resource` (the `{id}` slot) | `Collection` only |
+| `Singleton` | root, `Namespace`, `Collection`, `Resource`, `Singleton` |
+| `Action` | root, `Namespace`, `Collection`, `Resource`, `Singleton` |
+
+Two real-world shapes this unlocks:
+
+* **Collection under singleton** — `/me/orders`, `/orgs/current/members`,
+  `/workspaces/current/tag-keys`. The singleton models a pseudo-resource
+  (the current org, the current user); its sub-collections list the
+  things that belong to it.
+* **Singleton under collection** — `/orders/stats`, `/datasets/summary`,
+  `/workspaces/current/secrets/encrypted`. The singleton is a
+  *view derived from* the collection, not one of its items.
+
+What's **not** allowed: collection-under-collection and any sub-element
+under an `Action` (actions are leaves). Both raise
+`InvalidStructureError`, which the builder catches and logs as a
+warning. Workaround for genuine collection-under-collection cases is
+`x-okapipy-exclude: '*'` on the offending paths.
 
 ### Forbidden combinations
 

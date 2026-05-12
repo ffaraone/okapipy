@@ -272,13 +272,20 @@ def _resolve_exclusion(
 def contextual_name(breadcrumb: list[str], current: str) -> str:
     """Return a contextual PascalCase name built from the full breadcrumb chain.
 
-    Every singular collection name accumulated in `breadcrumb` is concatenated, then
-    the PascalCase form of `current` is appended. With an empty breadcrumb, only
-    `PascalCase(current)` is returned.
+    Every singular collection name and singleton segment accumulated in `breadcrumb`
+    is concatenated, then the PascalCase form of `current` is appended. With an
+    empty breadcrumb, only `PascalCase(current)` is returned.
+
+    Namespaces never enter the breadcrumb — they're pure folders and carry no
+    semantic ownership. Singletons do, because the elements they host belong
+    to them (the orders under `/me` are *Me's* orders, not generic orders),
+    which also prevents file-name collisions when a top-level collection and
+    a singleton sub-collection share a segment (`/orders` vs `/me/orders`).
 
     Examples:
         contextual_name([], "orders") == "Orders"
         contextual_name(["Order"], "lines") == "OrderLines"
+        contextual_name(["Me"], "orders") == "MeOrders"
         contextual_name(["Organization", "Datasource"], "force-reimport")
             == "OrganizationDatasourceForceReimport"
     """
@@ -413,7 +420,7 @@ def _attach(
             cursor.namespaces.append(existing)
         return existing, breadcrumb
     if kind is SegmentKind.COLLECTION:
-        if not isinstance(cursor, (APIModel, Namespace, Resource)):
+        if not isinstance(cursor, (APIModel, Namespace, Resource, Singleton)):
             raise InvalidStructureError(
                 f"collection segment {segment!r} cannot be attached under {type(cursor).__name__}"
             )
@@ -437,7 +444,9 @@ def _attach(
             cursor.resource = Resource(name=resource_name, path=cumulative_path)
         return cursor.resource, breadcrumb
     if kind is SegmentKind.SINGLETON:
-        if not isinstance(cursor, (APIModel, Namespace, Resource, Singleton)):
+        if not isinstance(
+            cursor, (APIModel, Namespace, Collection, Resource, Singleton)
+        ):
             raise InvalidStructureError(
                 f"singleton {segment!r} cannot be attached under {type(cursor).__name__}"
             )
@@ -446,7 +455,8 @@ def _attach(
         if existing_sing is None:
             existing_sing = Singleton(name=name, path=cumulative_path)
             cursor.singletons.append(existing_sing)
-        return existing_sing, breadcrumb
+        new_breadcrumb = [*breadcrumb, _pascal_case(singularize(segment, nlp))]
+        return existing_sing, new_breadcrumb
     if kind is SegmentKind.ACTION:
         if not isinstance(
             cursor, (APIModel, Namespace, Collection, Resource, Singleton)

@@ -333,6 +333,17 @@ def _emit_collection(
         )
         for action in coll.actions
     ]
+    child_singletons = [
+        ChildRef(
+            attr=singleton_attr(sing),
+            class_name=singleton_class(sing),
+            module=singleton_module(sing),
+            factory_attr=factory_attr(singleton_attr(sing)),
+            docstring=singleton_accessor_docstring(sing),
+            one_line=singleton_one_line(sing),
+        )
+        for sing in coll.singletons
+    ]
     fetch_op = coll.fetch
     create_op = coll.create
     # The fetch response model is the *envelope*; the iterator yields items
@@ -353,6 +364,7 @@ def _emit_collection(
         coll,
         resource_ref=resource_bullet,
         actions=action_bullets,
+        child_singletons=child_singletons,
         create_op=create_op,
     )
     create_doc: str | None = None
@@ -369,6 +381,7 @@ def _emit_collection(
         "path_template": coll.path,
         "resource": resource_ref,
         "actions": actions_dicts,
+        "child_singletons": child_singletons,
         "create_op": create_op_ctx,
         "fetch_response_model": (
             _filter_model_name(fetch_op.response_model, available_models)
@@ -410,6 +423,12 @@ def _emit_collection(
         out.update(
             _emit_action(
                 env, action, project_context, package_path, available_models, shape
+            )
+        )
+    for sing in coll.singletons:
+        out.update(
+            _emit_singleton(
+                env, sing, project_context, package_path, available_models, shape
             )
         )
     return out
@@ -1015,15 +1034,18 @@ def _build_collection_class_docstring(
     *,
     resource_ref: ChildRef | None,
     actions: Sequence[ChildRef],
+    child_singletons: Sequence[ChildRef],
     create_op: Operation | None,
     indent: int = 4,
 ) -> str:
-    """Lead from the fetch op (today's behavior), then Item access / Operations / Actions.
+    """Compose the collection docstring from fetch op + item / ops / sub-singletons / actions.
 
     `Operations on the collection` always lists the standard query helpers
     (`first`, `count`, `exists`, `get_page`, iteration); the `create(body)`
     bullet is added only when the parser populated `Collection.create`.
-    `Item access` is omitted when there is no resource child.
+    `Item access` is omitted when there is no resource child. `Sub-singletons`
+    appears when the collection hosts aggregate-view singletons such as
+    `/orders/stats`.
     """
     fallback = f"Collection at `{coll.path}`."
     if coll.fetch is not None:
@@ -1036,6 +1058,8 @@ def _build_collection_class_docstring(
     sections.append(
         ("Operations on the collection", _collection_operation_bullets(coll, create_op))
     )
+    if child_singletons:
+        sections.append(("Sub-singletons", child_singletons))
     if actions:
         sections.append(("Actions", actions))
     body = _compose_class_doc_body(lead=lead, sections=sections)

@@ -41,9 +41,9 @@ A populated `APIModel` (Pydantic v2) consisting of five node kinds:
 | Node | Purpose | Where it can attach |
 |------|---------|---------------------|
 | `Namespace` | Folder-style grouping; no operations of its own | Root or another `Namespace` |
-| `Collection` | Plural endpoint with `fetch` (GET) / `create` (POST) and a `Resource` child | Root, `Namespace`, or `Resource` |
+| `Collection` | Plural endpoint with `fetch` (GET) / `create` (POST) and a `Resource` child | Root, `Namespace`, `Resource`, or `Singleton` |
 | `Resource` | Single item under a collection, reached via a path-parameter segment | Inside a `Collection` |
-| `Singleton` | Resourceful endpoint with no enclosing collection (`/me`, `/health`) | Root, `Namespace`, `Resource`, `Singleton` |
+| `Singleton` | Resourceful endpoint with no enclosing collection (`/me`, `/health`); also collection-level aggregate views (`/orders/stats`) | Root, `Namespace`, `Collection`, `Resource`, `Singleton` |
 | `Action` | Non-CRUD verb endpoint (`/login`, `/orders/{id}/submit`) | Root, `Namespace`, `Collection`, `Resource`, `Singleton` |
 
 `Operation` is the leaf payload that records HTTP method, content types,
@@ -76,9 +76,13 @@ at the first match:
 ### 1.4 Naming engine
 
 * Class names use **contextual PascalCase**. The breadcrumb is a list of the
-  *singular* PascalCase forms of every collection encountered so far —
-  namespaces and singletons do **not** contribute. Final name is
-  `"".join(breadcrumb) + PascalCase(current_segment)`.
+  *singular* PascalCase forms of every collection and singleton encountered
+  so far — namespaces do **not** contribute (they're pure folders). Final
+  name is `"".join(breadcrumb) + PascalCase(current_segment)`. Singletons
+  contribute because the things they host *belong to them* (orders under
+  `/me` are *Me's* orders, not generic orders); this also prevents
+  file-name collisions when a top-level collection shares a segment with a
+  singleton sub-collection (e.g. `/orders` next to `/me/orders`).
 * Resource names: `"".join(breadcrumb)` (the parent collection's singular).
 * Singularization runs on the head word (last hyphen-separated sub-word) via
   spaCy's lemmatizer with a definite-article wrapper (`"the X"`) to coax the

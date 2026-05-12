@@ -226,3 +226,50 @@ paths:
 ```
 
 The generated `fetch()` returns the full list in a single request.
+
+### "A `*/current` pseudo-resource has its own members and settings"
+
+REST APIs commonly model "the current org" or "the current workspace" as
+a singleton with its own sub-collections (`/orgs/current/members`,
+`/orgs/current/roles`, `/workspaces/current/tag-keys`). Mark the
+pseudo-resource as a singleton — okapipy hangs the sub-collections off
+it directly.
+
+```yaml
+paths:
+  /orgs/current:
+    x-okapipy-kind: singleton
+  # /orgs/current/members → MembersCollection on the OrgsCurrentSingleton
+  # /orgs/current/roles   → RolesCollection on the OrgsCurrentSingleton
+```
+
+In the generated client, `client.orgs.current.members` is the collection
+and `client.orgs.current.members["usr_1"]` is the per-member resource.
+
+### "An aggregate view on a collection (`/orders/stats`)"
+
+Endpoints like `/orders/stats`, `/datasets/summary`, or
+`/secrets/encrypted` are *derived views* of the parent collection — not
+one of its items. Mark them as singletons; okapipy attaches them as
+sub-singletons of the parent collection.
+
+```yaml
+paths:
+  /orders/stats:
+    x-okapipy-kind: singleton
+    get: { ... }
+```
+
+The generated client exposes `client.orders.stats.retrieve()` alongside
+iteration over the collection itself.
+
+### "An `/.well-known/...` path crashes with an invalid Python identifier"
+
+Path segments beginning with `.` (`.well-known`, `.config`) aren't valid
+Python identifiers. okapipy expands a literal `.` to the word `Dot` so
+the generated symbol stays valid: `/.well-known/openid-configuration`
+becomes `DotWellKnown` (class) and `dot_well_known` (module/attribute).
+No rule is needed; this is built in.
+
+The raw segment is preserved on the parsed model and in the runtime URL
+template, so HTTP routing keeps hitting `/.well-known/...` correctly.

@@ -144,11 +144,26 @@ Three invariants live in this module:
   models. There are no draft / wrapper types — `cursor.namespaces.append(
   ...)` is the assembly primitive.
 * **Naming.** `contextual_name(breadcrumb, current)` joins the
-  PascalCase-singular-of-collection breadcrumb to the current segment.
-  Resource names use `"".join(breadcrumb)` (or `_pascal_case(parent.name)`
-  when the breadcrumb is empty). Synthetic actions named off a path
-  ending in `{id}` fall back to `<ParentName><Method>` so the name isn't
-  the literal parameter token.
+  PascalCase breadcrumb to the current segment. Collections contribute
+  their singular form (`Users → User`); singletons contribute their
+  singularized segment (`me → Me`, `preferences → Preference`);
+  namespaces never contribute. Resource names use `"".join(breadcrumb)`
+  (or `_pascal_case(parent.name)` when the breadcrumb is empty).
+  Synthetic actions named off a path ending in `{id}` fall back to
+  `<ParentName><Method>` so the name isn't the literal parameter token.
+* **Collection-under-singleton.** `_attach` accepts `Singleton` as a
+  parent for `COLLECTION` segments, so paths like `/me/orders` or
+  `/orgs/current/members` (where `current` is a singleton-style
+  pseudo-resource) model cleanly. A singleton is "a resource without an
+  `{id}`," so what works on a resource works on a singleton.
+* **Singleton-under-collection.** `_attach` accepts `Collection` as a
+  parent for `SINGLETON` segments. The pattern models collection-level
+  aggregate views (`/orders/stats`, `/datasets/summary`,
+  `/workspaces/current/secrets/encrypted`) that aren't one of the
+  items in the bag but a summary derived from them. The generated
+  collection class exposes the sub-singleton as a `@property`
+  alongside iteration; the sub-singleton file lives under
+  `base/singletons/<name>.py` as usual.
 * **Drop, don't coerce.** `_route` warns and returns when a method has no
   canonical slot for the terminal kind. The only way to keep an
   off-pattern operation is to mark it `x-okapipy-kind: action` (operation
