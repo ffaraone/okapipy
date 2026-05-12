@@ -929,11 +929,60 @@ def test_build_skips_non_canonical_singleton_method_with_warning(
     assert "singleton" in caplog.text
 
 
+def test_build_attaches_collection_under_singleton(english_nlp: Language) -> None:
+    """A collection segment under a singleton (`/me/orders`) attaches as a Singleton sub-collection.
+
+    Singletons model "the one thing" (the current user, the current org, …) and
+    real-world APIs commonly hang typed sub-collections off such endpoints
+    (`/me/orders`, `/orgs/current/members`). The builder accepts the structure
+    so the generated client exposes `client.me.orders.list()`.
+    """
+    spec = {
+        "paths": {
+            "/me": {
+                "x-okapipy-kind": "singleton",
+                "get": {"responses": {"200": {"description": "OK"}}},
+            },
+            "/me/orders": {
+                "get": {"responses": {"200": {"description": "OK"}}},
+                "post": {"responses": {"201": {"description": "Created"}}},
+            },
+            "/me/orders/{order_id}": {
+                "parameters": [
+                    {
+                        "name": "order_id",
+                        "in": "path",
+                        "required": True,
+                        "schema": {"type": "string"},
+                    }
+                ],
+                "get": {"responses": {"200": {"description": "OK"}}},
+            },
+        }
+    }
+
+    api = build(spec, Rules(), english_nlp)
+
+    me = api.singletons[0]
+    assert me.name == "Me"
+    assert len(me.collections) == 1
+    orders = me.collections[0]
+    assert orders.name == "MeOrders"
+    assert orders.path == "/me/orders"
+    assert orders.fetch is not None
+    assert orders.create is not None
+    assert orders.resource is not None
+    assert orders.resource.name == "MeOrder"
+    assert orders.resource.retrieve is not None
+
+
 def test_build_action_under_singleton(english_nlp: Language) -> None:
     """An action segment under a singleton (`/me/refresh`) attaches as a Singleton action.
 
     Combined with `x-okapipy-kind: singleton` on `/me`, a POST to
-    `/me/refresh` lands as an Action on the Me singleton.
+    `/me/refresh` lands as an Action on the Me singleton. The singleton
+    contributes its singular form to the breadcrumb so the action name is
+    `MeRefresh`, preventing collisions with a top-level `/refresh` action.
     """
     spec = {
         "paths": {
@@ -956,7 +1005,7 @@ def test_build_action_under_singleton(english_nlp: Language) -> None:
     assert me.name == "Me"
     assert len(me.actions) == 1
     refresh = me.actions[0]
-    assert refresh.name == "Refresh"
+    assert refresh.name == "MeRefresh"
     assert refresh.path == "/me/refresh"
     assert [op.method for op in refresh.operations] == ["POST"]
 
