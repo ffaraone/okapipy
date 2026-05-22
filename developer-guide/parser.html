@@ -412,6 +412,8 @@
       
         
       
+        
+      
     
     
     
@@ -528,6 +530,34 @@
     
   
     Using the client
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../user-guide/shapes.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Response shape
   
 
     
@@ -913,6 +943,17 @@
     <span class="md-ellipsis">
       
         Operation routing
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#allowed-structural-shapes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Allowed structural shapes
       
     </span>
   </a>
@@ -1340,6 +1381,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#allowed-structural-shapes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Allowed structural shapes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#forbidden-combinations" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1594,14 +1646,22 @@ phrase — that's how <code>force-reimport</code> becomes an action while
 draft/wrapper types. Key invariants:</p>
 <h3 id="naming">Naming<a class="headerlink" href="#naming" title="Permanent link">&para;</a></h3>
 <p><code>contextual_name(breadcrumb, current)</code> joins the <strong>full</strong> breadcrumb
-(every singular collection name accumulated so far). So:</p>
+(every singular collection or singleton name accumulated so far). So:</p>
 <ul>
 <li><code>/organizations/{id}/datasources/{id}/force-reimport</code> →
   <code>OrganizationDatasourceForceReimport</code>.</li>
+<li><code>/me/orders/{id}</code> → <code>MeOrders</code> collection and <code>MeOrder</code> resource —
+  the singleton contributes <code>Me</code> to the breadcrumb so the sub-collection
+  doesn't collide with a top-level <code>/orders</code>.</li>
 <li>Resource names use <code>"".join(breadcrumb)</code> for the same reason.</li>
 </ul>
 <p>Namespaces don't enter the breadcrumb — they're folders, not type
 names. <code>/auth/login</code> is <code>Login</code>; <code>/users/{id}/avatar</code> is <code>UserAvatar</code>.</p>
+<p>A literal <code>.</code> in a path segment (e.g. <code>/.well-known/openid-configuration</code>)
+is expanded to the word <code>Dot</code> so the resulting identifier is valid Python:
+<code>DotWellKnown</code> (PascalCase) and <code>dot_well_known</code> (snake_case). The raw
+segment is preserved on the parsed <code>Namespace.name</code> for HTTP routing;
+sanitization happens at render time in the generator.</p>
 <h3 id="operation-routing">Operation routing<a class="headerlink" href="#operation-routing" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
@@ -1653,6 +1713,61 @@ names. <code>/auth/login</code> is <code>Login</code>; <code>/users/{id}/avatar<
 <code>x-okapipy-kind: action</code> hint, PUT on a bare collection) is <strong>dropped
 with a warning</strong>, not coerced into a synthetic action. Synthetic
 actions only exist for explicit <code>x-okapipy-kind: action</code> opt-ins.</p>
+<p>Pass <code>--unmatched &lt;name&gt;</code> to opt out of the drop and keep those
+operations as flat actions under a synthetic top-level namespace —
+useful when you don't own the spec and per-op annotation isn't
+practical. See <a href="../user-guide/rules.html#i-have-many-non-conforming-endpoints-and-i-dont-want-to-annotate-each-one">Rules and extensions</a>
+for the worked example.</p>
+<h3 id="allowed-structural-shapes">Allowed structural shapes<a class="headerlink" href="#allowed-structural-shapes" title="Permanent link">&para;</a></h3>
+<p><code>_attach</code> enforces a deliberately strict parent table. Singletons and
+resources are interchangeable as parents — a singleton is "a resource
+without an <code>{id}</code>", so what hangs off a resource also hangs off a
+singleton:</p>
+<table>
+<thead>
+<tr>
+<th>Child kind</th>
+<th>Allowed parents</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Namespace</code></td>
+<td>root, <code>Namespace</code></td>
+</tr>
+<tr>
+<td><code>Collection</code></td>
+<td>root, <code>Namespace</code>, <code>Resource</code>, <code>Singleton</code></td>
+</tr>
+<tr>
+<td><code>Resource</code> (the <code>{id}</code> slot)</td>
+<td><code>Collection</code> only</td>
+</tr>
+<tr>
+<td><code>Singleton</code></td>
+<td>root, <code>Namespace</code>, <code>Collection</code>, <code>Resource</code>, <code>Singleton</code></td>
+</tr>
+<tr>
+<td><code>Action</code></td>
+<td>root, <code>Namespace</code>, <code>Collection</code>, <code>Resource</code>, <code>Singleton</code></td>
+</tr>
+</tbody>
+</table>
+<p>Two real-world shapes this unlocks:</p>
+<ul>
+<li><strong>Collection under singleton</strong> — <code>/me/orders</code>, <code>/orgs/current/members</code>,
+  <code>/workspaces/current/tag-keys</code>. The singleton models a pseudo-resource
+  (the current org, the current user); its sub-collections list the
+  things that belong to it.</li>
+<li><strong>Singleton under collection</strong> — <code>/orders/stats</code>, <code>/datasets/summary</code>,
+  <code>/workspaces/current/secrets/encrypted</code>. The singleton is a
+  <em>view derived from</em> the collection, not one of its items.</li>
+</ul>
+<p>What's <strong>not</strong> allowed: collection-under-collection and any sub-element
+under an <code>Action</code> (actions are leaves). Both raise
+<code>InvalidStructureError</code>, which the builder catches and logs as a
+warning. Workaround for genuine collection-under-collection cases is
+<code>x-okapipy-exclude: '*'</code> on the offending paths.</p>
 <h3 id="forbidden-combinations">Forbidden combinations<a class="headerlink" href="#forbidden-combinations" title="Permanent link">&para;</a></h3>
 <p><strong>Namespace-level actions are forbidden</strong> when the segment is itself a
 namespace. An action segment under a <code>Namespace</code> raises

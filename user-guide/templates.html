@@ -414,6 +414,8 @@
       
         
       
+        
+      
     
     
     
@@ -533,6 +535,34 @@
     
   
     Using the client
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="shapes.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Response shape
   
 
     
@@ -704,6 +734,23 @@
       
     </span>
   </a>
+  
+    <nav class="md-nav" aria-label="How it works">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#okapipy-branding-globals" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        okapipy branding globals
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -1148,6 +1195,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="How it works">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#okapipy-branding-globals" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        okapipy branding globals
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1365,6 +1429,43 @@ the output of your templates</strong> — broken indentation in your jinja is
 canonical-formatted on the way out. What you do need to do is emit
 <em>valid</em> Python; if ruff can't parse it, the run aborts with a
 <code>FormatError</code> pointing at the template name.</p>
+<h3 id="okapipy-branding-globals">okapipy branding globals<a class="headerlink" href="#okapipy-branding-globals" title="Permanent link">&para;</a></h3>
+<p>These constants are registered as Jinja globals and are always available
+to every template (default or user override) without needing to be
+passed through context. The default <code>project/README.md.jinja</code> uses them
+to stamp a "generated with okapipy" badge on the rendered README; you
+can drop them into your own override to keep — or replace — the
+attribution.</p>
+<table>
+<thead>
+<tr>
+<th>Global</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>okapipy_repo_url</code></td>
+<td>Canonical URL of the okapipy GitHub repository.</td>
+</tr>
+<tr>
+<td><code>okapipy_brand_color</code></td>
+<td>Brand color (hex, no <code>#</code>) for the message half of a shields.io badge.</td>
+</tr>
+<tr>
+<td><code>okapipy_brand_label_color</code></td>
+<td>Darker brand color (hex, no <code>#</code>) for the label half of a shields.io badge.</td>
+</tr>
+<tr>
+<td><code>okapipy_logo_data_uri</code></td>
+<td>Inline <code>data:image/png;base64,…</code> URI of the okapipy mascot, sized for use as a shields.io <code>logo=</code> value.</td>
+</tr>
+<tr>
+<td><code>okapipy_footer_badge_url</code></td>
+<td>Direct URL of the full-size "generated with okapipy" badge image, suitable for an <code>&lt;img src="…"&gt;</code> footer.</td>
+</tr>
+</tbody>
+</table>
 <h2 id="available-templates">Available templates<a class="headerlink" href="#available-templates" title="Permanent link">&para;</a></h2>
 <p><code>--templates-dir</code> looks for templates under <code>package/</code>,
 <code>project/</code>, and <code>tests/</code> subdirectories — the same layout as the
@@ -1440,7 +1541,7 @@ them on demand, delete the file and re-run.</p>
 <tr>
 <td><code>project/pyproject.toml.jinja</code></td>
 <td><code>pyproject.toml</code></td>
-<td><code>project_name</code>, <code>project_version</code>, <code>python_version</code>, <code>package</code>, <code>top_package</code>, <code>client_class</code>, <code>license</code></td>
+<td><code>project_name</code>, <code>project_version</code>, <code>python_version</code>, <code>package</code>, <code>top_package</code>, <code>client_class</code>, <code>license</code>, <code>license_is_spdx</code> (gates the <code>license = "..."</code> line), <code>author</code> (gates the PEP 621 <code>authors</code> block).</td>
 </tr>
 <tr>
 <td><code>project/README.md.jinja</code></td>
@@ -1450,7 +1551,7 @@ them on demand, delete the file and re-run.</p>
 <tr>
 <td><code>project/LICENSE.jinja</code></td>
 <td><code>LICENSE</code></td>
-<td><code>license</code> (SPDX), <code>project_name</code>, current year.</td>
+<td><code>license</code> (SPDX), <code>author</code> (copyright holder; falls back to <code>project_name</code>), <code>current_year</code>.</td>
 </tr>
 <tr>
 <td><code>project/gitignore.jinja</code></td>

@@ -2,58 +2,62 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://ffaraone.github.io/okapipy/index.html</loc>
-         <lastmod>2026-05-07</lastmod>
+         <lastmod>2026-05-22</lastmod>
     </url>
     <url>
          <loc>https://ffaraone.github.io/okapipy/developer-guide/index.html</loc>
-         <lastmod>2026-05-07</lastmod>
+         <lastmod>2026-05-22</lastmod>
     </url>
     <url>
          <loc>https://ffaraone.github.io/okapipy/developer-guide/generator.html</loc>
-         <lastmod>2026-05-07</lastmod>
+         <lastmod>2026-05-22</lastmod>
     </url>
     <url>
          <loc>https://ffaraone.github.io/okapipy/developer-guide/parser.html</loc>
-         <lastmod>2026-05-07</lastmod>
+         <lastmod>2026-05-22</lastmod>
     </url>
     <url>
          <loc>https://ffaraone.github.io/okapipy/reference/cli.html</loc>
-         <lastmod>2026-05-07</lastmod>
+         <lastmod>2026-05-22</lastmod>
     </url>
     <url>
          <loc>https://ffaraone.github.io/okapipy/reference/generator.html</loc>
-         <lastmod>2026-05-07</lastmod>
+         <lastmod>2026-05-22</lastmod>
     </url>
     <url>
          <loc>https://ffaraone.github.io/okapipy/reference/parser.html</loc>
-         <lastmod>2026-05-07</lastmod>
+         <lastmod>2026-05-22</lastmod>
     </url>
     <url>
          <loc>https://ffaraone.github.io/okapipy/user-guide/client-usage.html</loc>
-         <lastmod>2026-05-07</lastmod>
+         <lastmod>2026-05-22</lastmod>
     </url>
     <url>
          <loc>https://ffaraone.github.io/okapipy/user-guide/customization.html</loc>
-         <lastmod>2026-05-07</lastmod>
+         <lastmod>2026-05-22</lastmod>
     </url>
     <url>
          <loc>https://ffaraone.github.io/okapipy/user-guide/installation.html</loc>
-         <lastmod>2026-05-07</lastmod>
+         <lastmod>2026-05-22</lastmod>
     </url>
     <url>
          <loc>https://ffaraone.github.io/okapipy/user-guide/quick-start.html</loc>
-         <lastmod>2026-05-07</lastmod>
+         <lastmod>2026-05-22</lastmod>
     </url>
     <url>
          <loc>https://ffaraone.github.io/okapipy/user-guide/rules.html</loc>
-         <lastmod>2026-05-07</lastmod>
+         <lastmod>2026-05-22</lastmod>
+    </url>
+    <url>
+         <loc>https://ffaraone.github.io/okapipy/user-guide/shapes.html</loc>
+         <lastmod>2026-05-22</lastmod>
     </url>
     <url>
          <loc>https://ffaraone.github.io/okapipy/user-guide/strategies.html</loc>
-         <lastmod>2026-05-07</lastmod>
+         <lastmod>2026-05-22</lastmod>
     </url>
     <url>
          <loc>https://ffaraone.github.io/okapipy/user-guide/templates.html</loc>
-         <lastmod>2026-05-07</lastmod>
+         <lastmod>2026-05-22</lastmod>
     </url>
 </urlset>

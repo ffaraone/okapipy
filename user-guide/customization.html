@@ -414,6 +414,8 @@
       
         
       
+        
+      
     
     
     
@@ -533,6 +535,34 @@
     
   
     Using the client
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="shapes.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Response shape
   
 
     
@@ -1886,11 +1916,10 @@ spec bump fails until someone makes the call.</p>
   pruned. CI gate to ensure regeneration is committed.</li>
 <li><strong><code>okapipy spec generate --quiet</code></strong> — suppress drift-detection
   warnings. Pruning still runs.</li>
-<li><strong><code>--no-models</code> / <code>--without-models</code></strong> — skip emitting
-  <code>base/models.py</code> and drop every model import from the generated
-  client. Operations end up untyped (raw dicts in / out). Useful when
-  <code>datamodel-code-generator</code> can't process the spec's schemas, or when
-  you prefer to bring your own types.</li>
+<li><strong><code>--shape models\|dicts</code></strong> — lock the generated client to a single
+  <a href="shapes.html">response shape</a>. Omit for the dual-shape default
+  (constructor <code>shape=</code> + <code>with_shape()</code>); <code>--shape dicts</code> also skips
+  <code>base/models.py</code>.</li>
 <li><strong><code>--templates-dir DIR</code></strong> and <strong><code>--model-templates-dir DIR</code></strong> — see
   <a href="templates.html">Templates</a> for per-project overrides of the Jinja
   templates that drive code emission.</li>

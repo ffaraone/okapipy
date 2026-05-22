@@ -412,6 +412,8 @@
       
         
       
+        
+      
     
     
     
@@ -528,6 +530,34 @@
     
   
     Using the client
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../user-guide/shapes.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Response shape
   
 
     
@@ -1378,6 +1408,11 @@ tree as JSON to stdout, or save it to a file.</p>
 <td>Where to look for / store the spaCy model.</td>
 </tr>
 <tr>
+<td><code>--unmatched NAME</code></td>
+<td>none</td>
+<td>Bulk escape hatch: keep operations that would otherwise be dropped by the routing table as flat actions under a top-level namespace called <code>NAME</code>. Each action is named after its <code>operationId</code>, falling back to <code>&lt;method&gt;_&lt;path&gt;</code> when no <code>operationId</code> is declared. <code>NAME</code> must not collide with any existing top-level node. See <a href="../user-guide/rules.html#i-have-many-non-conforming-endpoints-and-i-dont-want-to-annotate-each-one">Rules and extensions</a>.</td>
+</tr>
+<tr>
 <td><code>--output PATH</code></td>
 <td>none</td>
 <td>Write the parsed tree to a file. Format inferred from <code>.json</code> / <code>.yaml</code> / <code>.yml</code> extension.</td>
@@ -1451,7 +1486,12 @@ tree as JSON to stdout, or save it to a file.</p>
 <tr>
 <td><code>--license SPDX</code></td>
 <td><code>Proprietary</code></td>
-<td>SPDX license identifier; drives the <code>LICENSE</code> placeholder.</td>
+<td>SPDX license identifier. Recognised values (<code>MIT</code>, <code>Apache-2.0</code>, <code>BSD-3-Clause</code>, <code>BSD-2-Clause</code>, <code>MPL-2.0</code>) emit the full license text into <code>LICENSE</code> and the <code>license</code> field in <code>pyproject.toml</code>; any other value emits a TODO placeholder and omits the <code>license</code> field.</td>
+</tr>
+<tr>
+<td><code>--author NAME</code></td>
+<td>none</td>
+<td>Copyright holder. When set, written into the <code>LICENSE</code> copyright line and as a PEP 621 <code>authors = [{ name = "NAME" }]</code> entry in <code>pyproject.toml</code>. When unset, <code>LICENSE</code> falls back to the project name and <code>pyproject.toml</code> omits the <code>authors</code> block.</td>
 </tr>
 </tbody>
 </table>
@@ -1485,6 +1525,11 @@ tree as JSON to stdout, or save it to a file.</p>
 <td><code>./.spacy</code></td>
 <td>spaCy model cache.</td>
 </tr>
+<tr>
+<td><code>--unmatched NAME</code></td>
+<td>none</td>
+<td>Bulk escape hatch for operations that don't fit the routing table. See <a href="#okapipy-spec-parse"><code>spec parse</code></a> above and the <a href="../user-guide/rules.html#i-have-many-non-conforming-endpoints-and-i-dont-want-to-annotate-each-one">worked example</a>.</td>
+</tr>
 </tbody>
 </table>
 <p><strong>Generator options</strong>:</p>
@@ -1508,9 +1553,9 @@ tree as JSON to stdout, or save it to a file.</p>
 <td>datamodel-code-generator templates for <code>models.py</code>.</td>
 </tr>
 <tr>
-<td><code>--no-models</code> (alias <code>--without-models</code>)</td>
-<td>off</td>
-<td>Skip emitting <code>base/models.py</code>. Operations end up untyped (raw dicts in / out).</td>
+<td><code>--shape {models\|dicts}</code></td>
+<td>unset (dual shape)</td>
+<td>Lock the generated client to a single response shape. Omit to produce a dual-shape client (<code>shape=</code> constructor + <code>with_shape()</code>). <code>--shape dicts</code> also skips <code>base/models.py</code>. See <a href="../user-guide/shapes.html">Response shape</a>.</td>
 </tr>
 <tr>
 <td><code>--check</code></td>
@@ -1524,6 +1569,14 @@ tree as JSON to stdout, or save it to a file.</p>
 </tr>
 </tbody>
 </table>
+<p>Output:</p>
+<ul>
+<li><strong>stderr</strong> — a green summary panel naming the output directory and the
+  file count (<code>Wrote 35 files to ./my-client</code>). When the parser emitted
+  any warnings during the run, the panel appends <code>; N warning(s)
+  emitted</code> so the count is visible even if individual warnings scrolled
+  past in the terminal.</li>
+</ul>
 <p>Exit codes:</p>
 <ul>
 <li><code>0</code> — generated successfully (or <code>--check</code> passed with no drift).</li>

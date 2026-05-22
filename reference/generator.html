@@ -410,6 +410,8 @@
       
         
       
+        
+      
     
     
     
@@ -526,6 +528,34 @@
     
   
     Using the client
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../user-guide/shapes.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Response shape
   
 
     
@@ -1425,6 +1455,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#okapipy.generator.runtime.strategies.SortEncoding" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;SortEncoding
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#okapipy.generator.runtime.strategies.LimitOffsetPagination" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1882,6 +1923,17 @@
     <span class="md-ellipsis">
       
         <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;UnsupportedSortError
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#okapipy.generator.runtime.exceptions.UnsupportedPaginationError" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;UnsupportedPaginationError
       
     </span>
   </a>
@@ -2398,6 +2450,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#okapipy.generator.runtime.strategies.SortEncoding" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;SortEncoding
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#okapipy.generator.runtime.strategies.LimitOffsetPagination" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2862,6 +2925,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#okapipy.generator.runtime.exceptions.UnsupportedPaginationError" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;UnsupportedPaginationError
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#okapipy.generator.runtime.exceptions.UnsupportedFilterKeyError" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2978,10 +3052,11 @@
 </span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="n">project_version</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;0.1.0&quot;</span><span class="p">,</span>
 </span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="n">python_version</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;3.13&quot;</span><span class="p">,</span>
 </span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>    <span class="n">license</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;Proprietary&quot;</span><span class="p">,</span>
-</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>    <span class="n">templates_dir</span><span class="p">:</span> <span class="n">Path</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>    <span class="n">model_templates_dir</span><span class="p">:</span> <span class="n">Path</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>    <span class="n">with_models</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
-</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">GeneratedFile</span><span class="p">]</span>
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>    <span class="n">author</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>    <span class="n">templates_dir</span><span class="p">:</span> <span class="n">Path</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>    <span class="n">model_templates_dir</span><span class="p">:</span> <span class="n">Path</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>    <span class="n">shape</span><span class="p">:</span> <span class="n">Shape</span> <span class="o">=</span> <span class="s2">&quot;auto&quot;</span>
+</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">GeneratedFile</span><span class="p">]</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents first">
@@ -3149,6 +3224,25 @@ Forwarded to <code>datamodel-code-generator</code> for <code>models.py</code> em
           </tr>
           <tr class="doc-section-item">
             <td>
+                <code>author</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>copyright holder for the generated <code>LICENSE</code> and PEP 621
+<code>authors</code> entry in <code>pyproject.toml</code>. When omitted, the LICENSE
+falls back to the project name and <code>pyproject.toml</code> omits the
+<code>authors</code> block.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
                 <code>templates_dir</code>
             </td>
             <td>
@@ -3183,22 +3277,30 @@ templates. Forwarded as dmcg's <code>custom_template_dir</code>.</p>
           </tr>
           <tr class="doc-section-item">
             <td>
-                <code>with_models</code>
+                <code>shape</code>
             </td>
             <td>
-                  <code><span title="bool">bool</span></code>
+                  <code><span title="okapipy.generator.api.Shape">Shape</span></code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>when False, skip emitting <code>base/models.py</code> and drop every
-model reference from the generated client (operations end up
-untyped, returning raw dicts). Useful for specs whose schemas can't
-be processed by dmcg or for clients that prefer to bring their own
-types.</p>
+                <p>response-shape policy for the generated client.</p>
+<ul>
+<li><code>"auto"</code> (default) — emit a dual-shape client. The constructor
+  accepts a <code>shape: "models" | "dicts"</code> keyword and <code>with_shape(...)</code>
+  returns a sibling switching shape at runtime. Bodies and returns
+  are typed as <code>Foo | dict[str, Any]</code> / <code>Foo | dict[str, Any] | None</code>.</li>
+<li><code>"models"</code> — lock the client to typed Pydantic models. The
+  <code>shape=</code> constructor option and <code>with_shape(...)</code> are dropped.
+  Bodies are typed as <code>Foo</code>; returns as <code>Foo | None</code>.</li>
+<li><code>"dicts"</code> — lock the client to raw dicts. <code>base/models.py</code> is
+  skipped, model imports are dropped, and bodies / returns are
+  typed as <code>dict[str, Any]</code> / <code>dict[str, Any] | None</code>.</li>
+</ul>
               </div>
             </td>
             <td>
-                  <code>True</code>
+                  <code>&#39;auto&#39;</code>
             </td>
           </tr>
       </tbody>
@@ -4255,11 +4357,14 @@ Making it required (rather than <code>int | None</code>) is deliberate: a <code>
 fall back to whatever default the backend chooses, leaving the client unable
 to tell what page size each request actually carries. Users can still
 override per-call via <code>.page_size(n)</code>.</p>
-<p>Filter strategies return a <code>FilterEncoding</code> object rather than a bare params
-dict. <code>FilterEncoding</code> carries both ordinary key/value <code>params</code> and an optional
-<code>raw_query</code> fragment for dialects whose expression must be emitted verbatim
-into the query string instead of as <code>key=value</code> pairs (e.g. RQL:
-<code>/path/to/coll?and(eq(f1,v1),eq(f2,v2))&amp;limit=100&amp;offset=0</code>).</p>
+<p>Filter and sort strategies return <code>FilterEncoding</code> / <code>SortEncoding</code> objects
+rather than bare params dicts. Each encoding carries both ordinary key/value
+<code>params</code> and an optional <code>raw_query</code> fragment for dialects whose expression
+must be emitted verbatim into the query string instead of as <code>key=value</code>
+pairs (e.g. RQL filters: <code>?and(eq(f1,v1),eq(f2,v2))</code>, or RQL-style sort:
+<code>?ordering(+name,-created_at)</code>). When both filter and sort produce raw
+fragments they are concatenated into the URL with <code>&amp;</code> separators alongside
+the URL-encoded ordinary params (e.g. <code>?and(eq(f,v))&amp;ordering(+name)&amp;limit=100</code>).</p>
 
 
 
@@ -4297,7 +4402,13 @@ into the query string instead of as <code>key=value</code> pairs (e.g. RQL:
 
 
 
-        <p>Drives the iterator and (optionally) the count request.</p>
+        <p>Drives the iterator and (optionally) the count and random-access requests.</p>
+<p><code>supports_count</code> / <code>count_request_params</code> / <code>extract_count</code> form the count
+capability. <code>supports_random_access</code> / <code>page_params</code> form the random-access
+capability — the ability to fetch the N-th page directly without walking
+pages 0..N-1. Cursor and link-header paginations are inherently sequential
+and report <code>supports_random_access=False</code>; offset and page-number
+paginations support it.</p>
 
 
 
@@ -4393,7 +4504,7 @@ into the query string instead of as <code>key=value</code> pairs (e.g. RQL:
 
 
 
-        <p>Renders a <code>Sort</code> term list into request parameters.</p>
+        <p>Renders a <code>Sort</code> term list into a <code>SortEncoding</code>.</p>
 
 
 
@@ -4450,6 +4561,61 @@ that httpx URL-encodes). <code>raw_query</code> is a query-string fragment appen
 verbatim — required for expression-language filters like RQL where the
 operators (<code>and(...)</code>, <code>eq(...)</code>) carry parentheses and commas that must
 not be split into separate parameters.</p>
+
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h3 id="okapipy.generator.runtime.strategies.SortEncoding" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <span class="doc doc-object-name doc-class-name">SortEncoding</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-dataclass"><code>dataclass</code></small>
+  </span>
+
+<a href="#okapipy.generator.runtime.strategies.SortEncoding" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">SortEncoding</span><span class="p">(</span><span class="n">params</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(),</span> <span class="n">raw_query</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+
+
+        <p>The wire form of a <code>Sort</code> term list as produced by a <code>SortStrategy</code>.</p>
+<p>Mirrors <code>FilterEncoding</code>. <code>params</code> are merged into the request's <code>params=</code>
+argument; <code>raw_query</code> is a query-string fragment appended verbatim — for
+sort dialects whose expression must not be URL-encoded as <code>key=value</code>
+pairs (e.g. an RQL-style <code>ordering(+name,-created_at)</code> term).</p>
 
 
 
@@ -6199,6 +6365,68 @@ in <code>try: ... except ApiError</code>.</p>
 
 
         <p>The configured <code>SortStrategy</code> cannot encode this <code>Sort</code> term list.</p>
+
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="okapipy.generator.runtime.exceptions.UnsupportedPaginationError" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <span class="doc doc-object-name doc-class-name">UnsupportedPaginationError</span>
+
+
+<a href="#okapipy.generator.runtime.exceptions.UnsupportedPaginationError" class="headerlink" title="Permanent link">&para;</a></h2>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">UnsupportedPaginationError</span><span class="p">(</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">message</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="o">*</span><span class="p">,</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">status_code</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">request</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">response</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="p">)</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-class-name&quot;&gt;ApiError&lt;/span&gt; (&lt;code&gt;okapipy.generator.runtime.exceptions.ApiError&lt;/code&gt;)" href="#okapipy.generator.runtime.exceptions.ApiError">ApiError</a></code></p>
+
+
+
+        <p>The configured <code>PaginationStrategy</code> cannot satisfy this operation.</p>
+<p>Raised when a collection method asks the strategy for something the
+underlying wire protocol does not allow — e.g. <code>count()</code> against a
+cursor strategy with no count source, or <code>get_page(n)</code> against any
+strategy that walks pages sequentially (cursor, link header). The
+capability is <em>fundamentally</em> absent from the protocol, not merely
+unimplemented; callers should switch strategy or iterate sequentially
+instead.</p>
 
 
 

@@ -414,6 +414,8 @@
       
         
       
+        
+      
     
     
     
@@ -646,6 +648,34 @@
     
   
     Using the client
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="shapes.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Response shape
   
 
     
@@ -1315,6 +1345,11 @@ forever. See <a href="customization.html">Code customization</a> for the full st
    exposed as <code>submit.run()</code>, not <code>submit()</code>, because the action object
    itself can carry per-call state (overrides, headers, options).</li>
 </ol>
+<p>The generated client is also built to be navigated by hover: every
+class lists the children you can reach from it (sub-namespaces,
+collections, actions, ...) right in its docstring, so typing <code>client.</code>
+and reading the IDE tooltip is enough to discover the surface. See
+<a href="client-usage.html#ide-tooltips">IDE tooltips</a> for the full story.</p>
 <h2 id="5-iterate">5. Iterate<a class="headerlink" href="#5-iterate" title="Permanent link">&para;</a></h2>
 <p>When the upstream spec changes, re-run the same command:</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>okapipy<span class="w"> </span>spec<span class="w"> </span>generate<span class="w"> </span>openapi.yaml<span class="w"> </span><span class="se">\</span>
@@ -1359,8 +1394,8 @@ warning fires, or any stale base file would be pruned.</p>
 <td>Where to look for / store the spaCy model.</td>
 </tr>
 <tr>
-<td><code>--no-models</code> (a.k.a. <code>--without-models</code>)</td>
-<td>Skip emitting <code>base/models.py</code>; operations end up untyped. Useful when <code>datamodel-code-generator</code> can't process the spec, or when you want to bring your own types.</td>
+<td><code>--shape models\|dicts</code></td>
+<td>Lock the generated client to one <a href="shapes.html">response shape</a>. Omit for the dual-shape default (constructor <code>shape=</code> + <code>with_shape()</code>).</td>
 </tr>
 <tr>
 <td><code>--templates-dir DIR</code></td>

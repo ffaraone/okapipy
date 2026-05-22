@@ -412,6 +412,8 @@
       
         
       
+        
+      
     
     
     
@@ -528,6 +530,34 @@
     
   
     Using the client
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../user-guide/shapes.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Response shape
   
 
     
@@ -1391,16 +1421,21 @@ is passed) and packaged defaults second.</p>
 top-level class names. The walker uses that set to validate model
 references — anything not in the set becomes <code>Any</code> in the generated
 client.</p>
-<p><code>--no-models</code> skips this step entirely. The walker then drops every
-<code>from ..models import ...</code> line and replaces request / response model
-types with <code>dict</code> and <code>None</code>. Operations end up untyped (raw dicts in /
-out). This is an escape hatch for two situations:</p>
+<p><code>--shape dicts</code> skips this step entirely. The walker then drops every
+<code>from ..models import ...</code> line and types every body / return as
+<code>dict[str, Any]</code>. The client base also drops the <code>shape=</code> constructor
+option and <code>with_shape(...)</code> — there is nothing to switch to. This is an
+escape hatch for two situations:</p>
 <ul>
 <li><code>datamodel-code-generator</code> can't process the spec's schemas (rare,
   but it happens with very baroque <code>oneOf</code> graphs).</li>
 <li>The consumer wants to bring their own model layer (e.g. they already
   have hand-written Pydantic types they prefer).</li>
 </ul>
+<p><code>--shape models</code> keeps <code>models.py</code> but locks the runtime to validation:
+the <code>shape=</code> constructor option and <code>with_shape(...)</code> are dropped, and
+bodies / returns are typed strictly as the recovered model
+(<code>Foo</code> / <code>Foo | None</code>) rather than admitting a <code>dict[str, Any]</code> arm.</p>
 <h2 id="the-runtime-runtime-emit_runtime">The runtime (<code>runtime/</code> + <code>emit_runtime</code>)<a class="headerlink" href="#the-runtime-runtime-emit_runtime" title="Permanent link">&para;</a></h2>
 <p>A small set of files vendored into every generated client:</p>
 <ul>
