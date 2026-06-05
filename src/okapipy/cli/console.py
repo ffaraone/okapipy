@@ -6,7 +6,7 @@ parser-emitted log records become part of the user-visible output.
 
 Stdout is reserved for machine-readable payloads (JSON dumps); user-facing chrome —
 spinners, panels, summary tables, log lines — always goes to stderr so that
-`okapipy spec parse … | jq` keeps working.
+`okapipy parse … | jq` keeps working.
 """
 
 from __future__ import annotations

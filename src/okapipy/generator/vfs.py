@@ -1,4 +1,4 @@
-"""Virtual filesystem with file-lifecycle metadata, manifest pruning, and drift detection.
+"""Virtual filesystem with file-lifecycle metadata, state pruning, and drift detection.
 
 The generator builds a `dict[str, GeneratedFile]` keyed on POSIX-style paths
 relative to the output directory. Each `GeneratedFile` carries the file's
@@ -12,12 +12,12 @@ content plus its lifecycle policy:
 
 `write_to_disk` returns a `WriteReport`:
 
-* **Pruning.** Reads the previous `base/_manifest.json` from disk; deletes
+* **Pruning.** Reads the previous `base/_generated.json` from disk; deletes
   any base file in `previous.base_files` that isn't in the current VFS.
   User-layer files are never pruned.
-* **Drift detection.** Compares previous and current manifest edges; emits
-  one warning per new/removed wiring on a one-shot user-layer parent that
-  needs a manual edit.
+* **Drift detection.** Compares previous and current state-file edges;
+  emits one warning per new/removed wiring on a one-shot user-layer parent
+  that needs a manual edit.
 * **Dry-run.** `dry_run=True` computes the report without touching disk;
   `WriteReport.would_change` is `True` if anything would change. Powers
   `okapipy generate --check`.
@@ -28,14 +28,14 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from okapipy.generator.manifest import (
-    MANIFEST_FILENAME,
+from okapipy.generator.state import (
+    STATE_FILENAME,
     Edge,
-    Manifest,
+    GeneratedState,
     read_from_disk,
 )
-from okapipy.generator.manifest import (
-    parse as parse_manifest,
+from okapipy.generator.state import (
+    parse as parse_state,
 )
 
 
@@ -53,8 +53,8 @@ class WriteReport:
 
     `would_change` is `True` if writing would alter the on-disk state in any
     way (a base file's content differs, a one-shot file is missing, or a stale
-    file would be pruned). The manifest itself is excluded from this check
-    because its `generated_at` timestamp differs on every run.
+    file would be pruned). The generated-state file itself is excluded from
+    this check because its `generated_at` timestamp differs on every run.
     """
 
     written: list[str] = field(default_factory=list)
@@ -79,22 +79,22 @@ def write_to_disk(
             the returned report reflects what *would* happen.
     """
     output_dir.mkdir(parents=True, exist_ok=True)
-    manifest_path_rel = _find_manifest_path(vfs)
+    state_path_rel = _find_state_path(vfs)
 
     # Snapshot pre-run on-disk state for drift detection.
-    previous_manifest: Manifest | None = None
-    if manifest_path_rel is not None:
-        previous_manifest = read_from_disk(output_dir / manifest_path_rel)
+    previous_state: GeneratedState | None = None
+    if state_path_rel is not None:
+        previous_state = read_from_disk(output_dir / state_path_rel)
 
     # Drift warnings (computed BEFORE writing so on-disk state is pre-run).
     warnings: list[str] = []
-    if previous_manifest is not None and manifest_path_rel is not None:
-        current_manifest = parse_manifest(vfs[manifest_path_rel].content)
+    if previous_state is not None and state_path_rel is not None:
+        current_state = parse_state(vfs[state_path_rel].content)
         warnings = _compute_drift_warnings(
-            previous=previous_manifest,
-            current=current_manifest,
+            previous=previous_state,
+            current=current_state,
             output_dir=output_dir,
-            manifest_path=manifest_path_rel,
+            state_path=state_path_rel,
         )
 
     # Write or skip VFS entries.
@@ -106,7 +106,7 @@ def write_to_disk(
         if file.one_shot and target.exists():
             skipped.append(path)
             continue
-        if path != manifest_path_rel and _content_differs(target, file.content):
+        if path != state_path_rel and _content_differs(target, file.content):
             would_change = True
         if not dry_run:
             target.parent.mkdir(parents=True, exist_ok=True)
@@ -115,9 +115,9 @@ def write_to_disk(
 
     # Prune stale base files.
     pruned: list[str] = []
-    if previous_manifest is not None:
+    if previous_state is not None:
         new_base = {p for p in vfs if "/base/" in p}
-        for stale in sorted(set(previous_manifest.base_files) - new_base):
+        for stale in sorted(set(previous_state.base_files) - new_base):
             target = output_dir / stale
             if target.exists():
                 pruned.append(stale)
@@ -135,9 +135,9 @@ def write_to_disk(
     )
 
 
-def _find_manifest_path(vfs: dict[str, GeneratedFile]) -> str | None:
-    """Return the VFS key for `_manifest.json` (one expected) or None."""
-    suffix = f"/base/{MANIFEST_FILENAME}"
+def _find_state_path(vfs: dict[str, GeneratedFile]) -> str | None:
+    """Return the VFS key for `_generated.json` (one expected) or None."""
+    suffix = f"/base/{STATE_FILENAME}"
     for path in vfs:
         if path.endswith(suffix):
             return path
@@ -156,10 +156,10 @@ def _content_differs(target: Path, content: str) -> bool:
 
 def _compute_drift_warnings(
     *,
-    previous: Manifest,
-    current: Manifest,
+    previous: GeneratedState,
+    current: GeneratedState,
     output_dir: Path,
-    manifest_path: str,
+    state_path: str,
 ) -> list[str]:
     """Return one warning per new/removed edge that needs a user-layer edit.
 
@@ -177,8 +177,8 @@ def _compute_drift_warnings(
         prev_set - curr_set, key=lambda e: (e.parent_module, e.factory_attr)
     )
 
-    # The user-layer root: strip `base/_manifest.json` from the manifest path.
-    user_root = manifest_path.removesuffix(f"base/{MANIFEST_FILENAME}")
+    # The user-layer root: strip `base/_generated.json` from the state path.
+    user_root = state_path.removesuffix(f"base/{STATE_FILENAME}")
 
     warnings: list[str] = []
     for edge in new_edges:

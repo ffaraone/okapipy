@@ -10,7 +10,7 @@ Each entry carries a `one_shot` lifecycle flag that controls regeneration:
 * `one_shot=False` (regenerated every run) — files under `src/{package}/base/`:
   the vendored runtime, `datamodel-code-generator`-emitted `models.py`, sync
   and async client base classes, one file per parser-tree node, and the
-  `_manifest.json` that tracks node-to-file edges across runs.
+  `_generated.json` state file that tracks node-to-file edges across runs.
 * `one_shot=True` (emitted once, then left alone) — files under
   `src/{package}/` (subclass stubs the customer customizes), the project
   skeleton (`pyproject.toml`, `README.md`, `LICENSE`, `.gitignore`,
@@ -19,27 +19,47 @@ Each entry carries a `one_shot` lifecycle flag that controls regeneration:
 The order of operations inside `generate` matters: the project skeleton and
 runtime emit first (so subsequent emitters can rely on the package layout),
 the walker emits one base file per node, then the user-layer stubs and tests
-fill in the customer-facing surface, and finally the manifest is computed
-last so it captures the full set of base files.
+fill in the customer-facing surface, and finally the generated-state file is
+computed last so it captures the full set of base files.
 """
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Any, Literal
 
-from okapipy.generator.edges import compute_manifest
+from okapipy.generator import compose
+from okapipy.generator.edges import compute_edges, compute_state
 from okapipy.generator.emit.client import emit_client
 from okapipy.generator.emit.project import emit_project_skeleton
 from okapipy.generator.emit.runtime import emit_runtime
-from okapipy.generator.emit.stubs import emit_stubs
+from okapipy.generator.emit.stubs import (
+    ChildWiring,
+    client_wirings,
+    emit_stubs,
+)
 from okapipy.generator.emit.tests import emit_tests
-from okapipy.generator.emit.walk import emit_root_init_extension, emit_tree
-from okapipy.generator.manifest import MANIFEST_FILENAME, serialize
+from okapipy.generator.emit.walk import (
+    ChildRef,
+    emit_mount_namespace,
+    emit_root_init_extension,
+    emit_tree,
+    factory_attr,
+    namespace_accessor_docstring,
+    node_one_line,
+)
 from okapipy.generator.models import emit_models, public_names
-from okapipy.generator.templating import make_environment
+from okapipy.generator.state import (
+    GENERATOR_VERSION,
+    STATE_FILENAME,
+    Edge,
+    GeneratedState,
+    serialize,
+)
+from okapipy.generator.templating import make_environment, snake_case
 from okapipy.generator.vfs import GeneratedFile
+from okapipy.manifest import GenerationManifest
 from okapipy.parser.model import APIModel
 
 Shape = Literal["auto", "models", "dicts"]
@@ -54,11 +74,11 @@ _SPDX_LICENSES = frozenset(
 )
 
 
-def generate(
+def generate_for_mount(
     api: APIModel,
     raw_spec: dict[str, Any] | str | Path,
     *,
-    output_dir: Path,
+    output_dir: Path | None = None,
     package: str,
     client_class: str,
     project_name: str | None = None,
@@ -70,13 +90,17 @@ def generate(
     model_templates_dir: Path | None = None,
     shape: Shape = "auto",
 ) -> dict[str, GeneratedFile]:
-    """Build the virtual FS for the generated client project.
+    """Build the virtual FS for a single-mount generated client project.
+
+    This is the lower-level entry point: it produces the full set of files
+    for one OpenAPI spec mounted at the package root. The high-level
+    manifest-driven entry point is `generate(manifest)`.
 
     Args:
         api: parsed `APIModel` produced by `okapipy.parser.api.parse`.
         raw_spec: original OpenAPI document (path, URL string, or already-loaded dict).
             Forwarded to `datamodel-code-generator` for `models.py` emission.
-        output_dir: target directory the CLI will flush the virtual FS into.
+        output_dir: accepted for symmetry with `generate(manifest)`; not used.
         package: dotted package path for the generated client (e.g. "acme.commerce").
         client_class: PascalCase class name for the sync client; async sibling is
             `Async<client_class>`. Base classes carry an additional `Base` suffix.
@@ -166,16 +190,281 @@ def generate(
     # Generated test scaffolding — one-shot so customer edits survive regeneration.
     test_files = emit_tests(env, api, project_context, top_package)
     _wrap(vfs, test_files, one_shot=True)
-    # Manifest, computed last so `base_files` reflects the full base tree.
-    # The manifest path itself is included in `base_files` so pruning treats
-    # it like any other regenerated base file.
-    manifest_path = f"src/{package_path}/base/{MANIFEST_FILENAME}"
+    # Generated-state file, computed last so `base_files` reflects the full
+    # base tree. The state path itself is included in `base_files` so pruning
+    # treats it like any other regenerated base file.
+    state_path = f"src/{package_path}/base/{STATE_FILENAME}"
     base_files = sorted(
-        [p for p in vfs if p.startswith(f"src/{package_path}/base/")] + [manifest_path]
+        [p for p in vfs if p.startswith(f"src/{package_path}/base/")] + [state_path]
     )
-    manifest = compute_manifest(api, package, base_files)
-    vfs[manifest_path] = GeneratedFile(content=serialize(manifest))
+    state = compute_state(api, package, base_files)
+    vfs[state_path] = GeneratedFile(content=serialize(state))
     return vfs
+
+
+def generate(manifest: GenerationManifest) -> dict[str, GeneratedFile]:
+    """Build the virtual FS for the project described by `manifest`.
+
+    Walks `manifest.specs[]`, parses each OpenAPI document with the
+    per-spec inputs declared in the manifest (`rules`, `strip_prefix`,
+    `unmatched`, `lang`), and composes the result into one generated
+    Python package: one `pyproject.toml`, one `<Client>Base`, one
+    vendored runtime, one `_generated.json`. Each spec entry produces
+    its own sub-tree at `base/<mount_path>/...` (or at the package root
+    for the empty mount).
+
+    Args:
+        manifest: the project manifest produced by
+            `okapipy.manifest.load_manifest`.
+
+    Returns:
+        A `dict[str, GeneratedFile]` keyed on POSIX-style relative paths.
+
+    Raises:
+        GenerationError: when a `specs[]` entry declares a dotted mount
+            namespace (currently unsupported) or when the manifest fails
+            cross-mount collision checks.
+    """
+    package_path = manifest.package.replace(".", "/")
+    top_package = manifest.package.split(".", 1)[0]
+    resolved_project_name = manifest.project_name or manifest.package.rsplit(".", 1)[-1]
+    project_context = {
+        "package": manifest.package,
+        "client_class": manifest.client_class,
+        "project_name": resolved_project_name,
+        "project_version": manifest.project_version,
+        "python_version": manifest.python_version,
+        "license": manifest.license,
+        "license_is_spdx": manifest.license in _SPDX_LICENSES,
+        "author": manifest.author,
+        "current_year": date.today().year,
+        "shape": manifest.shape,
+    }
+    env = make_environment(manifest.templates_dir)
+    vfs: dict[str, GeneratedFile] = {}
+
+    # Project skeleton — one-shot, project-wide.
+    skeleton = emit_project_skeleton(env, project_context, package_path, top_package)
+    _wrap(vfs, skeleton, one_shot=True)
+
+    # Plan + parse every spec entry once. Dotted mounts raise here.
+    mounts = compose.plan_mounts(manifest)
+    root_mount = next((m for m in mounts if not m.mount_path), None)
+    root_api = root_mount.api if root_mount is not None else APIModel()
+    edges: list[Edge] = []
+
+    # Per-mount: models, tree, base subdir markers, optional mount-namespace
+    # class, user-layer stubs, tests. None of these emit project-wide files.
+    for mount in mounts:
+        mrp = compose.mount_relpath(mount.mount_path)
+        if manifest.shape == "dicts":
+            mount_models: set[str] = set()
+        else:
+            models_source = emit_models(
+                mount.raw_spec, manifest.model_templates_dir, manifest.python_version
+            )
+            vfs[f"src/{package_path}/base/{mrp}models.py"] = GeneratedFile(
+                models_source
+            )
+            mount_models = public_names(models_source)
+        tree_files = emit_tree(
+            env,
+            mount.api,
+            project_context,
+            package_path,
+            mount_models,
+            shape=manifest.shape,
+            mount_relpath=mrp,
+        )
+        _wrap(vfs, tree_files, one_shot=False)
+        for subdir in (
+            "namespaces",
+            "collections",
+            "resources",
+            "singletons",
+            "actions",
+        ):
+            if any(
+                p.startswith(f"src/{package_path}/base/{mrp}{subdir}/") for p in vfs
+            ):
+                vfs.setdefault(
+                    f"src/{package_path}/base/{mrp}{subdir}/__init__.py",
+                    GeneratedFile(""),
+                )
+        mount_ns = (
+            compose.synthesize_mount_namespace(mount) if mount.mount_path else None
+        )
+        if mount_ns is not None:
+            mount_init_files = emit_mount_namespace(
+                env,
+                mount_ns,
+                project_context,
+                package_path,
+                mount_models,
+                manifest.shape,
+                mrp,
+            )
+            _wrap(vfs, mount_init_files, one_shot=False)
+        vfs.update(
+            emit_stubs(
+                mount.api,
+                manifest.package,
+                package_path,
+                manifest.client_class,
+                mount_relpath=mrp,
+                emit_root=False,
+                mount_namespace=mount_ns,
+            )
+        )
+        test_files = emit_tests(
+            env,
+            mount.api,
+            project_context,
+            top_package,
+            mount_relpath=mrp,
+            emit_root=False,
+        )
+        _wrap(vfs, test_files, one_shot=True)
+        edges.extend(compute_edges(mount.api, manifest.package, mount_relpath=mrp))
+
+    # Mount-namespace ChildRefs for the client.py top-level accessors plus
+    # the cross-edges that wire the client to each mount namespace.
+    top_mount_namespaces, mount_client_wirings, mount_edges = _build_mount_top_level(
+        mounts, manifest.package
+    )
+    edges.extend(mount_edges)
+
+    # Cross-mount re-exports for base/__init__.py (mirror the existing
+    # root_init_extension behavior for the root mount's top level).
+    extra_imports, extra_public = emit_root_init_extension(root_api)
+    for mount in mounts:
+        if not mount.mount_path:
+            continue
+        seg = snake_case(compose.mount_segment_name(mount.mount_path))
+        cls = compose.mount_class_name(compose.synthesize_mount_namespace(mount))
+        extra_imports.append(f"from .{seg} import {cls}, Async{cls}")
+        extra_public.append(cls)
+        extra_public.append(f"Async{cls}")
+
+    # Vendored runtime + base/__init__.py — one set per project.
+    runtime = emit_runtime(
+        package_path, manifest.client_class, extra_imports, extra_public
+    )
+    _wrap(vfs, runtime, one_shot=False)
+
+    # base/client.py — composes root_api top-level + mount namespaces.
+    client_files = emit_client(
+        env,
+        project_context,
+        package_path,
+        root_api,
+        top_mount_namespaces=top_mount_namespaces,
+    )
+    _wrap(vfs, client_files, one_shot=False)
+
+    # Project-wide user-layer __init__.py + client.py. We pass `root_api`
+    # (its top-level wirings were already added to mount_client_wirings via
+    # `_build_mount_top_level`) but with `emit_root=True` so emit_stubs
+    # produces only the project-wide files; per-mount walks were already
+    # done above for every mount including the root one.
+    project_wirings = client_wirings(root_api, manifest.package) + mount_client_wirings
+    vfs.update(
+        emit_stubs(
+            APIModel(),
+            manifest.package,
+            package_path,
+            manifest.client_class,
+            mount_relpath="",
+            emit_root=True,
+            client_wirings_override=project_wirings,
+        )
+    )
+    project_test_files = emit_tests(
+        env,
+        APIModel(),
+        project_context,
+        top_package,
+        mount_relpath="",
+        emit_root=True,
+    )
+    _wrap(vfs, project_test_files, one_shot=True)
+
+    # Generated-state file, computed last.
+    state_path = f"src/{package_path}/base/{STATE_FILENAME}"
+    base_files = sorted(
+        [p for p in vfs if p.startswith(f"src/{package_path}/base/")] + [state_path]
+    )
+    state = GeneratedState(
+        generator_version=GENERATOR_VERSION,
+        generated_at=datetime.now(tz=UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        base_files=base_files,
+        edges=sorted(
+            set(edges),
+            key=lambda e: (e.parent_module, e.factory_attr),
+        ),
+    )
+    vfs[state_path] = GeneratedFile(content=serialize(state))
+    return vfs
+
+
+def _build_mount_top_level(
+    mounts: list[compose.MountedSpec],
+    package: str,
+) -> tuple[list[ChildRef], list[ChildWiring], list[Edge]]:
+    """Build the top-level mount-namespace artifacts the client needs.
+
+    Returns three parallel views of the mount-namespace set:
+
+    * `top_mount_namespaces` — `ChildRef`s the client template renders as
+      `@cached_property` accessors plus `from .<mount> import ...` lines.
+    * `mount_client_wirings` — user-layer `ChildWiring`s that the project
+      `client.py` stub uses to point each `__<mount>_factory__` at the
+      user-layer mount-namespace subclass.
+    * `mount_edges` — generated-state `Edge`s for the client → mount
+      wiring, so drift detection picks up a removed mount the same way
+      it picks up a removed namespace.
+    """
+    refs: list[ChildRef] = []
+    wirings: list[ChildWiring] = []
+    edges: list[Edge] = []
+    for mount in mounts:
+        if not mount.mount_path:
+            continue
+        mount_ns = compose.synthesize_mount_namespace(mount)
+        seg = snake_case(compose.mount_segment_name(mount.mount_path))
+        cls = compose.mount_class_name(mount_ns)
+        attr = snake_case(mount_ns.name)
+        fattr = factory_attr(attr)
+        refs.append(
+            ChildRef(
+                attr=attr,
+                class_name=cls,
+                module=seg,
+                factory_attr=fattr,
+                docstring=namespace_accessor_docstring(mount_ns),
+                one_line=node_one_line(
+                    mount_ns.summary,
+                    mount_ns.description,
+                    fallback=f"Namespace `{mount_ns.name}`.",
+                ),
+            )
+        )
+        wirings.append(
+            ChildWiring(
+                factory_attr=fattr,
+                user_class=cls.removesuffix("Base"),
+                user_module_path=f"{package}.{seg}",
+            )
+        )
+        edges.append(
+            Edge(
+                parent_module="client.py",
+                factory_attr=fattr,
+                child_user_class=cls.removesuffix("Base"),
+                child_user_module=f"{seg}/__init__.py",
+            )
+        )
+    return refs, wirings, edges
 
 
 def _wrap(

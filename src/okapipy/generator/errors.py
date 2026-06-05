@@ -31,3 +31,11 @@ class FormatError(GenerationError):
         super().__init__(f"ruff format failed for {template_name}:\n{stderr}")
         self.template_name = template_name
         self.stderr = stderr
+
+
+class ManifestNotFoundError(GenerationError):
+    """Raised when the user-authored project manifest cannot be located on disk."""
+
+
+class ManifestFormatError(GenerationError):
+    """Raised when the user-authored project manifest fails schema validation."""

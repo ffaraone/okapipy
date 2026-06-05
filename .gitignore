@@ -33,6 +33,9 @@ charges_file_folder
 *.manifest
 *.spec
 
+# Unignore the test directory that happens to match `*.manifest`.
+!tests/manifest/
+
 # Installer logs
 pip-log.txt
 pip-delete-this-directory.txt

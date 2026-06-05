@@ -163,6 +163,11 @@ def _parse_text(text: str, path: Path) -> dict[str, Any]:
             raise RulesFormatError(
                 f"rules at {path} is not valid JSON or YAML: {exc}"
             ) from exc
+    if data is None:
+        # An empty file (or one containing only YAML `null`) is a no-op: it
+        # carries no rules. Treated as `{}` so consumers can drop a rules
+        # file as a placeholder without tripping the loader.
+        return {}
     if not isinstance(data, dict):
         raise RulesFormatError(f"rules at {path} must be a mapping at the root")
     return data

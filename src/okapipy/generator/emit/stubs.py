@@ -10,7 +10,7 @@ to point at the user-layer subclass tree, so out-of-the-box
 `client.commerce.orders` returns the user's `OrdersCollection` rather than the
 `Base` default. Spec growth — a new collection added later — is the one case
 auto-wiring cannot cover, because parent stubs are never re-emitted; the
-manifest-based drift detection in `vfs.py` emits a warning that names the
+state-based drift detection in `vfs.py` emits a warning that names the
 exact line the customer needs to add by hand.
 
 Layout produced (sibling of the regenerated `base/` tree):
@@ -79,32 +79,98 @@ class ChildWiring:
     )
 
 
+def mount_dotpath(mount_relpath: str) -> str:
+    """Return the dotted prefix corresponding to a slash-separated mount relpath.
+
+    `"users/"` becomes `"users."`, `"platform/users/"` becomes
+    `"platform.users."`, and the root mount (`""`) returns `""`. The trailing
+    dot is preserved so callers can splice the result directly inside a
+    dotted import path: ``f"{package}.{dotpath}collections.orders"``.
+    """
+    return mount_relpath.replace("/", ".") if mount_relpath else ""
+
+
 def emit_stubs(
     api: APIModel,
     package: str,
     package_path: str,
     client_class: str,
+    *,
+    mount_relpath: str = "",
+    emit_root: bool = True,
+    client_wirings_override: list[ChildWiring] | None = None,
+    mount_namespace: Namespace | None = None,
 ) -> dict[str, GeneratedFile]:
-    """Return one-shot user-layer stubs as a virtual-FS dict."""
+    """Return one-shot user-layer stubs as a virtual-FS dict.
+
+    `mount_relpath` carries the per-spec mount sub-path (`"users/"`,
+    `"platform/users/"`, or `""` for the root mount). It is prepended to
+    every emitted path and folded into every `from_module` reference so
+    the rendered import lines resolve to the per-mount base sub-tree.
+
+    `emit_root` controls whether the project-wide files
+    (`src/{package_path}/__init__.py` and the user-layer `client.py`) are
+    emitted. The multi-mount caller sets it to `False` for non-root mounts
+    so those files only appear once across the project.
+
+    `client_wirings_override` lets the multi-mount caller compose the
+    client's wirings across every mount, since `client_wirings(api,
+    package)` only sees one mount's top-level tree.
+
+    `mount_namespace` (multi-spec only) is the synthetic mount-namespace
+    node produced by `compose.synthesize_mount_namespace(...)`. When
+    given alongside a non-empty `mount_relpath`, the mount's
+    `__init__.py` is emitted as the user-layer subclass of
+    `<Mount>NamespaceBase` (wired to the spec's top-level children)
+    rather than the historical empty marker.
+    """
     out: dict[str, GeneratedFile] = {}
-    out[f"src/{package_path}/__init__.py"] = _stub("")
-    out[f"src/{package_path}/client.py"] = _stub_pair(
-        from_module=f"{package}.base.client",
-        base_class=f"{client_class}Base",
-        user_class=client_class,
-        wirings=client_wirings(api, package),
-    )
+    if emit_root:
+        out[f"src/{package_path}/__init__.py"] = _stub("")
+        wirings = (
+            client_wirings_override
+            if client_wirings_override is not None
+            else client_wirings(api, package)
+        )
+        out[f"src/{package_path}/client.py"] = _stub_pair(
+            from_module=f"{package}.base.client",
+            base_class=f"{client_class}Base",
+            user_class=client_class,
+            wirings=wirings,
+        )
+    if mount_relpath:
+        if mount_namespace is not None:
+            from okapipy.generator.compose import mount_class_name
+
+            mount_base = mount_class_name(mount_namespace)
+            mount_user = mount_base.removesuffix("Base")
+            out[f"src/{package_path}/{mount_relpath}__init__.py"] = _stub_pair(
+                from_module=(
+                    f"{package}.base.{mount_dotpath(mount_relpath).rstrip('.')}"
+                ),
+                base_class=mount_base,
+                user_class=mount_user,
+                wirings=namespace_wirings(
+                    mount_namespace, package, mount_relpath=mount_relpath
+                ),
+            )
+        else:
+            out[f"src/{package_path}/{mount_relpath}__init__.py"] = _stub("")
     for ns in api.namespaces:
-        _walk_namespace(ns, out, package, package_path)
+        _walk_namespace(ns, out, package, package_path, mount_relpath)
     for coll in api.collections:
-        _walk_collection(coll, out, package, package_path)
+        _walk_collection(coll, out, package, package_path, mount_relpath)
     for sing in api.singletons:
-        _walk_singleton(sing, out, package, package_path)
+        _walk_singleton(sing, out, package, package_path, mount_relpath)
     for action in api.actions:
-        _walk_action(action, out, package, package_path)
+        _walk_action(action, out, package, package_path, mount_relpath)
     for subdir in ("namespaces", "collections", "resources", "singletons", "actions"):
-        if any(p.startswith(f"src/{package_path}/{subdir}/") for p in out):
-            out.setdefault(f"src/{package_path}/{subdir}/__init__.py", _stub(""))
+        if any(
+            p.startswith(f"src/{package_path}/{mount_relpath}{subdir}/") for p in out
+        ):
+            out.setdefault(
+                f"src/{package_path}/{mount_relpath}{subdir}/__init__.py", _stub("")
+            )
     return out
 
 
@@ -171,110 +237,135 @@ def _factory_lines(wirings: list[ChildWiring], *, async_: bool) -> str:
 # --------------------------------------------------------------------------- #
 
 
-def client_wirings(api: APIModel, package: str) -> list[ChildWiring]:
-    """Children of the top-level client: namespaces, collections, singletons, actions."""
+def client_wirings(
+    api: APIModel, package: str, *, mount_relpath: str = ""
+) -> list[ChildWiring]:
+    """Children of the top-level client: namespaces, collections, singletons, actions.
+
+    `mount_relpath` lets the multi-mount caller produce wirings whose
+    `user_module_path` lands inside the right per-mount sub-tree.
+    """
+    dot = mount_dotpath(mount_relpath)
     out: list[ChildWiring] = []
     for ns in api.namespaces:
-        out.append(_namespace_child_wiring(ns, package))
+        out.append(_namespace_child_wiring(ns, package, dot))
     for coll in api.collections:
-        out.append(_collection_child_wiring(coll, package))
+        out.append(_collection_child_wiring(coll, package, dot))
     for sing in api.singletons:
-        out.append(_singleton_child_wiring(sing, package))
+        out.append(_singleton_child_wiring(sing, package, dot))
     for action in api.actions:
-        out.append(_action_child_wiring(action, package))
+        out.append(_action_child_wiring(action, package, dot))
     return out
 
 
-def namespace_wirings(ns: Namespace, package: str) -> list[ChildWiring]:
+def namespace_wirings(
+    ns: Namespace, package: str, *, mount_relpath: str = ""
+) -> list[ChildWiring]:
     """Children of a namespace: sub-namespaces, collections, singletons, actions."""
+    dot = mount_dotpath(mount_relpath)
     out: list[ChildWiring] = []
     for child in ns.namespaces:
-        out.append(_namespace_child_wiring(child, package))
+        out.append(_namespace_child_wiring(child, package, dot))
     for coll in ns.collections:
-        out.append(_collection_child_wiring(coll, package))
+        out.append(_collection_child_wiring(coll, package, dot))
     for sing in ns.singletons:
-        out.append(_singleton_child_wiring(sing, package))
+        out.append(_singleton_child_wiring(sing, package, dot))
     for action in ns.actions:
-        out.append(_action_child_wiring(action, package))
+        out.append(_action_child_wiring(action, package, dot))
     return out
 
 
-def collection_wirings(coll: Collection, package: str) -> list[ChildWiring]:
+def collection_wirings(
+    coll: Collection, package: str, *, mount_relpath: str = ""
+) -> list[ChildWiring]:
     """Children of a collection: at most one resource + zero-or-more actions."""
+    dot = mount_dotpath(mount_relpath)
     out: list[ChildWiring] = []
     if coll.resource is not None:
-        out.append(_resource_child_wiring(coll.resource, package))
+        out.append(_resource_child_wiring(coll.resource, package, dot))
     for action in coll.actions:
-        out.append(_action_child_wiring(action, package))
+        out.append(_action_child_wiring(action, package, dot))
     return out
 
 
-def resource_wirings(resource: Resource, package: str) -> list[ChildWiring]:
+def resource_wirings(
+    resource: Resource, package: str, *, mount_relpath: str = ""
+) -> list[ChildWiring]:
     """Children of a resource: sub-collections, sub-singletons, actions."""
+    dot = mount_dotpath(mount_relpath)
     out: list[ChildWiring] = []
     for coll in resource.collections:
-        out.append(_collection_child_wiring(coll, package))
+        out.append(_collection_child_wiring(coll, package, dot))
     for sing in resource.singletons:
-        out.append(_singleton_child_wiring(sing, package))
+        out.append(_singleton_child_wiring(sing, package, dot))
     for action in resource.actions:
-        out.append(_action_child_wiring(action, package))
+        out.append(_action_child_wiring(action, package, dot))
     return out
 
 
-def singleton_wirings(singleton: Singleton, package: str) -> list[ChildWiring]:
+def singleton_wirings(
+    singleton: Singleton, package: str, *, mount_relpath: str = ""
+) -> list[ChildWiring]:
     """Children of a singleton: sub-collections, sub-singletons, actions."""
+    dot = mount_dotpath(mount_relpath)
     out: list[ChildWiring] = []
     for coll in singleton.collections:
-        out.append(_collection_child_wiring(coll, package))
+        out.append(_collection_child_wiring(coll, package, dot))
     for sub in singleton.singletons:
-        out.append(_singleton_child_wiring(sub, package))
+        out.append(_singleton_child_wiring(sub, package, dot))
     for action in singleton.actions:
-        out.append(_action_child_wiring(action, package))
+        out.append(_action_child_wiring(action, package, dot))
     return out
 
 
-def _namespace_child_wiring(ns: Namespace, package: str) -> ChildWiring:
+def _namespace_child_wiring(ns: Namespace, package: str, dot: str = "") -> ChildWiring:
     base = namespace_class(ns)
     return ChildWiring(
         factory_attr=factory_attr(snake_case(ns.name)),
         user_class=base.removesuffix("Base"),
-        user_module_path=f"{package}.namespaces.{namespace_module(ns)}",
+        user_module_path=f"{package}.{dot}namespaces.{namespace_module(ns)}",
     )
 
 
-def _collection_child_wiring(coll: Collection, package: str) -> ChildWiring:
+def _collection_child_wiring(
+    coll: Collection, package: str, dot: str = ""
+) -> ChildWiring:
     base = collection_class(coll)
     return ChildWiring(
         factory_attr=factory_attr(collection_attr(coll)),
         user_class=base.removesuffix("Base"),
-        user_module_path=f"{package}.collections.{collection_module(coll)}",
+        user_module_path=f"{package}.{dot}collections.{collection_module(coll)}",
     )
 
 
-def _resource_child_wiring(resource: Resource, package: str) -> ChildWiring:
+def _resource_child_wiring(
+    resource: Resource, package: str, dot: str = ""
+) -> ChildWiring:
     base = resource_class(resource)
     return ChildWiring(
         factory_attr=factory_attr("resource"),
         user_class=base.removesuffix("Base"),
-        user_module_path=f"{package}.resources.{resource_module(resource)}",
+        user_module_path=f"{package}.{dot}resources.{resource_module(resource)}",
     )
 
 
-def _action_child_wiring(action: Action, package: str) -> ChildWiring:
+def _action_child_wiring(action: Action, package: str, dot: str = "") -> ChildWiring:
     base = action_class(action)
     return ChildWiring(
         factory_attr=factory_attr(action_attr(action)),
         user_class=base.removesuffix("Base"),
-        user_module_path=f"{package}.actions.{action_module(action)}",
+        user_module_path=f"{package}.{dot}actions.{action_module(action)}",
     )
 
 
-def _singleton_child_wiring(singleton: Singleton, package: str) -> ChildWiring:
+def _singleton_child_wiring(
+    singleton: Singleton, package: str, dot: str = ""
+) -> ChildWiring:
     base = singleton_class(singleton)
     return ChildWiring(
         factory_attr=factory_attr(singleton_attr(singleton)),
         user_class=base.removesuffix("Base"),
-        user_module_path=f"{package}.singletons.{singleton_module(singleton)}",
+        user_module_path=f"{package}.{dot}singletons.{singleton_module(singleton)}",
     )
 
 
@@ -288,25 +379,27 @@ def _walk_namespace(
     out: dict[str, GeneratedFile],
     package: str,
     package_path: str,
+    mount_relpath: str = "",
 ) -> None:
     """Emit a namespace stub and recurse into children."""
+    dot = mount_dotpath(mount_relpath)
     base_class = namespace_class(ns)
     user_class = base_class.removesuffix("Base")
     module = namespace_module(ns)
-    out[f"src/{package_path}/namespaces/{module}.py"] = _stub_pair(
-        from_module=f"{package}.base.namespaces.{module}",
+    out[f"src/{package_path}/{mount_relpath}namespaces/{module}.py"] = _stub_pair(
+        from_module=f"{package}.base.{dot}namespaces.{module}",
         base_class=base_class,
         user_class=user_class,
-        wirings=namespace_wirings(ns, package),
+        wirings=namespace_wirings(ns, package, mount_relpath=mount_relpath),
     )
     for child in ns.namespaces:
-        _walk_namespace(child, out, package, package_path)
+        _walk_namespace(child, out, package, package_path, mount_relpath)
     for coll in ns.collections:
-        _walk_collection(coll, out, package, package_path)
+        _walk_collection(coll, out, package, package_path, mount_relpath)
     for sing in ns.singletons:
-        _walk_singleton(sing, out, package, package_path)
+        _walk_singleton(sing, out, package, package_path, mount_relpath)
     for action in ns.actions:
-        _walk_action(action, out, package, package_path)
+        _walk_action(action, out, package, package_path, mount_relpath)
 
 
 def _walk_collection(
@@ -314,21 +407,23 @@ def _walk_collection(
     out: dict[str, GeneratedFile],
     package: str,
     package_path: str,
+    mount_relpath: str = "",
 ) -> None:
     """Emit a collection stub and recurse into the resource and any actions."""
+    dot = mount_dotpath(mount_relpath)
     base_class = collection_class(coll)
     user_class = base_class.removesuffix("Base")
     module = collection_module(coll)
-    out[f"src/{package_path}/collections/{module}.py"] = _stub_pair(
-        from_module=f"{package}.base.collections.{module}",
+    out[f"src/{package_path}/{mount_relpath}collections/{module}.py"] = _stub_pair(
+        from_module=f"{package}.base.{dot}collections.{module}",
         base_class=base_class,
         user_class=user_class,
-        wirings=collection_wirings(coll, package),
+        wirings=collection_wirings(coll, package, mount_relpath=mount_relpath),
     )
     if coll.resource is not None:
-        _walk_resource(coll.resource, out, package, package_path)
+        _walk_resource(coll.resource, out, package, package_path, mount_relpath)
     for action in coll.actions:
-        _walk_action(action, out, package, package_path)
+        _walk_action(action, out, package, package_path, mount_relpath)
 
 
 def _walk_resource(
@@ -336,23 +431,25 @@ def _walk_resource(
     out: dict[str, GeneratedFile],
     package: str,
     package_path: str,
+    mount_relpath: str = "",
 ) -> None:
     """Emit a resource stub and recurse into sub-collections, sub-singletons, and actions."""
+    dot = mount_dotpath(mount_relpath)
     base_class = resource_class(resource)
     user_class = base_class.removesuffix("Base")
     module = resource_module(resource)
-    out[f"src/{package_path}/resources/{module}.py"] = _stub_pair(
-        from_module=f"{package}.base.resources.{module}",
+    out[f"src/{package_path}/{mount_relpath}resources/{module}.py"] = _stub_pair(
+        from_module=f"{package}.base.{dot}resources.{module}",
         base_class=base_class,
         user_class=user_class,
-        wirings=resource_wirings(resource, package),
+        wirings=resource_wirings(resource, package, mount_relpath=mount_relpath),
     )
     for coll in resource.collections:
-        _walk_collection(coll, out, package, package_path)
+        _walk_collection(coll, out, package, package_path, mount_relpath)
     for sing in resource.singletons:
-        _walk_singleton(sing, out, package, package_path)
+        _walk_singleton(sing, out, package, package_path, mount_relpath)
     for action in resource.actions:
-        _walk_action(action, out, package, package_path)
+        _walk_action(action, out, package, package_path, mount_relpath)
 
 
 def _walk_singleton(
@@ -360,23 +457,25 @@ def _walk_singleton(
     out: dict[str, GeneratedFile],
     package: str,
     package_path: str,
+    mount_relpath: str = "",
 ) -> None:
     """Emit a singleton stub and recurse into children."""
+    dot = mount_dotpath(mount_relpath)
     base_class = singleton_class(singleton)
     user_class = base_class.removesuffix("Base")
     module = singleton_module(singleton)
-    out[f"src/{package_path}/singletons/{module}.py"] = _stub_pair(
-        from_module=f"{package}.base.singletons.{module}",
+    out[f"src/{package_path}/{mount_relpath}singletons/{module}.py"] = _stub_pair(
+        from_module=f"{package}.base.{dot}singletons.{module}",
         base_class=base_class,
         user_class=user_class,
-        wirings=singleton_wirings(singleton, package),
+        wirings=singleton_wirings(singleton, package, mount_relpath=mount_relpath),
     )
     for coll in singleton.collections:
-        _walk_collection(coll, out, package, package_path)
+        _walk_collection(coll, out, package, package_path, mount_relpath)
     for sub in singleton.singletons:
-        _walk_singleton(sub, out, package, package_path)
+        _walk_singleton(sub, out, package, package_path, mount_relpath)
     for action in singleton.actions:
-        _walk_action(action, out, package, package_path)
+        _walk_action(action, out, package, package_path, mount_relpath)
 
 
 def _walk_action(
@@ -384,13 +483,15 @@ def _walk_action(
     out: dict[str, GeneratedFile],
     package: str,
     package_path: str,
+    mount_relpath: str = "",
 ) -> None:
     """Emit an action stub. Actions are leaves — no factory wiring."""
+    dot = mount_dotpath(mount_relpath)
     base_class = action_class(action)
     user_class = base_class.removesuffix("Base")
     module = action_module(action)
-    out[f"src/{package_path}/actions/{module}.py"] = _stub_pair(
-        from_module=f"{package}.base.actions.{module}",
+    out[f"src/{package_path}/{mount_relpath}actions/{module}.py"] = _stub_pair(
+        from_module=f"{package}.base.{dot}actions.{module}",
         base_class=base_class,
         user_class=user_class,
     )

@@ -77,6 +77,21 @@ def factory_attr(attr: str) -> str:
     return f"__{attr}_factory__"
 
 
+def runtime_dots(mount_relpath: str) -> str:
+    """Return the dot prefix templates use to import the shared base-level modules.
+
+    Cross-mount-shared modules (`client.py`, `exceptions.py`, `filters.py`,
+    `sort.py`, `transport.py`, `types.py`) live at `base/`; emitted files
+    live at `base/[<mount_path>/]<subdir>/`. Each `<subdir>` is one
+    additional package level, so the relative import needs `len(mount_path)
+    + 2` dots (the `+ 2` covers the leaf subdir and `base/` itself).
+
+    For the root mount (`mount_relpath == ""`) the result is `".."` — the
+    today's value — so root-mounted projects render byte-identical files.
+    """
+    return "." * (mount_relpath.count("/") + 2)
+
+
 def emit_tree(
     env: Environment,
     api: APIModel,
@@ -85,6 +100,7 @@ def emit_tree(
     available_models: set[str] | None = None,
     *,
     shape: Shape = "auto",
+    mount_relpath: str = "",
 ) -> dict[str, str]:
     """Render every namespace, collection, resource, and action in `api`.
 
@@ -106,24 +122,155 @@ def emit_tree(
     # Top-level namespaces.
     for ns in api.namespaces:
         out.update(
-            _emit_namespace(env, ns, project_context, package_path, available, shape)
+            _emit_namespace(
+                env, ns, project_context, package_path, available, shape, mount_relpath
+            )
         )
     # Top-level collections.
     for coll in api.collections:
         out.update(
-            _emit_collection(env, coll, project_context, package_path, available, shape)
+            _emit_collection(
+                env,
+                coll,
+                project_context,
+                package_path,
+                available,
+                shape,
+                mount_relpath,
+            )
         )
     # Top-level singletons.
     for sing in api.singletons:
         out.update(
-            _emit_singleton(env, sing, project_context, package_path, available, shape)
+            _emit_singleton(
+                env,
+                sing,
+                project_context,
+                package_path,
+                available,
+                shape,
+                mount_relpath,
+            )
         )
     # Top-level actions.
     for action in api.actions:
         out.update(
-            _emit_action(env, action, project_context, package_path, available, shape)
+            _emit_action(
+                env,
+                action,
+                project_context,
+                package_path,
+                available,
+                shape,
+                mount_relpath,
+            )
         )
     return out
+
+
+def emit_mount_namespace(
+    env: Environment,
+    mount_namespace: Namespace,
+    project_context: Mapping[str, Any],
+    package_path: str,
+    available_models: set[str] | None,
+    shape: Shape,
+    mount_relpath: str,
+) -> dict[str, str]:
+    """Render a synthetic mount-namespace class at `base/<mount_relpath>__init__.py`.
+
+    `mount_namespace` is the synthetic `Namespace` produced by
+    `compose.synthesize_mount_namespace(...)`; the spec's top-level
+    children appear as its `namespaces` / `collections` / `singletons` /
+    `actions` lists.
+
+    The mount-namespace file sits one directory shallower than the
+    per-node files inside the same mount (`base/<mount>/__init__.py` vs
+    `base/<mount>/collections/foo.py`), so its `runtime_dots` is one
+    level shorter than the standard `runtime_dots(mount_relpath)`.
+    """
+    if not mount_relpath:
+        raise ValueError("emit_mount_namespace requires a non-empty mount_relpath")
+    available = available_models if available_models is not None else None
+    child_namespaces = [
+        ChildRef(
+            attr=snake_case(child.name),
+            class_name=namespace_class(child),
+            module=namespace_module(child),
+            factory_attr=factory_attr(snake_case(child.name)),
+            docstring=namespace_accessor_docstring(child),
+            one_line=node_one_line(
+                child.summary,
+                child.description,
+                fallback=f"Namespace `{child.name}`.",
+            ),
+        )
+        for child in mount_namespace.namespaces
+    ]
+    child_collections = [
+        ChildRef(
+            attr=collection_attr(coll),
+            class_name=collection_class(coll),
+            module=collection_module(coll),
+            factory_attr=factory_attr(collection_attr(coll)),
+            docstring=collection_property_docstring(coll),
+            one_line=collection_one_line(coll),
+        )
+        for coll in mount_namespace.collections
+    ]
+    child_singletons = [
+        ChildRef(
+            attr=singleton_attr(sing),
+            class_name=singleton_class(sing),
+            module=singleton_module(sing),
+            factory_attr=factory_attr(singleton_attr(sing)),
+            docstring=singleton_accessor_docstring(sing),
+            one_line=singleton_one_line(sing),
+        )
+        for sing in mount_namespace.singletons
+    ]
+    child_actions = [
+        ChildRef(
+            attr=action_attr(action),
+            class_name=action_class(action),
+            module=action_module(action),
+            factory_attr=factory_attr(action_attr(action)),
+            docstring=action_accessor_docstring(action),
+            one_line=action_one_line(action),
+            meta_inline=action_meta_inline(action),
+        )
+        for action in mount_namespace.actions
+    ]
+    _ = available  # mount namespace itself imports no models; children do.
+    _ = shape
+    # The mount __init__.py is one package shallower than per-node files
+    # under the same mount, so it needs one fewer dot prefix to reach
+    # base-level shared modules (`client`, `exceptions`, …).
+    mount_init_runtime_dots = "." * (mount_relpath.count("/") + 1)
+    from okapipy.generator.compose import mount_class_name
+
+    ctx = {
+        **project_context,
+        "class_name": mount_class_name(mount_namespace),
+        "child_namespaces": child_namespaces,
+        "child_collections": child_collections,
+        "child_singletons": child_singletons,
+        "child_actions": child_actions,
+        "runtime_dots": mount_init_runtime_dots,
+        "is_mount_root": True,
+        "class_docstring": _build_namespace_class_docstring(
+            mount_namespace,
+            child_namespaces=child_namespaces,
+            child_collections=child_collections,
+            child_singletons=child_singletons,
+            child_actions=child_actions,
+        ),
+    }
+    return {
+        f"src/{package_path}/base/{mount_relpath}__init__.py": render_python(
+            env, "package/namespace.py.jinja", ctx
+        ),
+    }
 
 
 def emit_root_init_extension(api: APIModel) -> tuple[list[str], list[str]]:
@@ -179,6 +326,7 @@ def _emit_namespace(
     package_path: str,
     available_models: set[str] | None,
     shape: Shape,
+    mount_relpath: str = "",
 ) -> dict[str, str]:
     out: dict[str, str] = {}
     child_namespaces: list[ChildRef] = [
@@ -237,6 +385,8 @@ def _emit_namespace(
         "child_collections": child_collections,
         "child_singletons": child_singletons,
         "child_actions": child_actions,
+        "runtime_dots": runtime_dots(mount_relpath),
+        "is_mount_root": False,
         "class_docstring": _build_namespace_class_docstring(
             ns,
             child_namespaces=child_namespaces,
@@ -245,31 +395,55 @@ def _emit_namespace(
             child_actions=child_actions,
         ),
     }
-    out[f"src/{package_path}/base/namespaces/{namespace_module(ns)}.py"] = (
-        render_python(env, "package/namespace.py.jinja", ctx)
-    )
+    out[
+        f"src/{package_path}/base/{mount_relpath}namespaces/{namespace_module(ns)}.py"
+    ] = render_python(env, "package/namespace.py.jinja", ctx)
     for child in ns.namespaces:
         out.update(
             _emit_namespace(
-                env, child, project_context, package_path, available_models, shape
+                env,
+                child,
+                project_context,
+                package_path,
+                available_models,
+                shape,
+                mount_relpath,
             )
         )
     for coll in ns.collections:
         out.update(
             _emit_collection(
-                env, coll, project_context, package_path, available_models, shape
+                env,
+                coll,
+                project_context,
+                package_path,
+                available_models,
+                shape,
+                mount_relpath,
             )
         )
     for sing in ns.singletons:
         out.update(
             _emit_singleton(
-                env, sing, project_context, package_path, available_models, shape
+                env,
+                sing,
+                project_context,
+                package_path,
+                available_models,
+                shape,
+                mount_relpath,
             )
         )
     for action in ns.actions:
         out.update(
             _emit_action(
-                env, action, project_context, package_path, available_models, shape
+                env,
+                action,
+                project_context,
+                package_path,
+                available_models,
+                shape,
+                mount_relpath,
             )
         )
     return out
@@ -287,6 +461,7 @@ def _emit_collection(
     package_path: str,
     available_models: set[str] | None,
     shape: Shape,
+    mount_relpath: str = "",
 ) -> dict[str, str]:
     out: dict[str, str] = {}
     resource_ref: dict[str, str] | None = None
@@ -403,10 +578,11 @@ def _emit_collection(
         "model_imports": model_imports,
         "class_docstring": class_doc,
         "create_docstring": create_doc,
+        "runtime_dots": runtime_dots(mount_relpath),
     }
-    out[f"src/{package_path}/base/collections/{collection_module(coll)}.py"] = (
-        render_python(env, "package/collection.py.jinja", ctx)
-    )
+    out[
+        f"src/{package_path}/base/{mount_relpath}collections/{collection_module(coll)}.py"
+    ] = render_python(env, "package/collection.py.jinja", ctx)
     if coll.resource is not None:
         out.update(
             _emit_resource(
@@ -417,18 +593,31 @@ def _emit_collection(
                 package_path,
                 available_models,
                 shape,
+                mount_relpath,
             )
         )
     for action in coll.actions:
         out.update(
             _emit_action(
-                env, action, project_context, package_path, available_models, shape
+                env,
+                action,
+                project_context,
+                package_path,
+                available_models,
+                shape,
+                mount_relpath,
             )
         )
     for sing in coll.singletons:
         out.update(
             _emit_singleton(
-                env, sing, project_context, package_path, available_models, shape
+                env,
+                sing,
+                project_context,
+                package_path,
+                available_models,
+                shape,
+                mount_relpath,
             )
         )
     return out
@@ -447,6 +636,7 @@ def _emit_resource(
     package_path: str,
     available_models: set[str] | None,
     shape: Shape,
+    mount_relpath: str = "",
 ) -> dict[str, str]:
     out: dict[str, str] = {}
     child_collections = [
@@ -523,26 +713,45 @@ def _emit_resource(
         "update_docstring": _op_doc(resource.update, " (full replacement)"),
         "patch_docstring": _op_doc(resource.partial_update, " (partial update)"),
         "delete_docstring": _op_doc(resource.delete),
+        "runtime_dots": runtime_dots(mount_relpath),
     }
-    out[f"src/{package_path}/base/resources/{resource_module(resource)}.py"] = (
-        render_python(env, "package/resource.py.jinja", ctx)
-    )
+    out[
+        f"src/{package_path}/base/{mount_relpath}resources/{resource_module(resource)}.py"
+    ] = render_python(env, "package/resource.py.jinja", ctx)
     for coll in resource.collections:
         out.update(
             _emit_collection(
-                env, coll, project_context, package_path, available_models, shape
+                env,
+                coll,
+                project_context,
+                package_path,
+                available_models,
+                shape,
+                mount_relpath,
             )
         )
     for sing in resource.singletons:
         out.update(
             _emit_singleton(
-                env, sing, project_context, package_path, available_models, shape
+                env,
+                sing,
+                project_context,
+                package_path,
+                available_models,
+                shape,
+                mount_relpath,
             )
         )
     for action in resource.actions:
         out.update(
             _emit_action(
-                env, action, project_context, package_path, available_models, shape
+                env,
+                action,
+                project_context,
+                package_path,
+                available_models,
+                shape,
+                mount_relpath,
             )
         )
     _ = parent_coll  # parent context kept for future use (e.g. type hints)
@@ -561,6 +770,7 @@ def _emit_singleton(
     package_path: str,
     available_models: set[str] | None,
     shape: Shape,
+    mount_relpath: str = "",
 ) -> dict[str, str]:
     out: dict[str, str] = {}
     child_collections = [
@@ -637,26 +847,45 @@ def _emit_singleton(
         "update_docstring": _op_doc(singleton.update, " (full replacement)"),
         "patch_docstring": _op_doc(singleton.partial_update, " (partial update)"),
         "delete_docstring": _op_doc(singleton.delete),
+        "runtime_dots": runtime_dots(mount_relpath),
     }
-    out[f"src/{package_path}/base/singletons/{singleton_module(singleton)}.py"] = (
-        render_python(env, "package/singleton.py.jinja", ctx)
-    )
+    out[
+        f"src/{package_path}/base/{mount_relpath}singletons/{singleton_module(singleton)}.py"
+    ] = render_python(env, "package/singleton.py.jinja", ctx)
     for coll in singleton.collections:
         out.update(
             _emit_collection(
-                env, coll, project_context, package_path, available_models, shape
+                env,
+                coll,
+                project_context,
+                package_path,
+                available_models,
+                shape,
+                mount_relpath,
             )
         )
     for sub in singleton.singletons:
         out.update(
             _emit_singleton(
-                env, sub, project_context, package_path, available_models, shape
+                env,
+                sub,
+                project_context,
+                package_path,
+                available_models,
+                shape,
+                mount_relpath,
             )
         )
     for action in singleton.actions:
         out.update(
             _emit_action(
-                env, action, project_context, package_path, available_models, shape
+                env,
+                action,
+                project_context,
+                package_path,
+                available_models,
+                shape,
+                mount_relpath,
             )
         )
     return out
@@ -674,6 +903,7 @@ def _emit_action(
     package_path: str,
     available_models: set[str] | None,
     shape: Shape,
+    mount_relpath: str = "",
 ) -> dict[str, str]:
     operations = [_op_context(op, available_models, shape) for op in action.operations]
     operations = [op for op in operations if op is not None]
@@ -707,9 +937,10 @@ def _emit_action(
         "class_docstring": class_doc,
         "single_op_docstring": single_op_docstring,
         "op_docstrings": op_docstrings,
+        "runtime_dots": runtime_dots(mount_relpath),
     }
     return {
-        f"src/{package_path}/base/actions/{action_module(action)}.py": render_python(
+        f"src/{package_path}/base/{mount_relpath}actions/{action_module(action)}.py": render_python(
             env, "package/action.py.jinja", ctx
         ),
     }

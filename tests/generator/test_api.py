@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from okapipy.generator import GenerationError, generate
+from okapipy.generator import GenerationError, generate_for_mount
 from okapipy.generator.vfs import GeneratedFile
 from okapipy.parser.model import APIModel
 
@@ -19,7 +19,7 @@ def _generate_skeleton(tmp_path: Path) -> dict[str, GeneratedFile]:
     the namespace/collection/resource/action emitters quiet — Phase 6 covers
     those paths.
     """
-    return generate(
+    return generate_for_mount(
         APIModel(),
         raw_spec=FIXTURE,
         output_dir=tmp_path / "out",
@@ -88,7 +88,7 @@ def test_shape_dicts_skips_models_file() -> None:
     The walker's model-import filter then sees an empty set and elides every
     `from ..models import ...` line.
     """
-    vfs = generate(
+    vfs = generate_for_mount(
         APIModel(),
         raw_spec=FIXTURE,
         output_dir=Path("/tmp"),
@@ -117,7 +117,7 @@ def test_singletons_fixture_emits_singleton_files(tmp_path: Path) -> None:
     fixture = Path(__file__).resolve().parent.parent / "fixtures" / "singletons.yaml"
     api = parse(fixture, nlp_cache_dir=Path(__file__).resolve().parents[2] / ".spacy")
 
-    vfs = generate(
+    vfs = generate_for_mount(
         api,
         raw_spec=fixture,
         output_dir=tmp_path / "out",
@@ -151,7 +151,7 @@ def test_singletons_fixture_wires_client_and_resource(tmp_path: Path) -> None:
     fixture = Path(__file__).resolve().parent.parent / "fixtures" / "singletons.yaml"
     api = parse(fixture, nlp_cache_dir=Path(__file__).resolve().parents[2] / ".spacy")
 
-    vfs = generate(
+    vfs = generate_for_mount(
         api,
         raw_spec=fixture,
         output_dir=tmp_path / "out",
@@ -227,7 +227,7 @@ components:
     spec_path.write_text(spec_yaml, encoding="utf-8")
     api = parse(spec_path, nlp_cache_dir=Path(__file__).resolve().parents[2] / ".spacy")
 
-    vfs = generate(
+    vfs = generate_for_mount(
         api,
         raw_spec=spec_path,
         output_dir=tmp_path / "out",
@@ -288,7 +288,7 @@ components:
     spec_path.write_text(spec_yaml, encoding="utf-8")
     api = parse(spec_path, nlp_cache_dir=Path(__file__).resolve().parents[2] / ".spacy")
 
-    vfs = generate(
+    vfs = generate_for_mount(
         api,
         raw_spec=spec_path,
         output_dir=tmp_path / "out",
@@ -318,7 +318,7 @@ def test_root_actions_fixture_emits_action_files(tmp_path: Path) -> None:
     fixture = Path(__file__).resolve().parent.parent / "fixtures" / "root_actions.yaml"
     api = parse(fixture, nlp_cache_dir=Path(__file__).resolve().parents[2] / ".spacy")
 
-    vfs = generate(
+    vfs = generate_for_mount(
         api,
         raw_spec=fixture,
         output_dir=tmp_path / "out",
@@ -432,7 +432,7 @@ def test_anyof_request_body_renders_as_python_union_in_action(tmp_path: Path) ->
     spec_path.write_text(yaml.safe_dump(spec))
 
     api = parse(spec_path, nlp_cache_dir=Path(__file__).resolve().parents[2] / ".spacy")
-    vfs = generate(
+    vfs = generate_for_mount(
         api,
         raw_spec=spec_path,
         output_dir=tmp_path / "out",
@@ -490,7 +490,7 @@ def test_inline_body_matching_existing_component_is_not_duplicated(
     spec_path.write_text(yaml.safe_dump(spec))
 
     api = parse(spec_path, nlp_cache_dir=Path(__file__).resolve().parents[2] / ".spacy")
-    vfs = generate(
+    vfs = generate_for_mount(
         api,
         raw_spec=spec_path,
         output_dir=tmp_path / "out",
@@ -520,7 +520,7 @@ def test_shape_dicts_drops_model_imports_from_generated_nodes(
 
     api = parse(FIXTURE, nlp_cache_dir=Path(__file__).resolve().parents[2] / ".spacy")
 
-    vfs = generate(
+    vfs = generate_for_mount(
         api,
         raw_spec=FIXTURE,
         output_dir=tmp_path / "out",
@@ -549,7 +549,7 @@ def test_collection_iterator_item_type_excludes_none(tmp_path: Path) -> None:
     from okapipy.parser.api import parse
 
     api = parse(FIXTURE, nlp_cache_dir=Path(__file__).resolve().parents[2] / ".spacy")
-    vfs = generate(
+    vfs = generate_for_mount(
         api,
         raw_spec=FIXTURE,
         output_dir=tmp_path / "out",

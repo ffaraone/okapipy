@@ -16,6 +16,20 @@ from typing import TYPE_CHECKING, ClassVar
 from typing import TYPE_CHECKING
 {% endif %}
 
+{% if is_mount_root %}
+{% for child in child_namespaces %}
+from .namespaces.{{ child.module }} import {{ child.class_name }}, Async{{ child.class_name }}
+{% endfor %}
+{% for child in child_collections %}
+from .collections.{{ child.module }} import {{ child.class_name }}, Async{{ child.class_name }}
+{% endfor %}
+{% for child in child_singletons %}
+from .singletons.{{ child.module }} import {{ child.class_name }}, Async{{ child.class_name }}
+{% endfor %}
+{% for child in child_actions %}
+from .actions.{{ child.module }} import {{ child.class_name }}, Async{{ child.class_name }}
+{% endfor %}
+{% else %}
 {% for child in child_namespaces %}
 from .{{ child.module }} import {{ child.class_name }}, Async{{ child.class_name }}
 {% endfor %}
@@ -28,9 +42,10 @@ from ..singletons.{{ child.module }} import {{ child.class_name }}, Async{{ chil
 {% for child in child_actions %}
 from ..actions.{{ child.module }} import {{ child.class_name }}, Async{{ child.class_name }}
 {% endfor %}
+{% endif %}
 
 if TYPE_CHECKING:
-    from ..client import {{ client_class }}Base, Async{{ client_class }}Base
+    from {{ runtime_dots }}client import {{ client_class }}Base, Async{{ client_class }}Base
 
 
 class {{ class_name }}:

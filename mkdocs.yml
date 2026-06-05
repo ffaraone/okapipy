@@ -127,6 +127,7 @@ nav:
       - user-guide/strategies.md
       - user-guide/customization.md
       - user-guide/templates.md
+      - user-guide/advanced.md
   - Developer Guide:
       - developer-guide/index.md
       - developer-guide/parser.md

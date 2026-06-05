@@ -1,11 +1,17 @@
-"""`okapipy spec ...` typer subcommands."""
+"""`okapipy parse / generate / init` command implementations.
+
+These functions are registered on the root `app` in `cli/__init__.py`;
+they have Typer-friendly signatures but no `@app.command` decorator so
+the registration site stays in one place. Naming convention:
+`<command>_command` for the top-level command functions, underscore
+prefix for the shared helpers.
+"""
 
 from __future__ import annotations
 
 import sys
 from collections.abc import Iterator
 from contextlib import contextmanager
-from enum import StrEnum
 from pathlib import Path
 
 import typer
@@ -22,8 +28,13 @@ from okapipy.cli.console import (
     warnings_emitted,
     write_stream,
 )
-from okapipy.generator import GenerationError, Shape, generate
+from okapipy.generator import GenerationError, generate
 from okapipy.generator.vfs import write_to_disk
+from okapipy.manifest import (
+    DEFAULT_MANIFEST_FILENAME,
+    apply_cli_overrides,
+    load_manifest,
+)
 from okapipy.parser.builder import build
 from okapipy.parser.dump import to_json, write
 from okapipy.parser.errors import ParserError
@@ -33,23 +44,7 @@ from okapipy.parser.model import APIModel, Collection, Namespace, Resource
 from okapipy.parser.nlp import DEFAULT_CACHE_DIR, load_pipeline
 from okapipy.parser.rules import load_rules
 
-app = typer.Typer(
-    no_args_is_help=True, help="Inspect and parse OpenAPI specifications."
-)
 
-
-class ShapeOption(StrEnum):
-    """CLI surface for the generator's `--shape` flag.
-
-    Only the two locked shapes are user-selectable; absence of the flag means
-    `auto` (the dual-shape default with `shape=` constructor + `with_shape()`).
-    """
-
-    models = "models"
-    dicts = "dicts"
-
-
-@app.command("parse")
 def parse_command(
     ctx: typer.Context,
     source: str = typer.Argument(
@@ -224,104 +219,24 @@ def _verbose_from(ctx: typer.Context) -> int:
     return int(value) if isinstance(value, int) else 0
 
 
-@app.command("generate")
 def generate_command(
     ctx: typer.Context,
-    source: str = typer.Argument(
-        ..., help="Path or http(s) URL of the OpenAPI document."
+    manifest_path: Path = typer.Option(
+        Path(DEFAULT_MANIFEST_FILENAME),
+        "--manifest",
+        help=(
+            "Path to the project manifest. Defaults to ./okapipy.yml. "
+            "All project-level and per-spec configuration lives in this file."
+        ),
     ),
-    output: Path = typer.Option(
-        ...,
+    output: Path | None = typer.Option(
+        None,
         "--output",
         "-o",
-        help="Directory to write the generated client project into.",
-    ),
-    package: str = typer.Option(
-        ...,
-        "--package",
-        help="Dotted Python package path for the generated client (e.g. 'acme.commerce').",
-    ),
-    client_class: str = typer.Option(
-        ...,
-        "--client-class",
-        help="PascalCase class name for the sync client; async sibling is 'Async<name>'.",
-    ),
-    project_name: str | None = typer.Option(
-        None,
-        "--project-name",
-        help="PEP 503 distribution name; defaults to the last segment of --package.",
-    ),
-    project_version: str = typer.Option(
-        "0.1.0",
-        "--project-version",
-        help="Initial version string emitted into pyproject.toml.",
-    ),
-    python_version: str = typer.Option(
-        "3.13",
-        "--python-version",
-        help="Pinned Python version for the generated project.",
-    ),
-    license_id: str = typer.Option(
-        "Proprietary",
-        "--license",
-        help="SPDX license identifier; drives the LICENSE placeholder.",
-    ),
-    author: str | None = typer.Option(
-        None,
-        "--author",
         help=(
-            "Copyright holder for the generated LICENSE and PEP 621 "
-            "`authors` entry in pyproject.toml."
-        ),
-    ),
-    rules: Path | None = typer.Option(
-        None,
-        "--rules",
-        help="Local path to a JSON/YAML rules file.",
-    ),
-    lang: str = typer.Option("en", "--lang", help="ISO language code for NLP."),
-    strip_prefix: str | None = typer.Option(
-        None,
-        "--strip-prefix",
-        help="Path prefix to strip from every path before classification.",
-    ),
-    nlp_cache_dir: Path = typer.Option(
-        DEFAULT_CACHE_DIR,
-        "--nlp-cache-dir",
-        help="Directory in which spaCy models are stored and looked up.",
-    ),
-    unmatched: str | None = typer.Option(
-        None,
-        "--unmatched",
-        help=(
-            "Top-level namespace to hold operations that would otherwise be "
-            "dropped by the hierarchical routing table (e.g. PUT on a "
-            "collection, GET on a bare namespace path). Each such op becomes "
-            "a flat action named after its operationId. The name must not "
-            "collide with an existing top-level node."
-        ),
-    ),
-    templates_dir: Path | None = typer.Option(
-        None,
-        "--templates-dir",
-        help="Directory of user Jinja templates that override the packaged defaults.",
-    ),
-    model_templates_dir: Path | None = typer.Option(
-        None,
-        "--model-templates-dir",
-        help="Directory of datamodel-code-generator templates for models.py.",
-    ),
-    shape: ShapeOption | None = typer.Option(
-        None,
-        "--shape",
-        case_sensitive=False,
-        help=(
-            "Lock the generated client to a single response shape. Omit to "
-            "produce a dual-shape client (constructor `shape=` + "
-            "`with_shape()`). `--shape models` keeps `base/models.py` and "
-            "types every body / return with the recovered Pydantic model. "
-            "`--shape dicts` skips `base/models.py`, drops every model "
-            "import, and types every body / return as `dict[str, Any]`."
+            "Directory to write the generated client project into. Overrides "
+            "the manifest's `output` field on conflict; required when the "
+            "manifest omits `output`."
         ),
     ),
     check: bool = typer.Option(
@@ -340,41 +255,37 @@ def generate_command(
         help="Suppress drift-detection warnings. Pruning still runs.",
     ),
 ) -> None:
-    """Generate a Python client project from an OpenAPI document."""
+    """Generate a Python client project from the project manifest (okapipy.yml)."""
     verbose = _verbose_from(ctx)
     try:
-        api = _run_pipeline(
-            source=source,
-            rules=rules,
-            lang=lang,
-            cache_dir=nlp_cache_dir,
-            strip_prefix=strip_prefix,
-            unmatched_namespace=unmatched,
-        )
+        with _phase(f"Loading manifest {manifest_path}"):
+            manifest = load_manifest(manifest_path)
+        manifest = apply_cli_overrides(manifest, output=output)
+        if manifest.output is None:
+            print_error(
+                ValueError(
+                    "no output directory: pass --output PATH or add `output: …` "
+                    "to the manifest."
+                ),
+                debug=verbose >= 2,
+            )
+            raise typer.Exit(code=1)
+        output_dir = manifest.output
     except ParserError as exc:
         print_error(exc, debug=verbose >= 2)
         raise typer.Exit(code=1) from exc
-    resolved_shape: Shape = shape.value if shape is not None else "auto"
+    except GenerationError as exc:
+        print_error(exc, debug=verbose >= 2)
+        raise typer.Exit(code=1) from exc
     try:
-        with _phase("Generating client project"):
-            vfs = generate(
-                api,
-                source,
-                output_dir=output,
-                package=package,
-                client_class=client_class,
-                project_name=project_name,
-                project_version=project_version,
-                python_version=python_version,
-                license=license_id,
-                author=author,
-                templates_dir=templates_dir,
-                model_templates_dir=model_templates_dir,
-                shape=resolved_shape,
-            )
-        action = "Checking" if check else f"Writing {len(vfs)} files to {output}"
+        with _phase("Parsing spec(s) and generating client project"):
+            vfs = generate(manifest)
+        action = "Checking" if check else f"Writing {len(vfs)} files to {output_dir}"
         with _phase(action):
-            report = write_to_disk(vfs, output, dry_run=check)
+            report = write_to_disk(vfs, output_dir, dry_run=check)
+    except ParserError as exc:
+        print_error(exc, debug=verbose >= 2)
+        raise typer.Exit(code=1) from exc
     except GenerationError as exc:
         print_error(exc, debug=verbose >= 2)
         raise typer.Exit(code=1) from exc
@@ -407,13 +318,119 @@ def generate_command(
             )
         )
         return
-    summary = f"Wrote {len(report.written)} files to {output}"
+    summary = f"Wrote {len(report.written)} files to {output_dir}"
     if report.skipped:
         summary += f"; skipped {len(report.skipped)} existing user-layer files"
     if report.pruned:
         summary += f"; pruned {len(report.pruned)} stale base files"
     summary += warning_tail
     stderr.print(Panel(summary, border_style="green", title_align="left"))
+
+
+def init_command(
+    ctx: typer.Context,
+    source: str | None = typer.Argument(
+        None,
+        help=(
+            "Optional path or URL of an OpenAPI document. When given, the "
+            "scaffold contains one `specs[]` entry pointing at it (mounted "
+            "at the root); when omitted, the scaffold's `specs:` array is "
+            "empty and the user fills it in."
+        ),
+    ),
+    manifest_path: Path = typer.Option(
+        Path(DEFAULT_MANIFEST_FILENAME),
+        "--manifest",
+        help="Where to write the starter manifest. Defaults to ./okapipy.yml.",
+    ),
+    package: str | None = typer.Option(
+        None,
+        "--package",
+        help=(
+            "Dotted Python package path. Written verbatim into the manifest; "
+            "omit to leave a TODO placeholder."
+        ),
+    ),
+    client_class: str | None = typer.Option(
+        None,
+        "--client-class",
+        help=(
+            "PascalCase client class name. Written verbatim into the manifest; "
+            "omit to leave a TODO placeholder."
+        ),
+    ),
+    force: bool = typer.Option(
+        False,
+        "--force",
+        "-f",
+        help="Overwrite the manifest file if it already exists.",
+    ),
+) -> None:
+    """Scaffold a starter okapipy.yml at --manifest (default ./okapipy.yml)."""
+    verbose = _verbose_from(ctx)
+    if manifest_path.exists() and not force:
+        print_error(
+            FileExistsError(
+                f"refusing to overwrite existing manifest at {manifest_path}; "
+                "pass --force to replace it."
+            ),
+            debug=verbose >= 2,
+        )
+        raise typer.Exit(code=1)
+    body = _starter_manifest_body(
+        source=source,
+        package=package,
+        client_class=client_class,
+    )
+    manifest_path.parent.mkdir(parents=True, exist_ok=True)
+    manifest_path.write_text(body, encoding="utf-8")
+    stderr.print(
+        Panel(
+            f"Wrote starter manifest to {manifest_path}",
+            border_style="green",
+            title_align="left",
+        )
+    )
+
+
+def _starter_manifest_body(
+    *,
+    source: str | None,
+    package: str | None,
+    client_class: str | None,
+) -> str:
+    """Render the YAML body of a starter okapipy.yml.
+
+    Placeholder values are flagged with `# TODO` comments so an unedited
+    starter manifest fails validation rather than silently generating
+    against the placeholder.
+    """
+    pkg = package if package else "TODO.replace-me  # e.g. acme.commerce"
+    cls = client_class if client_class else "TODOClient  # e.g. CommerceClient"
+    if source is None:
+        specs_block = (
+            "specs:\n"
+            "  # Each entry mounts one OpenAPI spec under a namespace.\n"
+            "  # Use `namespace: ''` to mount the spec at the root.\n"
+            "  # - namespace: ''\n"
+            "  #   source: ./openapi.yaml\n"
+            "  #   rules: ./rules.yaml  # optional, local path only\n"
+        )
+    else:
+        specs_block = f"specs:\n  - namespace: ''\n    source: {source}\n"
+    return (
+        "# okapipy project manifest. See https://ffaraone.github.io/okapipy/ for details.\n"
+        f"package: {pkg}\n"
+        f"client_class: {cls}\n"
+        "\n"
+        "# Optional project-level settings (uncomment and edit as needed).\n"
+        '# project_version: "0.1.0"\n'
+        '# python_version: "3.13"\n'
+        "# shape: auto  # auto | models | dicts\n"
+        "# output: ./out\n"
+        "\n"
+        f"{specs_block}"
+    )
 
 
 def _check_summary(report) -> str:  # type: ignore[no-untyped-def]

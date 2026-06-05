@@ -12,7 +12,7 @@ from typing import Any
 import pytest
 from spacy.language import Language
 
-from okapipy.generator import generate
+from okapipy.generator import generate_for_mount
 from okapipy.generator.vfs import GeneratedFile, write_to_disk
 from okapipy.parser.api import parse as parse_spec
 from okapipy.parser.model import APIModel
@@ -190,7 +190,7 @@ def _generate_and_import(
     `sys.modules` so each test sees a fresh import. Used by the generator
     end-to-end fixtures that exercise the runtime surface of the emitted code.
     """
-    vfs = generate(
+    vfs = generate_for_mount(
         api,
         raw_spec=raw_spec,
         output_dir=out_dir,
@@ -279,7 +279,7 @@ def async_client_module(tmp_path: Path) -> Iterator[ModuleType]:
 def stubs_vfs(tmp_path: Path) -> dict[str, GeneratedFile]:
     """Generate a tree from the nested fixture and return the in-memory VFS."""
     api = parse_spec(NESTED_FIXTURE)
-    return generate(
+    return generate_for_mount(
         api,
         raw_spec=NESTED_FIXTURE,
         output_dir=tmp_path,
@@ -293,7 +293,7 @@ def stubs_vfs(tmp_path: Path) -> dict[str, GeneratedFile]:
 def hooks_vfs(tmp_path: Path) -> dict[str, GeneratedFile]:
     """Generate the nested fixture's tree and return the in-memory VFS."""
     api = parse_spec(NESTED_FIXTURE)
-    return generate(
+    return generate_for_mount(
         api,
         raw_spec=NESTED_FIXTURE,
         output_dir=tmp_path,
@@ -317,10 +317,10 @@ def generated_base(tmp_path: Path) -> Iterator[ModuleType]:
 
 
 @pytest.fixture
-def manifest_vfs(tmp_path: Path) -> dict[str, GeneratedFile]:
-    """Generate a tree from the nested fixture for manifest-shape inspection."""
+def state_vfs(tmp_path: Path) -> dict[str, GeneratedFile]:
+    """Generate a tree from the nested fixture for generated-state inspection."""
     api = parse_spec(NESTED_FIXTURE)
-    return generate(
+    return generate_for_mount(
         api,
         raw_spec=NESTED_FIXTURE,
         output_dir=tmp_path,
@@ -333,7 +333,7 @@ def manifest_vfs(tmp_path: Path) -> dict[str, GeneratedFile]:
 def project_context() -> dict[str, Any]:
     """Project-level Jinja context shared across the test-emitter templates.
 
-    Carries `shape="auto"` to mirror the default `okapipy spec generate`
+    Carries `shape="auto"` to mirror the default `okapipy generate`
     invocation; tests targeting the locked shapes override this via a
     second fixture (`project_context_models`, `project_context_dicts`).
     """

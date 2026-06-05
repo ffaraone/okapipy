@@ -24,7 +24,7 @@ The first NLP-dependent test run will download the spaCy
 offline. To pre-warm:
 
 ```bash
-uv run okapipy nlp fetch en
+uv run okapipy fetch-language en
 ```
 
 ## Common commands
@@ -47,7 +47,7 @@ uv run ruff format --check src tests
 
 # CLI smoke
 uv run okapipy --help
-uv run okapipy spec parse tests/fixtures/<some>.yaml
+uv run okapipy parse tests/fixtures/<some>.yaml
 ```
 
 `pyproject.toml` configures `--cov=okapipy` so plain `pytest` always emits
@@ -59,6 +59,7 @@ a coverage report; `htmlcov/` and `coverage.xml` are written. The
 ```
 src/okapipy/
 ├── app.py            # entry point (typer)
+├── manifest.py       # project manifest model + loader (okapipy.yml)
 ├── parser/           # spec → APIModel tree (the "lift")
 │   ├── api.py        # public parse(...) entry
 │   ├── loader.py     # JSON/YAML loader, $ref inlining, base path detect
@@ -76,16 +77,17 @@ src/okapipy/
 │   ├── runtime/      # runtime helpers vendored into every generated client
 │   ├── templates/    # Jinja templates for the generated code
 │   ├── models.py     # datamodel-code-generator integration
-│   ├── manifest.py   # _manifest.json (drift detection)
+│   ├── state.py      # _generated.json (drift detection)
+│   ├── compose.py    # multi-spec mount planning
 │   ├── edges.py      # parent-child wiring metadata
 │   ├── inline_schemas.py  # schema name recovery from $refs
 │   ├── templating.py # ChoiceLoader: user templates → packaged templates
 │   ├── vfs.py        # virtual filesystem + write_to_disk
 │   └── errors.py     # GenerationError hierarchy
-└── cli/              # typer subcommands
-    ├── __init__.py   # `okapipy` root, dispatches to nlp / spec
-    ├── nlp_cmd.py    # `okapipy nlp ...`
-    ├── spec_cmd.py   # `okapipy spec ...`
+└── cli/              # typer commands (flat, no sub-apps)
+    ├── __init__.py   # builds the root app, registers init / generate / parse / fetch-language
+    ├── nlp_cmd.py    # `okapipy fetch-language` implementation
+    ├── spec_cmd.py   # `okapipy init / generate / parse` implementations
     └── console.py    # rich-based stdout/stderr helpers
 ```
 

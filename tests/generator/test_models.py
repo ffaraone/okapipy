@@ -64,7 +64,7 @@ def test_materialize_spec_handles_yaml_parsed_dates(tmp_path: Path) -> None:
     instances. OpenAPI represents these as strings on the wire, so the spec
     materializer falls back to `isoformat()` rather than crashing with a
     TypeError. Without the fallback, any spec with a date default / example /
-    metadata field would fail `okapipy spec generate`.
+    metadata field would fail `okapipy generate`.
     """
     spec = {
         "openapi": "3.0.0",

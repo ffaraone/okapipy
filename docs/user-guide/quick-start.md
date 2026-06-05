@@ -1,7 +1,7 @@
 # Quick start
 
 This page walks you from "I have an OpenAPI document" to "I have a typed
-Python client I can `import` and call." Five minutes, four commands.
+Python client I can `import` and call." Five minutes, three commands.
 
 For a tour of every API surface the generated client exposes — filters,
 sorts, pagination, actions, async, error handling, retries —
@@ -18,7 +18,7 @@ okapipy reads OpenAPI 3.x in JSON or YAML, from a local file **or** an
 Before generating code, see what okapipy *thinks* your spec looks like:
 
 ```bash
-okapipy spec parse openapi.yaml
+okapipy parse openapi.yaml
 ```
 
 You'll get:
@@ -31,7 +31,7 @@ You'll get:
 If you'd rather save the tree:
 
 ```bash
-okapipy spec parse openapi.yaml --output tree.yaml
+okapipy parse openapi.yaml --output tree.yaml
 # .yaml or .yml → YAML; .json → JSON. Anything else errors.
 ```
 
@@ -39,13 +39,43 @@ If a classification looks off (`Staff` should be a collection, `me`
 should be a singleton, a non-CRUD POST got dropped), fix it in the rules
 file — see [Rules and extensions](rules.md) — before generating.
 
-## 3. Generate a client
+## 3. Scaffold the project manifest
+
+`okapipy generate` is manifest-driven: every project-level setting
+(package name, client class, response shape) and every per-spec setting
+(source, rules, strip-prefix) lives in a small YAML file. Scaffold one
+with `okapipy init`:
 
 ```bash
-okapipy spec generate openapi.yaml \
-    --output ./my-client \
-    --package acme.commerce \
-    --client-class CommerceClient
+okapipy init openapi.yaml \
+    --package acme.commerce --client-class CommerceClient
+```
+
+That writes `./okapipy.yml`:
+
+```yaml
+# okapipy project manifest. See https://ffaraone.github.io/okapipy/ for details.
+package: acme.commerce
+client_class: CommerceClient
+
+# Optional project-level settings (uncomment and edit as needed).
+# project_version: "0.1.0"
+# python_version: "3.13"
+# shape: auto  # auto | models | dicts
+# output: ./out
+
+specs:
+  - namespace: ''
+    source: openapi.yaml
+```
+
+Commit this file alongside your consumer code. It's the source of truth
+for what the generated client looks like.
+
+## 4. Generate a client
+
+```bash
+okapipy generate --output ./my-client
 ```
 
 That writes a complete Python project under `./my-client`:
@@ -58,7 +88,9 @@ my-client/
 ├── src/acme/commerce/
 │   ├── __init__.py         # one-shot — your public surface
 │   ├── client.py           # one-shot — class CommerceClient(CommerceClientBase)
-│   ├── orders.py           # one-shot — class Order(OrderBase), OrdersCollection(...)
+│   ├── collections/        # one-shot — your subclasses live here
+│   ├── resources/
+│   ├── actions/
 │   └── base/               # regenerated every run — DO NOT EDIT
 │       ├── client.py
 │       ├── collections/orders.py
@@ -71,15 +103,20 @@ my-client/
 │       ├── transport.py
 │       ├── exceptions.py
 │       ├── types.py
-│       └── _manifest.json
+│       └── _generated.json
 └── tests/                  # one-shot scaffolding
 ```
 
 Two layers, two lifecycles: the `base/` tree is rewritten on every
-`okapipy spec generate`, the rest is emitted **once** and then yours
+`okapipy generate`, the rest is emitted **once** and then yours
 forever. See [Code customization](customization.md) for the full story.
 
-## 4. Use it
+!!! tip
+    Add `output: ./my-client` to `okapipy.yml` and you can drop the
+    `--output` flag too — subsequent runs are just
+    `okapipy generate`.
+
+## 5. Use it
 
 ```python
 from acme.commerce import CommerceClient
@@ -119,15 +156,12 @@ collections, actions, ...) right in its docstring, so typing `client.`
 and reading the IDE tooltip is enough to discover the surface. See
 [IDE tooltips](client-usage.md#ide-tooltips) for the full story.
 
-## 5. Iterate
+## 6. Iterate
 
 When the upstream spec changes, re-run the same command:
 
 ```bash
-okapipy spec generate openapi.yaml \
-    --output ./my-client \
-    --package acme.commerce \
-    --client-class CommerceClient
+okapipy generate
 ```
 
 The `base/` tree is rewritten to match the new spec. Your subclasses,
@@ -139,24 +173,68 @@ you which factory line to add to wire your subclass into the tree.
 In CI, gate on regeneration being committed:
 
 ```bash
-okapipy spec generate openapi.yaml --output ./my-client \
-    --package acme.commerce --client-class CommerceClient --check
+okapipy generate --check
 ```
 
 `--check` exits non-zero if any base file would change, any drift
 warning fires, or any stale base file would be pruned.
 
-## Useful flags
+## The project manifest
+
+Every option used to drive generation lives in `okapipy.yml`. A full
+reference:
+
+```yaml
+# Required.
+package: acme.commerce              # dotted Python package
+client_class: CommerceClient        # PascalCase
+
+# Optional project metadata.
+project_name: acme-commerce         # PEP 503 distribution name; defaults to "commerce"
+project_version: "0.1.0"
+python_version: "3.13"              # 3.10 / 3.11 / 3.12 / 3.13
+license: Proprietary                # SPDX id; recognised values emit full text
+author: Acme Corp                   # copyright holder for LICENSE / authors[]
+
+# Optional generation settings.
+shape: auto                         # auto | models | dicts (see Response shape)
+lang: en                            # default NLP language for every spec
+nlp_cache_dir: .spacy
+templates_dir: ./templates          # override packaged Jinja templates
+model_templates_dir: ./model_tpls   # override datamodel-code-generator templates
+
+# Optional default output directory; CLI --output wins on conflict.
+output: ./out
+
+# Required: at least one spec entry.
+specs:
+  - namespace: ''                   # '' mounts at the package root
+    source: ./openapi.yaml          # path or http(s) URL
+    rules: ./rules.yaml             # optional, local path only
+    strip_prefix: /v1               # optional
+    unmatched: misc                 # optional (see Rules and extensions)
+    lang: en                        # optional; inherits the top-level lang
+```
+
+Paths are resolved relative to the manifest file's directory, so the
+manifest is portable with the consumer repo. URLs (`source:
+https://…`) are left verbatim.
+
+### Multi-spec projects
+
+Microservice projects can mount several OpenAPI documents under one
+client by adding more entries to `specs:`. Each entry pairs a spec
+source with its own namespace, rules, and prefix-stripping rules;
+callers reach each service as a top-level accessor on the client
+(`client.auth.*`, `client.restapi.*`). See
+[Advanced usage](advanced.md) for the full pattern.
+
+## Useful CLI flags
 
 | Flag | What it does |
 | --- | --- |
-| `--rules path/to/rules.yaml` | Project-local override layer (see [Rules and extensions](rules.md)). |
-| `--strip-prefix /api/v1` | Drop a base prefix from every path before classification. |
-| `--lang en` | ISO language code for NLP (defaults to `en`). |
-| `--nlp-cache-dir DIR` | Where to look for / store the spaCy model. |
-| `--shape models\|dicts` | Lock the generated client to one [response shape](shapes.md). Omit for the dual-shape default (constructor `shape=` + `with_shape()`). |
-| `--templates-dir DIR` | Override packaged Jinja templates per project (see [Templates](templates.md)). |
-| `--model-templates-dir DIR` | Override `datamodel-code-generator`'s model templates. |
+| `--manifest PATH` | Read a manifest from somewhere other than `./okapipy.yml`. |
+| `--output DIR`, `-o DIR` | Override the manifest's `output` field. |
 | `--check` | CI dry-run: report drift, exit non-zero on any change. |
 | `--quiet` / `-q` | Suppress drift-detection warnings (pruning still runs). |
 | `-v` / `-vv` | INFO / DEBUG logging. |

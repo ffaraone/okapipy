@@ -30,7 +30,7 @@ from ..actions.{{ action.module }} import {{ action.class_name }}, Async{{ actio
 {% endfor %}
 
 if TYPE_CHECKING:
-    from ..client import {{ client_class }}Base, Async{{ client_class }}Base
+    from {{ runtime_dots }}client import {{ client_class }}Base, Async{{ client_class }}Base
 
 # Threads `response_model=Foo` through `_request` so callers see
 # `Foo | dict[str, Any] | None` instead of `Any`. Bounded to `BaseModel`

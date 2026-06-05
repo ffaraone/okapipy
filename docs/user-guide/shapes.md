@@ -2,22 +2,22 @@
 
 A *shape* decides how the generated client deserializes responses and
 types its method signatures. okapipy supports three shapes, chosen once
-at generation time with the `--shape` flag of `okapipy spec generate`:
+at generation time via `shape:` in `okapipy.yml`:
 
-- **`auto`** (the default — pass nothing): emit a dual-shape client.
-  Each call site picks a shape; flip it at runtime with
+- **`shape: auto`** (the default — omit the field): emit a dual-shape
+  client. Each call site picks a shape; flip it at runtime with
   `with_shape(...)`.
-- **`--shape models`**: lock the client to typed Pydantic models.
+- **`shape: models`**: lock the client to typed Pydantic models.
   Method signatures are narrow; the runtime switch is gone.
-- **`--shape dicts`**: lock the client to raw dicts. `base/models.py`
+- **`shape: dicts`**: lock the client to raw dicts. `base/models.py`
   is not emitted.
 
 The choice is per generation, not per call. Switching shape after the
-fact means re-running `okapipy spec generate`.
+fact means editing `okapipy.yml` and re-running `okapipy generate`.
 
 ## Pick a shape
 
-| | `auto` (default) | `--shape models` | `--shape dicts` |
+| | `shape: auto` (default) | `shape: models` | `shape: dicts` |
 |---|---|---|---|
 | `base/models.py` | emitted | emitted | **not** emitted |
 | Constructor `shape=` keyword | yes | no | no |
@@ -33,14 +33,20 @@ response, primitive alias), the corresponding type falls back to
 
 ## The default: dual shape
 
-Omit `--shape` and the generator emits a client where each call site
-chooses its shape at construction time:
+Omit `shape:` from `okapipy.yml` and the generator emits a client where
+each call site chooses its shape at construction time:
+
+```yaml
+# okapipy.yml — shape unset, defaults to "auto"
+package: acme.commerce
+client_class: CommerceClient
+specs:
+  - namespace: ''
+    source: openapi.yaml
+```
 
 ```bash
-$ okapipy spec generate openapi.yaml \
-    --output ./my-client \
-    --package acme.commerce \
-    --client-class CommerceClient
+$ okapipy generate --output ./my-client
 ```
 
 The constructor takes a `shape` keyword (default `"models"`):
@@ -102,10 +108,16 @@ Reach for `auto` when you want models in tests and dicts in scripts (or
 the other way around) without maintaining two generated packages — and
 when the wider type signatures are an acceptable tradeoff.
 
-## `--shape models`: typed only
+## `shape: models`: typed only
 
-```bash
-$ okapipy spec generate openapi.yaml ... --shape models
+```yaml
+# okapipy.yml
+package: acme.commerce
+client_class: CommerceClient
+shape: models
+specs:
+  - namespace: ''
+    source: openapi.yaml
 ```
 
 The constructor accepts no `shape=` keyword. `with_shape(...)` is not
@@ -134,10 +146,16 @@ names.
 Reach for `models` when you want strict types end-to-end, run `mypy` on
 user code, or care about IDE completion at every call site.
 
-## `--shape dicts`: raw dicts only
+## `shape: dicts`: raw dicts only
 
-```bash
-$ okapipy spec generate openapi.yaml ... --shape dicts
+```yaml
+# okapipy.yml
+package: acme.commerce
+client_class: CommerceClient
+shape: dicts
+specs:
+  - namespace: ''
+    source: openapi.yaml
 ```
 
 `base/models.py` is **not** emitted, every model import is dropped from
@@ -170,26 +188,36 @@ Reach for `dicts` when:
 ## Two flavors in one project
 
 okapipy emits source under `src/<package_path>/` and tests under
-`tests/<package_path>/`, where `<package_path>` mirrors `--package`.
+`tests/<package_path>/`, where `<package_path>` mirrors `package`.
 That means you can generate two flavors of the same spec into one
-project — one typed, one raw — by varying `--package`:
+project — one typed, one raw — by keeping two manifests side by side
+that differ on `package` and `shape`:
+
+```yaml
+# okapipy.models.yml — typed flavor at acme.commerce.models.
+package: acme.commerce.models
+client_class: CommerceClient
+project_name: acme-commerce
+shape: models
+specs:
+  - namespace: ''
+    source: openapi.yaml
+```
+
+```yaml
+# okapipy.dicts.yml — raw flavor at acme.commerce.dicts.
+package: acme.commerce.dicts
+client_class: CommerceClient
+project_name: acme-commerce
+shape: dicts
+specs:
+  - namespace: ''
+    source: openapi.yaml
+```
 
 ```bash
-# Models-flavored client at acme.commerce.models.client.CommerceClient.
-$ okapipy spec generate openapi.yaml \
-    --output ./my-client \
-    --package acme.commerce.models \
-    --client-class CommerceClient \
-    --project-name acme-commerce \
-    --shape models
-
-# Dicts-flavored client at acme.commerce.dicts.client.CommerceClient.
-$ okapipy spec generate openapi.yaml \
-    --output ./my-client \
-    --package acme.commerce.dicts \
-    --client-class CommerceClient \
-    --project-name acme-commerce \
-    --shape dicts
+$ okapipy generate --manifest okapipy.models.yml --output ./my-client
+$ okapipy generate --manifest okapipy.dicts.yml  --output ./my-client
 ```
 
 The second run leaves the one-shot project skeleton
@@ -205,15 +233,15 @@ from acme.commerce.dicts import CommerceClient as RawClient
 
 A few things to know:
 
-- **Pass the same `--project-name` to both runs.** `--project-name`
-  defaults to the last segment of `--package`, so without it the first
+- **Set the same `project_name` in both manifests.** `project_name`
+  defaults to the last segment of `package`, so without it the first
   run sets the project name to `models` and the second to `dicts`. The
   pyproject is one-shot, so only the first wins.
 - **Edit `--cov` by hand.** The generated `pyproject.toml` sets
   `--cov=<package>` from the first run. Change it to
   `--cov=acme.commerce` if you want coverage across both flavors.
 - **Drift detection is per flavor.** Each flavor has its own
-  `base/_manifest.json`. `--check` and pruning don't see across
+  `base/_generated.json`. `--check` and pruning don't see across
   flavors; running `--check` on one flavor never reports drift in the
   other.
 
@@ -221,11 +249,11 @@ A few things to know:
 
 A short opinionated guide, when in doubt:
 
-- **`auto`** if you don't know yet. The runtime switch costs one extra
-  arm in the type signature and buys you per-call-site flexibility.
-- **`--shape models`** for production code that runs `mypy --strict`
+- **`shape: auto`** if you don't know yet. The runtime switch costs one
+  extra arm in the type signature and buys you per-call-site flexibility.
+- **`shape: models`** for production code that runs `mypy --strict`
   and benefits from precise types.
-- **`--shape dicts`** when the spec resists
+- **`shape: dicts`** when the spec resists
   `datamodel-code-generator`, or when models would just be marshalling
   overhead in your hot path.
 
@@ -236,4 +264,4 @@ If you want both worlds in one repo, use the two-flavors recipe above.
 - [Quick start](quick-start.md) — generate your first client.
 - [Using the client](client-usage.md) — the surface common to all three shapes.
 - [Code customization](customization.md) — the two-layer split that makes regeneration safe.
-- [CLI reference](../reference/cli.md#okapipy-spec-generate) — every flag of `okapipy spec generate`.
+- [CLI reference](../reference/cli.md#okapipy-generate) — every flag of `okapipy generate`.

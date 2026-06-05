@@ -2,7 +2,7 @@
 
 When the spec gains or loses a parser-tree node between two generations, the
 parent stub (one-shot, never overwritten) ends up out of sync with the base
-tree. Drift detection compares the previous manifest's edges against the
+tree. Drift detection compares the previous state file's edges against the
 current run's edges and warns the user about the exact lines to add/remove.
 """
 
@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from okapipy.generator import generate
+from okapipy.generator import generate_for_mount
 from okapipy.generator.vfs import write_to_disk
 from okapipy.parser.api import parse
 
@@ -23,7 +23,7 @@ def _generate_and_write(
 ):
     """Helper: parse, generate, write."""
     api = parse(spec_path)
-    vfs = generate(
+    vfs = generate_for_mount(
         api,
         raw_spec=spec_path,
         output_dir=output_dir,
@@ -36,7 +36,7 @@ def _generate_and_write(
 def test_first_generation_emits_no_warnings(
     orders_only_spec_file: Path, tmp_path: Path
 ) -> None:
-    """With no previous manifest, nothing to drift against — zero warnings."""
+    """With no previous state file, nothing to drift against — zero warnings."""
     out = tmp_path / "out"
 
     report = _generate_and_write(orders_only_spec_file, out)
@@ -144,7 +144,7 @@ def test_dry_run_reports_warnings_without_writing(
     assert not products_stub.exists()
 
     api = parse(orders_and_products_spec_file)
-    vfs = generate(
+    vfs = generate_for_mount(
         api,
         raw_spec=orders_and_products_spec_file,
         output_dir=out,
@@ -167,7 +167,7 @@ def test_dry_run_no_change_returns_clean_report(
     _generate_and_write(orders_only_spec_file, out)
 
     api = parse(orders_only_spec_file)
-    vfs = generate(
+    vfs = generate_for_mount(
         api,
         raw_spec=orders_only_spec_file,
         output_dir=out,

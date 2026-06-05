@@ -12,7 +12,7 @@ import importlib
 import sys
 from pathlib import Path
 
-from okapipy.generator import generate
+from okapipy.generator import generate_for_mount
 from okapipy.generator.vfs import write_to_disk
 from okapipy.parser.api import parse
 
@@ -120,7 +120,7 @@ def test_user_subclass_is_on_the_wire_by_default(tmp_path: Path) -> None:
     package = "autowired"
     out = tmp_path / "out"
     api = parse(FIXTURE)
-    vfs = generate(
+    vfs = generate_for_mount(
         api,
         raw_spec=FIXTURE,
         output_dir=out,
@@ -192,7 +192,7 @@ def test_write_to_disk_skips_existing_one_shot_files(tmp_path: Path) -> None:
     out = tmp_path / "out"
 
     # First generation: write everything.
-    vfs1 = generate(
+    vfs1 = generate_for_mount(
         api,
         raw_spec=FIXTURE,
         output_dir=out,
@@ -207,7 +207,7 @@ def test_write_to_disk_skips_existing_one_shot_files(tmp_path: Path) -> None:
     customized.write_text(custom_marker, encoding="utf-8")
 
     # Second generation: re-run.
-    vfs2 = generate(
+    vfs2 = generate_for_mount(
         api,
         raw_spec=FIXTURE,
         output_dir=out,
@@ -225,7 +225,7 @@ def test_write_to_disk_overwrites_base_files(tmp_path: Path) -> None:
     api = parse(FIXTURE)
     out = tmp_path / "out"
 
-    vfs1 = generate(
+    vfs1 = generate_for_mount(
         api,
         raw_spec=FIXTURE,
         output_dir=out,
@@ -237,7 +237,7 @@ def test_write_to_disk_overwrites_base_files(tmp_path: Path) -> None:
     base_file = out / "src" / "rerun2" / "base" / "collections" / "orders.py"
     base_file.write_text("# stale", encoding="utf-8")
 
-    vfs2 = generate(
+    vfs2 = generate_for_mount(
         api,
         raw_spec=FIXTURE,
         output_dir=out,
@@ -259,7 +259,7 @@ def test_user_subclass_is_a_runtime_drop_in(tmp_path: Path) -> None:
     package = "stubsdrop"
     out = tmp_path / "out"
     api = parse(FIXTURE)
-    vfs = generate(
+    vfs = generate_for_mount(
         api,
         raw_spec=FIXTURE,
         output_dir=out,
@@ -300,7 +300,7 @@ def test_new_collection_added_between_runs_creates_new_stub(tmp_path: Path) -> N
     # First generation: run with the simple fixture (single collection).
     simple = Path(__file__).resolve().parent.parent / "fixtures" / "simple.yaml"
     api1 = parse(simple)
-    vfs1 = generate(
+    vfs1 = generate_for_mount(
         api1,
         raw_spec=simple,
         output_dir=out,
@@ -313,7 +313,7 @@ def test_new_collection_added_between_runs_creates_new_stub(tmp_path: Path) -> N
 
     # Second generation: switch to the nested fixture (more collections).
     api2 = parse(FIXTURE)
-    vfs2 = generate(
+    vfs2 = generate_for_mount(
         api2,
         raw_spec=FIXTURE,
         output_dir=out,

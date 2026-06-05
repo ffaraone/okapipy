@@ -17,7 +17,7 @@ from pathlib import Path
 
 import pytest
 
-from okapipy.generator import generate
+from okapipy.generator import generate_for_mount
 from okapipy.generator.vfs import write_to_disk
 from okapipy.parser.api import parse
 
@@ -63,7 +63,7 @@ def test_generated_tree_passes_lint_and_typecheck(
     api = parse(fixture)
     out = tmp_path / "out"
 
-    vfs = generate(
+    vfs = generate_for_mount(
         api,
         raw_spec=fixture,
         output_dir=out,
@@ -106,7 +106,7 @@ def test_generated_tests_pass_against_pytest_httpx(
     api = parse(fixture)
     out = tmp_path / "out"
 
-    vfs = generate(
+    vfs = generate_for_mount(
         api,
         raw_spec=fixture,
         output_dir=out,
@@ -127,21 +127,31 @@ def test_generated_tests_pass_against_pytest_httpx(
 
 
 def test_cli_invocation_writes_files(tmp_path: Path) -> None:
-    """`okapipy spec generate` end-to-end: invoke via `uv run okapipy`, verify files."""
+    """`okapipy generate` end-to-end: write a manifest and invoke via `uv run okapipy`."""
+    import yaml
+
     out = tmp_path / "out"
+    manifest_path = tmp_path / "okapipy.yml"
+    manifest_path.write_text(
+        yaml.safe_dump(
+            {
+                "package": "clitest",
+                "client_class": "CLIClient",
+                "output": str(out),
+                "specs": [
+                    {"namespace": "", "source": str(FIXTURES / "simple.yaml")},
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
     cmd = [
         "uv",
         "run",
         "okapipy",
-        "spec",
         "generate",
-        str(FIXTURES / "simple.yaml"),
-        "--output",
-        str(out),
-        "--package",
-        "clitest",
-        "--client-class",
-        "CLIClient",
+        "--manifest",
+        str(manifest_path),
     ]
     project_root = Path(__file__).resolve().parents[2]
     result = _run(cmd, cwd=project_root)

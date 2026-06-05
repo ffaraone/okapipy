@@ -28,7 +28,7 @@ jobs:
           key: spacy-en_core_web_sm-${{ runner.os }}
 
       - name: Pre-download spaCy model
-        run: uv run okapipy nlp fetch en
+        run: uv run okapipy fetch-language en
 
       - name: Lint
         run: uv run ruff check src tests

@@ -6,23 +6,23 @@ Sync and async client base classes for `{{ project_name }}`.
 from __future__ import annotations
 
 from collections.abc import Mapping
-{% if top_namespaces or top_singletons %}
+{% if top_namespaces or top_mount_namespaces or top_singletons %}
 from functools import cached_property
 {% endif %}
 {% if shape == "auto" %}
-{% if top_namespaces or top_collections or top_singletons or top_actions %}
+{% if top_namespaces or top_mount_namespaces or top_collections or top_singletons or top_actions %}
 from typing import Any, ClassVar, Literal, TypeVar, cast
 {% else %}
 from typing import Any, Literal, TypeVar, cast
 {% endif %}
 {% elif shape == "dicts" %}
-{% if top_namespaces or top_collections or top_singletons or top_actions %}
+{% if top_namespaces or top_mount_namespaces or top_collections or top_singletons or top_actions %}
 from typing import Any, ClassVar, cast
 {% else %}
 from typing import Any, cast
 {% endif %}
 {% else %}
-{% if top_namespaces or top_collections or top_singletons or top_actions %}
+{% if top_namespaces or top_mount_namespaces or top_collections or top_singletons or top_actions %}
 from typing import Any, ClassVar, TypeVar, cast
 {% else %}
 from typing import Any, TypeVar, cast
@@ -48,6 +48,9 @@ from .types import UNSET, Unset
 {% for ns in top_namespaces %}
 from .namespaces.{{ ns.module }} import {{ ns.class_name }}, Async{{ ns.class_name }}
 {% endfor %}
+{% for ns in top_mount_namespaces %}
+from .{{ ns.module }} import {{ ns.class_name }}, Async{{ ns.class_name }}
+{% endfor %}
 {% for coll in top_collections %}
 from .collections.{{ coll.module }} import {{ coll.class_name }}, Async{{ coll.class_name }}
 {% endfor %}
@@ -71,6 +74,9 @@ class {{ client_class }}Base:
 {{ client_class_docstring }}
 
 {% for ns in top_namespaces %}
+    {{ ns.factory_attr }}: ClassVar[type[{{ ns.class_name }}]] = {{ ns.class_name }}
+{% endfor %}
+{% for ns in top_mount_namespaces %}
     {{ ns.factory_attr }}: ClassVar[type[{{ ns.class_name }}]] = {{ ns.class_name }}
 {% endfor %}
 {% for coll in top_collections %}
@@ -194,6 +200,13 @@ class {{ client_class }}Base:
         return self.{{ ns.factory_attr }}(self)
 
 {% endfor %}
+{% for ns in top_mount_namespaces %}
+    @cached_property
+    def {{ ns.attr }}(self) -> {{ ns.class_name }}:
+{{ ns.docstring }}
+        return self.{{ ns.factory_attr }}(self)
+
+{% endfor %}
 {% for coll in top_collections %}
     @property
     def {{ coll.attr }}(self) -> {{ coll.class_name }}:
@@ -221,6 +234,9 @@ class Async{{ client_class }}Base:
 {{ async_client_class_docstring }}
 
 {% for ns in top_namespaces %}
+    {{ ns.factory_attr }}: ClassVar[type[Async{{ ns.class_name }}]] = Async{{ ns.class_name }}
+{% endfor %}
+{% for ns in top_mount_namespaces %}
     {{ ns.factory_attr }}: ClassVar[type[Async{{ ns.class_name }}]] = Async{{ ns.class_name }}
 {% endfor %}
 {% for coll in top_collections %}
@@ -336,6 +352,13 @@ class Async{{ client_class }}Base:
 {% endif %}
 
 {% for ns in top_namespaces %}
+    @cached_property
+    def {{ ns.attr }}(self) -> Async{{ ns.class_name }}:
+{{ ns.docstring }}
+        return self.{{ ns.factory_attr }}(self)
+
+{% endfor %}
+{% for ns in top_mount_namespaces %}
     @cached_property
     def {{ ns.attr }}(self) -> Async{{ ns.class_name }}:
 {{ ns.docstring }}

@@ -32,12 +32,19 @@ Missing templates and missing context variables fail loudly
 (`StrictUndefined`); the run aborts with a clear error rather than
 silently emitting `""`.
 
+Point `templates_dir` at your override directory in `okapipy.yml`:
+
+```yaml
+package: acme.commerce
+client_class: CommerceClient
+templates_dir: ./project-templates
+specs:
+  - namespace: ''
+    source: openapi.yaml
+```
+
 ```bash
-okapipy spec generate openapi.yaml \
-    --output ./my-client \
-    --package acme.commerce \
-    --client-class CommerceClient \
-    --templates-dir ./project-templates
+okapipy generate --output ./my-client
 ```
 
 After rendering, every Python file passes through `ruff check --fix
@@ -157,14 +164,10 @@ banner.
 3. Repeat for any other template whose header you care about
    (`namespace.py.jinja`, `collection.py.jinja`, `resource.py.jinja`,
    `action.py.jinja`).
-4. Re-generate:
+4. Re-generate (`templates_dir` already lives in `okapipy.yml`):
 
     ```bash
-    okapipy spec generate openapi.yaml \
-        --output ./my-client \
-        --package acme.commerce \
-        --client-class CommerceClient \
-        --templates-dir ./project-templates
+    okapipy generate --output ./my-client
     ```
 
 Templates you didn't override fall through to the packaged defaults.
@@ -175,15 +178,16 @@ Templates you didn't override fall through to the packaged defaults.
 [`datamodel-code-generator`](https://github.com/koxudaxi/datamodel-code-generator)
 (dmcg), which has its own templating system separate from okapipy's
 Jinja templates. To customize the **model** layout — extra base
-classes, custom validators, alternate field aliases —pass
-`--model-templates-dir`:
+classes, custom validators, alternate field aliases — set
+`model_templates_dir` in `okapipy.yml`:
 
-```bash
-okapipy spec generate openapi.yaml \
-    --output ./my-client \
-    --package acme.commerce \
-    --client-class CommerceClient \
-    --model-templates-dir ./model-templates
+```yaml
+package: acme.commerce
+client_class: CommerceClient
+model_templates_dir: ./model-templates
+specs:
+  - namespace: ''
+    source: openapi.yaml
 ```
 
 The directory uses dmcg's own template names, not okapipy's:
@@ -215,7 +219,7 @@ already — read them first to see whether you really need an override.
   release to release; the more you override, the more you'll need to
   rebase on each upgrade. Override only what you actually care about.
 * **Run `--check` after every change.** Template churn shows up as base
-  file diffs; `okapipy spec generate --check` is the fastest way to see
+  file diffs; `okapipy generate --check` is the fastest way to see
   whether your overrides produced expected output.
 * **`StrictUndefined` is your friend.** When you reference a variable
   that doesn't exist in the template's context, the run aborts with a

@@ -9,7 +9,7 @@ import pytest
 from typer.testing import CliRunner
 
 from okapipy.cli import app
-from okapipy.generator import branding, generate
+from okapipy.generator import branding, generate_for_mount
 from okapipy.generator.vfs import GeneratedFile
 from okapipy.parser.model import APIModel
 
@@ -26,7 +26,7 @@ def _generate(
     `shape="dicts"` skips the `datamodel-code-generator` step so these tests
     stay fast — they only inspect `LICENSE` and `pyproject.toml`.
     """
-    return generate(
+    return generate_for_mount(
         APIModel(),
         raw_spec=FIXTURE,
         output_dir=Path("/tmp"),
@@ -173,27 +173,29 @@ def test_readme_footer_links_to_okapipy_repo() -> None:
 
 
 def test_cli_author_flag_propagates_to_license_and_pyproject(tmp_path: Path) -> None:
-    """`okapipy spec generate --author NAME` writes NAME into both LICENSE and pyproject.toml."""
+    """The manifest's `author` and `license` fields propagate to LICENSE and pyproject.toml."""
+    import yaml
+
     out = tmp_path / "out"
+    manifest_path = tmp_path / "okapipy.yml"
+    manifest_path.write_text(
+        yaml.safe_dump(
+            {
+                "package": "acme.client",
+                "client_class": "AcmeClient",
+                "license": "MIT",
+                "author": "Alice Example",
+                "output": str(out),
+                "specs": [{"namespace": "", "source": str(FIXTURE)}],
+            }
+        ),
+        encoding="utf-8",
+    )
     runner = CliRunner()
 
     result = runner.invoke(
         app,
-        [
-            "spec",
-            "generate",
-            str(FIXTURE),
-            "--output",
-            str(out),
-            "--package",
-            "acme.client",
-            "--client-class",
-            "AcmeClient",
-            "--license",
-            "MIT",
-            "--author",
-            "Alice Example",
-        ],
+        ["generate", "--manifest", str(manifest_path)],
     )
 
     assert result.exit_code == 0, result.stderr

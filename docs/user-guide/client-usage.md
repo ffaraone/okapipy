@@ -2,10 +2,11 @@
 
 This page is the field guide to every shape the generated client
 exposes. Code samples assume a client generated with
-`--package acme.commerce --client-class CommerceClient` from a spec that
-contains a `commerce` namespace, an `orders` collection with a resource,
-sub-collection `lines`, an `submit` action, and an `auth` namespace.
-Adapt the names to your own spec.
+`package: acme.commerce` and `client_class: CommerceClient` in
+`okapipy.yml` from a spec that contains a `commerce` namespace, an
+`orders` collection with a resource, sub-collection `lines`, a
+`submit` action, and an `auth` namespace. Adapt the names to your own
+spec.
 
 ## Constructing a client
 
@@ -68,7 +69,7 @@ client = CommerceClient(
 | `retries` | `RetryPolicy \| None` | Wraps the transport in `RetryTransport` (GET only). |
 | `transport` | `httpx.BaseTransport \| None` | Custom transport (mock, fixture, instrumentation). |
 | `headers` | `Mapping[str, str] \| None` | Default headers merged into every request. |
-| `shape` | `"models" \| "dicts"` | Only present when the client was generated without `--shape` (dual-shape mode). See [Response shape](shapes.md). |
+| `shape` | `"models" \| "dicts"` | Only present when the client was generated with `shape: auto` (the default — dual-shape mode). See [Response shape](shapes.md). |
 | `pagination_strategy` | strategy or `None` | Defaults to `LimitOffsetPagination(default_page_size=100)`. |
 | `filter_strategy` | strategy or `None` | Defaults to `KeyValueFilter()`. |
 | `sort_strategy` | strategy or `None` | Defaults to `CommaSignedSort()`. |
@@ -444,11 +445,11 @@ client.commerce.orders.order_by(Sort("status") + Sort("-created_at"))
 
 The shape of every method's body parameter and return type — typed
 Pydantic models, raw dicts, or both — is settled at generation time by
-the `--shape` flag of `okapipy spec generate`. The default emits a
-dual-shape client where the constructor takes a `shape="models"|"dicts"`
-keyword and `with_shape(...)` returns a sibling that flips it at
-runtime; `--shape models` and `--shape dicts` produce locked clients
-without the runtime switch.
+the `shape:` field of `okapipy.yml`. The default (`shape: auto`) emits
+a dual-shape client where the constructor takes a
+`shape="models"|"dicts"` keyword and `with_shape(...)` returns a
+sibling that flips it at runtime; `shape: models` and `shape: dicts`
+produce locked clients without the runtime switch.
 
 [Response shape](shapes.md) is the full story: which signatures each
 mode produces, when to pick which, and the dual-flavor recipe (one
