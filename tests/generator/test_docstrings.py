@@ -18,7 +18,7 @@ from pathlib import Path
 
 import pytest
 
-from okapipy.generator import generate
+from okapipy.generator import generate_for_mount
 from okapipy.generator.emit.walk import (
     ChildRef,
     action_accessor_docstring,
@@ -293,7 +293,7 @@ def nested_generated_base(tmp_path: Path, nested_spec_path: Path) -> Path:
     """Generate the nested fixture and return the base directory of the emitted tree."""
     out = tmp_path / "out"
     api = parse(nested_spec_path)
-    vfs = generate(
+    vfs = generate_for_mount(
         api,
         raw_spec=nested_spec_path,
         output_dir=out,

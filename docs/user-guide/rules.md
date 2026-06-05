@@ -155,12 +155,23 @@ paths:
     x-okapipy-exclude: [DELETE]        # drop just selected methods
 ```
 
-Then:
+Then point your project manifest's `specs[]` entry at the rules file
+(`okapipy parse` keeps its own `--rules` flag for ad-hoc
+inspection):
+
+```yaml
+# okapipy.yml
+package: acme.commerce
+client_class: CommerceClient
+specs:
+  - namespace: ''
+    source: openapi.yaml
+    rules: okapipy.rules.yaml
+```
 
 ```bash
-okapipy spec parse openapi.yaml --rules okapipy.rules.yaml
-okapipy spec generate openapi.yaml --rules okapipy.rules.yaml \
-    --output ./my-client --package acme.commerce --client-class CommerceClient
+okapipy parse openapi.yaml --rules okapipy.rules.yaml  # inspection
+okapipy generate --output ./my-client                  # uses the manifest
 ```
 
 The rules file is **local-only** — no http(s) URLs. That's a deliberate
@@ -215,13 +226,20 @@ a warning, and the per-op fix is `x-okapipy-kind: action` on every one
 of them.
 
 When that's impractical — usually because you don't own the spec, or
-there are too many — pass `--unmatched <name>` to keep them as flat
-actions under a synthetic top-level namespace:
+there are too many — add `unmatched: <name>` to the spec entry in your
+manifest to keep them as flat actions under a synthetic top-level
+namespace:
+
+```yaml
+# okapipy.yml
+specs:
+  - namespace: ''
+    source: openapi.yaml
+    unmatched: ops
+```
 
 ```bash
-okapipy spec generate openapi.yaml \
-    --output ./my-client --package acme.commerce --client-class CommerceClient \
-    --unmatched ops
+okapipy generate --output ./my-client
 ```
 
 Now every otherwise-dropped operation lands under `client.ops` as its

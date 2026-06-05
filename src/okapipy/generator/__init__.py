@@ -24,17 +24,22 @@ project metadata survive regeneration.
 
 from __future__ import annotations
 
-from okapipy.generator.api import Shape, generate
+from okapipy.generator.api import Shape, generate, generate_for_mount
 from okapipy.generator.errors import (
     GenerationError,
+    ManifestFormatError,
+    ManifestNotFoundError,
     TemplateRenderError,
     UnknownTemplateError,
 )
 
 __all__ = [
     "GenerationError",
+    "ManifestFormatError",
+    "ManifestNotFoundError",
     "Shape",
     "TemplateRenderError",
     "UnknownTemplateError",
     "generate",
+    "generate_for_mount",
 ]

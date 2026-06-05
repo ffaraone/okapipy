@@ -189,6 +189,11 @@ okapipy.parser.parse(
 ) -> APIModel
 ```
 
+The parser is **per-spec by design**: one OpenAPI document in, one
+`APIModel` out. Multi-spec composition (e.g. a microservice project that
+exposes several specs under one Python client) is the generator's
+responsibility, driven by the project manifest defined in §2.1.
+
 Non-fatal warnings go to `logging`. Errors raise a `ParserError` subclass
 (`SpecLoadError`, `RulesFormatError`, `NlpModelMissingError`,
 `InvalidStructureError`, `UnmatchedNamespaceCollisionError`).
@@ -216,12 +221,14 @@ words rather than a structural fallback.
 
 * `okapipy.parser.dump.write(api, path)` writes the APIModel as JSON
   (`.json`) or YAML (`.yaml` / `.yml`); other extensions raise `ValueError`.
-* CLI:
+* CLI surface owned by the parser:
   * `okapipy nlp fetch <LANG> [--cache-dir PATH]` — pre-warm a spaCy model.
   * `okapipy spec parse <SOURCE> [--rules] [--lang] [--strip-prefix]
     [--nlp-cache-dir] [--unmatched NAMESPACE] [--output]` — parse a
-    spec; print a counts panel + JSON tree (or write the chosen
-    format). Errors print to stderr, exit non-zero.
+    single spec; print a counts panel + JSON tree (or write the chosen
+    format). Errors print to stderr, exit non-zero. `parse` is an
+    inspection / debugging tool and stays positional even after the
+    `generate` command moves to a manifest (§2.10).
 * `-v` enables INFO logs; `-vv` enables DEBUG and prints tracebacks on error.
 
 ---
@@ -230,35 +237,107 @@ words rather than a structural fallback.
 
 ### 2.1 Inputs
 
-`okapipy.generator.generate(api, raw_spec, *, ...)`:
+The generator is driven entirely by a **project manifest** — a single
+YAML / JSON document checked into the consumer's repo that describes
+*what* client to produce and *from which* OpenAPI specs.
 
-* `api: APIModel` — output of the parser.
-* `raw_spec: dict | str | Path` — original OpenAPI document; forwarded to
-  `datamodel-code-generator` so the emitted models match the inputs the user
-  parsed against. Accepts a dict, a path, an `http(s)` URL, or a JSON string.
-* `output_dir: Path`, `package: str` (dotted, e.g. `acme.commerce`),
-  `client_class: str` (PascalCase).
-* `project_name: str | None`, `project_version`, `python_version` (one of
-  `3.10` / `3.11` / `3.12` / `3.13`), `license` (SPDX id),
-  `author: str | None` (copyright holder for `LICENSE` and PEP 621
-  `authors` entry; defaults to `project_name` in the LICENSE copyright line
-  and omits the `authors` block in `pyproject.toml` when not set).
-* `templates_dir: Path | None` — directory that overrides any of okapipy's
-  packaged templates. Resolved before the packaged loader (ChoiceLoader).
-* `model_templates_dir: Path | None` — forwarded to dmcg's
-  `custom_template_dir`.
-* `shape: "auto" | "models" | "dicts" = "auto"` — selects the response-shape
-  policy of the generated client.
-  * `"auto"` (default) emits a dual-shape client. The constructor accepts a
-    `shape: "models" | "dicts"` keyword, `with_shape(...)` returns a sibling
-    switching shape at runtime, and bodies / returns admit both arms
-    (`Foo | dict[str, Any]` / `Foo | dict[str, Any] | None`).
-  * `"models"` locks the client to typed Pydantic models. The `shape=`
-    constructor option and `with_shape(...)` are dropped; bodies are typed
-    `Foo` and returns `Foo | None`. `base/models.py` is still emitted.
-  * `"dicts"` locks the client to raw dicts. `base/models.py` is skipped,
-    every model import is dropped, and bodies / returns are typed
-    `dict[str, Any]` / `dict[str, Any] | None`.
+The Python entry point:
+
+```python
+okapipy.generator.generate(
+    manifest: GenerationManifest,
+    *,
+    output_dir: Path,
+    check: bool = False,
+    quiet: bool = False,
+) -> dict[str, GeneratedFile]
+```
+
+`GenerationManifest` is a Pydantic v2 model whose YAML / JSON shape is:
+
+```yaml
+# okapipy.yml — canonical project manifest
+package: acme.commerce              # required; dotted Python package
+client_class: CommerceClient        # required; PascalCase
+
+project_name: acme-commerce         # optional; defaults to last segment of package
+project_version: "0.1.0"            # optional; default "0.1.0"
+python_version: "3.13"              # optional; default "3.13"
+license: Proprietary                # optional; SPDX id; default "Proprietary"
+author: Acme Corp                   # optional; copyright holder
+
+shape: auto                         # optional; auto | models | dicts; default auto
+lang: en                            # optional; default language for every spec
+nlp_cache_dir: .spacy               # optional; default <cwd>/.spacy
+templates_dir: ./templates          # optional
+model_templates_dir: ./model_tpls   # optional
+
+output: ./out                       # optional; CLI --output wins on conflict
+
+specs:                              # required; at least one entry
+  - namespace: users                # required; "" mounts at the root
+    source: ./specs/users.yaml      # required; path or http(s) URL
+    rules: ./rules/users.yaml       # optional
+    strip_prefix: /v1               # optional
+    unmatched: misc                 # optional
+    lang: en                        # optional; overrides top-level lang
+```
+
+Semantics:
+
+* **One spec, root mount.** A single-entry manifest with `namespace: ""`
+  generates exactly the layout an end-user gets from the today's
+  single-spec invocation: the spec's tree sits at the root of the
+  generated package.
+* **Multiple specs, prefixed mounts.** Each spec is parsed independently
+  with its own per-spec inputs (`rules`, `strip_prefix`, `unmatched`,
+  `lang`), then composed under the configured `namespace`. The mount
+  namespace can be dotted (`platform.users`) to nest under intermediate
+  namespaces; intermediate segments are synthesized as `Namespace` nodes
+  and may be shared by multiple specs (`platform.users` and
+  `platform.billing` share the `platform` parent).
+* **Mount-namespace collisions are errors.** Two `specs[]` entries with
+  the same fully-qualified `namespace` raise `ManifestFormatError` at
+  load time. Cross-spec path collisions inside the same mount are
+  impossible because each spec lives in its own sub-tree.
+* **No URL rules files.** `rules` accepts a local path only, matching
+  the parser's invariant (§1.1).
+
+The top-level fields drive a single generated project: one
+`pyproject.toml`, one `<Client>Base`, one vendored runtime, one
+`_generated.json` tracking file. The `specs[]` entries decide what lives
+inside.
+
+Field-level meaning of the shape-related options matches the existing
+generator behavior:
+
+* `shape: "auto"` (default) emits a dual-shape client. The constructor
+  accepts a `shape: "models" | "dicts"` keyword, `with_shape(...)`
+  returns a sibling switching shape at runtime, and bodies / returns
+  admit both arms (`Foo | dict[str, Any]` / `Foo | dict[str, Any] |
+  None`).
+* `shape: "models"` locks the client to typed Pydantic models. The
+  `shape=` constructor option and `with_shape(...)` are dropped; bodies
+  are typed `Foo` and returns `Foo | None`. Per-mount `models.py` files
+  are still emitted.
+* `shape: "dicts"` locks the client to raw dicts. Every per-mount
+  `models.py` is skipped, every model import is dropped, and bodies /
+  returns are typed `dict[str, Any]` / `dict[str, Any] | None`.
+
+The `shape` choice is project-wide — it cannot vary per spec entry,
+because a single generated client has one type surface.
+
+#### Manifest discovery and overrides
+
+* The CLI looks for `./okapipy.yml` by default; override via
+  `--manifest PATH`.
+* CLI flags that map to manifest fields override the manifest on
+  conflict: `--output`, `--check`, `--quiet`. No other manifest field
+  has a CLI counterpart — to change `package`, `client_class`, `shape`,
+  or any per-spec option, edit the manifest.
+* Errors raise `ManifestNotFoundError` (file missing) or
+  `ManifestFormatError` (schema violations, ambiguous mount namespaces,
+  unreadable per-spec rules). Both are subclasses of `GenerationError`.
 
 ### 2.2 Output
 
@@ -271,6 +350,14 @@ relative to `output_dir`. Each `GeneratedFile` carries:
 
 ### 2.3 File layout produced
 
+A spec's parser tree is generated under its **mount path** — the
+`namespace` declared in the manifest, split on `.` and joined with
+`/`. An empty mount (`namespace: ""`) puts the spec's tree at the root
+of the package; a dotted mount (`namespace: platform.users`) nests
+under intermediate namespaces.
+
+Common project-level files exist exactly once per generated package:
+
 ```
 <output_dir>/
 ├── pyproject.toml                                 [one-shot]
@@ -278,36 +365,53 @@ relative to `output_dir`. Each `GeneratedFile` carries:
 ├── LICENSE                                        [one-shot]
 ├── .gitignore                                     [one-shot]
 ├── .python-version                                [one-shot]
+├── okapipy.yml                                    [user-authored — never written by the generator]
 ├── src/<package_path>/
 │   ├── __init__.py                                [one-shot, empty]
-│   ├── client.py                                  [one-shot, user-layer subclass]
-│   ├── namespaces/<ns>.py                         [one-shot, user-layer subclass]
-│   ├── collections/<coll>.py                      [one-shot, user-layer subclass]
-│   ├── resources/<res>.py                         [one-shot, user-layer subclass]
-│   ├── singletons/<sing>.py                       [one-shot, user-layer subclass]
-│   ├── actions/<act>.py                           [one-shot, user-layer subclass]
+│   ├── client.py                                  [one-shot, user-layer subclass; wires every top-level mount]
 │   ├── py.typed                                   [regenerated, empty marker]
 │   └── base/                                      [REGENERATED — do not edit]
-│       ├── __init__.py                            re-exports runtime + tree classes
-│       ├── client.py                              <Client>Base + Async<Client>Base
-│       ├── models.py                              dmcg-emitted Pydantic models
-│       ├── _manifest.json                         pruning + drift-detection input
+│       ├── __init__.py                            re-exports runtime + every mount's top-level classes
+│       ├── client.py                              <Client>Base + Async<Client>Base; composes mounts
+│       ├── _generated.json                        pruning + drift-detection input (renamed from _manifest.json)
 │       ├── exceptions.py / filters.py / sort.py / strategies.py
-│       │                                          / transport.py / types.py        [vendored runtime]
-│       ├── namespaces/<ns>.py                     <Ns>NamespaceBase + Async sibling
-│       ├── collections/<coll>.py                  <C>CollectionBase + iterators + async
-│       ├── resources/<res>.py                     <R>ResourceBase + async sibling
-│       ├── singletons/<sing>.py                   <S>SingletonBase + async sibling
-│       └── actions/<act>.py                       <A>ActionBase + async sibling
+│       │                                          / transport.py / types.py        [vendored runtime; one per package]
+│       └── <mount_path>/                          per-mount sub-tree (see below)
 └── tests/                                         [one-shot scaffolding]
     ├── conftest.py
     ├── test_client.py
-    ├── namespaces/test_<ns>.py
-    ├── collections/test_<coll>.py
-    ├── resources/test_<res>.py
-    ├── singletons/test_<sing>.py
-    └── actions/test_<act>.py
+    └── <mount_path>/                              per-mount tests subtree
 ```
+
+Each mount has the same internal shape regardless of how many specs the
+project carries:
+
+```
+<base/ or base/<mount_path>/>
+├── __init__.py                                    [regenerated, exports the mount's NamespaceBase]
+├── models.py                                      [regenerated; one models.py per mount, skipped under shape=dicts]
+├── namespaces/<ns>.py                             <Ns>NamespaceBase + Async sibling
+├── collections/<coll>.py                          <C>CollectionBase + iterators + async
+├── resources/<res>.py                             <R>ResourceBase + async sibling
+├── singletons/<sing>.py                           <S>SingletonBase + async sibling
+└── actions/<act>.py                               <A>ActionBase + async sibling
+```
+
+User-layer stubs mirror the same mount layout under
+`src/<package_path>/<mount_path>/...` — one user-layer subclass per
+generated base class, one-shot, auto-wired on first generation.
+
+When the manifest carries a single spec with `namespace: ""` the layout
+collapses to the historical flat shape (no `<mount_path>/` segment),
+because the spec's tree is mounted at the root of `base/` and at the
+root of the user layer. The vendored runtime, `client.py`, and
+`_generated.json` always live at the package root — there is exactly
+one of each per generated project, regardless of mount count.
+
+Per-mount `models.py` exists because two specs may emit the same
+generated class name (`User`, `Order`) for fundamentally different
+types — isolating each spec's models inside its own mount sub-tree
+avoids dmcg-level collisions without requiring a global rename.
 
 The generated project is runnable: `uv sync && uv run ruff check . && uv run
 mypy src && uv run pytest` is expected to pass immediately after generation.
@@ -442,29 +546,58 @@ subclass. The hierarchy:
 
 ### 2.10 CLI
 
-`okapipy spec generate <SOURCE>`:
+The generator exposes two commands. Both are manifest-driven; all
+project-level and per-spec configuration lives in the manifest, not in
+flags.
 
-* `--output PATH`, `--package`, `--client-class` are required.
-* `--project-name`, `--project-version`, `--python-version`, `--license`,
-  `--author`, `--rules`, `--lang`, `--strip-prefix`, `--nlp-cache-dir`,
-  `--templates-dir`, `--model-templates-dir`.
-* `--unmatched NAMESPACE` — opt in to keeping operations that don't fit
-  the hierarchical routing table. The supplied name becomes a
-  top-level namespace populated with one synthetic action per
-  unmatched operation (named after `operationId`, falling back to
-  `<method>_<sanitized_path>`). The flag is **CLI-only**: it has no
-  rules-file counterpart. Collision with an existing top-level node
-  aborts generation with `UnmatchedNamespaceCollisionError`.
-* `--shape {models|dicts}` — lock the generated client to a single response
-  shape. Omit to produce a dual-shape client (constructor `shape=` +
-  `with_shape()` + both type arms). `--shape models` keeps `base/models.py`
-  and types every body / return with the recovered Pydantic model.
-  `--shape dicts` skips `base/models.py`, drops every model import, and
-  types every body / return as `dict[str, Any]`.
-* `--check` — dry run. Exits non-zero when any base file would change, when
-  any drift warning would fire, or when any stale base file would be pruned.
-  CI gate.
+#### `okapipy spec generate`
+
+```
+okapipy spec generate [--manifest PATH] [--output PATH] [--check] [--quiet]
+```
+
+* `--manifest PATH` — manifest file to read. Default `./okapipy.yml`.
+  Missing file raises `ManifestNotFoundError`.
+* `--output PATH` — output directory. Overrides the manifest's `output`
+  on conflict. Required if the manifest omits `output`.
+* `--check` — dry run. Exits non-zero when any base file would change,
+  when any drift warning would fire, or when any stale base file would
+  be pruned. CI gate.
 * `--quiet` / `-q` — suppress drift warnings (pruning still runs).
+
+All other settings — `package`, `client_class`, `shape`, per-spec
+sources, rules, `strip_prefix`, `unmatched`, language, templates —
+are read from the manifest. There is no positional `SOURCE`; multi-spec
+projects use multiple `specs[]` entries, single-spec projects use one.
+
+The `--unmatched` flag exists per spec entry in the manifest, not as a
+CLI flag. Collision with an existing top-level node inside that spec's
+mount aborts generation with `UnmatchedNamespaceCollisionError`,
+naming the spec source so the user knows which entry to fix.
+
+#### `okapipy spec init`
+
+```
+okapipy spec init [<SOURCE>] [--manifest PATH] [--package DOTTED] [--client-class NAME] [--force]
+```
+
+Scaffolds a starter `okapipy.yml` so a new project doesn't need to be
+typed by hand. Behavior:
+
+* Writes the manifest to `--manifest PATH` (default `./okapipy.yml`).
+  Refuses to overwrite an existing file unless `--force` is set.
+* When `SOURCE` is given, populates one `specs[]` entry with that
+  `source` and `namespace: ""` (single-spec, root mount).
+* When `SOURCE` is omitted, writes a manifest with an empty `specs:
+  []` and inline comments demonstrating the multi-spec shape — the
+  user fills the entries in.
+* `--package` and `--client-class`, when set, are written to the
+  manifest verbatim. When either is omitted, the field is written as
+  a TODO placeholder so the file does not validate until the user
+  edits it (`init` produces a *starter*, never a runnable manifest by
+  accident).
+* Does not invoke the parser or generator; it is purely a scaffolder
+  for the manifest file.
 
 ### 2.11 Quality gates
 
@@ -551,13 +684,16 @@ Re-running the generator after a spec change must:
 
 | Layer | Path | Owner | Lifecycle |
 |-------|------|-------|-----------|
-| Base | `src/<package>/base/` | Generator | Rewritten every run. |
-| User | `src/<package>/...` (sibling of `base/`) | Customer | Emitted once, never overwritten. |
+| Base | `src/<package>/base/[<mount_path>/]...` | Generator | Rewritten every run. |
+| User | `src/<package>/[<mount_path>/]...` (sibling of `base/`) | Customer | Emitted once, never overwritten. |
 
 The base layer holds machine-translated wiring; the user layer holds bare
 subclass stubs that the customer is free to extend. Class names in `base/`
 end with the suffix `Base`; user-layer classes drop the suffix
-(`OrdersCollectionBase` → `OrdersCollection`).
+(`OrdersCollectionBase` → `OrdersCollection`). The optional
+`<mount_path>/` segment is present once per spec entry whose
+`namespace` is non-empty (§2.3); a single root-mounted spec collapses
+to the flat layout.
 
 ### 3.3 Wiring lives in the base layer
 
@@ -581,18 +717,27 @@ The trade-off: stubs are one-shot, so a *new* child added by a later spec
 change is not re-wired automatically. That is the case the manifest +
 drift detection exists to handle.
 
-### 3.5 Manifest
+### 3.5 Generated-state file
 
-The generator writes `src/<package>/base/_manifest.json` with:
+The generator writes `src/<package>/base/_generated.json` (formerly
+`_manifest.json`; renamed to disambiguate from the user-authored
+project manifest in §2.1) with:
 
 * `generator_version` — sourced from package metadata.
 * `generated_at` — UTC ISO-8601 with second precision (so two runs in the
-  same second produce identical manifests).
-* `base_files` — the sorted set of POSIX paths the regenerated tree owns.
-* `edges` — one entry per parent → child wiring in the current parser tree.
+  same second produce identical generated-state files).
+* `base_files` — the sorted set of POSIX paths the regenerated tree owns
+  **across every mount**. Pruning operates on the union; a spec removed
+  from the manifest in a later run will see its entire sub-tree
+  disappear.
+* `edges` — one entry per parent → child wiring in the composed tree.
   Each edge carries `parent_module`, `factory_attr`, `child_user_class`,
   `child_user_module` (the sync user-layer class; the async sibling is
-  implicit via the `Async` prefix).
+  implicit via the `Async` prefix). Mount-namespace parent → child
+  edges (the synthetic mount node into the spec's top-level tree) are
+  recorded the same way as any other parent → child edge, so drift
+  detection flags a new spec the same way it flags a new namespace
+  inside a spec.
 
 ### 3.6 Pruning
 

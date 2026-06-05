@@ -43,7 +43,7 @@ The first NLP-dependent run downloads the spaCy `en_core_web_sm` model
 (~12 MB) into `./.spacy/`. To pre-warm it (recommended in CI):
 
 ```bash
-okapipy nlp fetch en
+okapipy fetch-language en
 ```
 
 ## Use
@@ -51,16 +51,22 @@ okapipy nlp fetch en
 Sanity-check the parse:
 
 ```bash
-okapipy spec parse openapi.yaml
+okapipy parse openapi.yaml
 ```
 
-Generate a full client project:
+Generate a full client project. okapipy reads its settings from a small
+manifest you commit alongside your consumer code; scaffold it with
+`okapipy init`:
 
 ```bash
-okapipy spec generate openapi.yaml \
-    --output ./my-client \
-    --package acme.commerce \
-    --client-class CommerceClient
+okapipy init openapi.yaml \
+    --package acme.commerce --client-class CommerceClient
+```
+
+That writes `./okapipy.yml`. Then:
+
+```bash
+okapipy generate --output ./my-client
 ```
 
 This writes a runnable Python project under `./my-client`: a regenerated
@@ -68,11 +74,13 @@ This writes a runnable Python project under `./my-client`: a regenerated
 per-node base classes) plus one-shot subclass stubs you can customize.
 Re-running the command refreshes `base/` and leaves your edits alone.
 
-Useful flags: `--rules path/to/rules.yaml` for project-local overrides,
-`--strip-prefix /api/v1` to drop a base prefix, `--shape {models|dicts}` to
-lock the client to a single response shape (omit for dual-shape with
-`with_shape()`; `--shape dicts` also skips emitting `base/models.py`),
-`--check` for a CI dry-run that exits non-zero on any drift.
+Every project-level setting (`shape`, `templates_dir`, `output`) and
+every per-spec setting (`rules`, `strip_prefix`) lives in
+`okapipy.yml` — see the
+[Quick start](https://ffaraone.github.io/okapipy/user-guide/quick-start/#the-project-manifest)
+for the full schema. The CLI keeps only `--manifest`, `--output`,
+`--check` (CI dry-run that exits non-zero on any drift), and
+`--quiet`.
 
 ## Customize
 
@@ -83,12 +91,16 @@ extensions, or carry the same overrides in a project-local **rules file**
 (useful when you don't own the OpenAPI document). Rules-file values win
 on every conflict.
 
-Pass a rules file with `--rules`:
+Point a `specs[]` entry at the rules file via `rules:` in `okapipy.yml`:
 
-```bash
-okapipy spec generate openapi.yaml --rules okapipy.rules.yaml \
-    --output ./my-client --package acme.commerce --client-class CommerceClient
+```yaml
+specs:
+  - namespace: ''
+    source: openapi.yaml
+    rules: okapipy.rules.yaml
 ```
+
+Then run `okapipy generate` as usual.
 
 ### OpenAPI extensions
 
@@ -231,7 +243,7 @@ To work on okapipy locally:
 git clone https://github.com/ffaraone/okapipy.git
 cd okapipy
 uv sync
-uv run okapipy nlp fetch en              # one-time spaCy model download
+uv run okapipy fetch-language en              # one-time spaCy model download
 uv run pytest                            # full suite + coverage
 uv run mypy src/okapipy/parser           # strict type-check (parser)
 uv run ruff check src tests              # lint

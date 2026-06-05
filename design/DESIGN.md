@@ -239,12 +239,20 @@ no body (`204 No Content`, etc.).
 `src/okapipy/cli/`:
 
 * `cli/nlp_cmd.py:fetch` calls `parser.nlp.fetch_model`.
-* `cli/spec_cmd.py:parse_command` runs the full pipeline, prints a counts
-  panel + JSON tree (or writes the chosen format on `--output`).
-* `cli/spec_cmd.py:generate_command` parses, then calls
-  `generator.generate`, then writes via `vfs.write_to_disk` (with `dry_run`
-  for `--check`). Drift warnings print to stderr in `Panel`s; `--quiet`
-  suppresses them but pruning still runs.
+* `cli/spec_cmd.py:parse_command` runs the full parser pipeline against a
+  single positional `SOURCE`, prints a counts panel + JSON tree (or
+  writes the chosen format on `--output`). `parse` is the only command
+  that bypasses the manifest — it is an inspection / debugging tool.
+* `cli/spec_cmd.py:generate_command` loads the project manifest
+  (`./okapipy.yml` by default, overridable via `--manifest`), runs the
+  parser once per `specs[]` entry, composes the trees under their
+  declared mount namespaces, calls `generator.generate`, then writes
+  via `vfs.write_to_disk` (with `dry_run` for `--check`). Drift
+  warnings print to stderr in `Panel`s; `--quiet` suppresses them but
+  pruning still runs.
+* `cli/spec_cmd.py:init_command` scaffolds a starter manifest file
+  (single-spec when `SOURCE` is given, empty `specs:` otherwise) and
+  exits. It never touches `output_dir`.
 
 ### 1.10 Errors
 
@@ -265,61 +273,105 @@ which segment to rename or which name to pick.
 ### 2.1 Module map
 
 ```
-src/okapipy/generator/
-├── __init__.py        Public re-exports: generate, GenerationError +
-│                      subclasses
-├── api.py             generate() — orchestrator, returns
-│                      dict[str, GeneratedFile]
-├── errors.py          GenerationError hierarchy (UnknownTemplateError,
-│                      TemplateRenderError, FormatError)
-├── vfs.py             GeneratedFile, WriteReport, write_to_disk
-│                      (lifecycle, pruning, drift detection)
-├── manifest.py        Edge / Manifest dataclasses + JSON serialization
-├── edges.py           compute_edges / compute_manifest — walks the parser
-│                      tree, mirrors the auto-wiring in stubs.py
-├── inline_schemas.py  Hoist anonymous schemas into components.schemas
-├── models.py          datamodel-code-generator integration (with the
-│                      bundled relaxed templates)
-├── templating.py      Jinja2 environment factory, custom filters,
-│                      ruff isort + format post-pass
-├── emit/
-│   ├── project.py     pyproject / README / LICENSE / gitignore /
-│   │                  python-version / py.typed
-│   ├── runtime.py     Vendor runtime/*.py verbatim into base/
-│   ├── client.py      Render base/client.py from the walker context
-│   ├── walk.py        emit_tree — one base file per node
-│   ├── stubs.py       One-shot user-layer subclass stubs (auto-wired)
-│   └── tests.py       One-shot pytest scaffolding
-├── runtime/           Vendored library — copied verbatim into generated
-│                      packages. No Jinja, no per-API shape
-└── templates/         Default Jinja templates (project/, package/, tests/,
-                       model/ for dmcg)
+src/okapipy/
+├── manifest.py        GenerationManifest / SpecEntry Pydantic models;
+│                      load_manifest(path) → GenerationManifest;
+│                      validators for mount-namespace collisions,
+│                      mandatory fields, per-spec rules paths.
+└── generator/
+    ├── __init__.py        Public re-exports: generate, GenerationError +
+    │                      subclasses
+    ├── api.py             generate(manifest, *, output_dir, check, quiet)
+    │                      — orchestrator: per-spec parse loop, mount
+    │                      composition, then emit
+    ├── compose.py         mount_under(api, namespace) — wrap a parsed
+    │                      APIModel under a synthetic mount Namespace
+    │                      chain; merge_mounts(roots) — union with
+    │                      cross-mount collision check
+    ├── errors.py          GenerationError hierarchy
+    │                      (UnknownTemplateError, TemplateRenderError,
+    │                      FormatError, ManifestNotFoundError,
+    │                      ManifestFormatError)
+    ├── vfs.py             GeneratedFile, WriteReport, write_to_disk
+    │                      (lifecycle, pruning, drift detection)
+    ├── state.py           Edge / GeneratedState dataclasses + JSON
+    │                      serialization for base/_generated.json
+    │                      (formerly manifest.py — renamed to free the
+    │                      name for the user-authored project manifest)
+    ├── edges.py           compute_edges / compute_state — walks the
+    │                      composed tree, mirrors the auto-wiring in
+    │                      stubs.py
+    ├── inline_schemas.py  Hoist anonymous schemas into components.schemas
+    ├── models.py          datamodel-code-generator integration (with
+    │                      the bundled relaxed templates); invoked once
+    │                      per mount so each mount gets its own models.py
+    ├── templating.py      Jinja2 environment factory, custom filters,
+    │                      ruff isort + format post-pass
+    ├── emit/
+    │   ├── project.py     pyproject / README / LICENSE / gitignore /
+    │   │                  python-version / py.typed
+    │   ├── runtime.py     Vendor runtime/*.py verbatim into base/ once
+    │   ├── client.py      Render base/client.py composing every mount
+    │   ├── walk.py        emit_tree — one base file per node, mount-aware
+    │   ├── stubs.py       One-shot user-layer subclass stubs (auto-wired)
+    │   └── tests.py       One-shot pytest scaffolding
+    ├── runtime/           Vendored library — copied verbatim into
+    │                      generated packages. No Jinja, no per-API shape
+    └── templates/         Default Jinja templates (project/, package/,
+                           tests/, model/ for dmcg)
 ```
 
 ### 2.2 Pipeline
 
-`generate(api, raw_spec, *, output_dir, package, client_class, ...)` in
-`api.py` runs the emitters in this order:
+`generate(manifest, *, output_dir, check, quiet)` in `api.py` runs in
+two layers: a per-spec inner loop and a single project-wide outer
+pass.
 
 ```
-emit_project_skeleton           [one-shot]
-emit_root_init_extension        compute import lines for top-level classes
-emit_runtime                    vendor runtime/, write base/__init__.py
-emit_models                     dmcg → base/models.py  (skipped if --shape dicts)
-emit_client                     base/client.py
-emit_tree                       base/{namespaces,collections,resources,
-                                singletons,actions}/<...>.py
-write base/<subdir>/__init__.py markers
-emit_stubs                      one-shot user-layer subclasses
-emit_tests                      one-shot tests/...
-compute_manifest                base/_manifest.json (always last)
+load_manifest(path)                  GenerationManifest (Pydantic), validates
+                                     mounts, package, client_class, shape
+for entry in manifest.specs:         per-spec inner loop
+    parse(entry.source,
+          rules=entry.rules,
+          lang=entry.lang or top.lang,
+          strip_prefix=entry.strip_prefix,
+          unmatched_namespace=entry.unmatched,
+          nlp_cache_dir=top.nlp_cache_dir)        → APIModel
+    compose.mount_under(api, entry.namespace)     → mount-wrapped APIModel
+                                                    + raw spec for dmcg
+collect mounts                        list[(mount_path, APIModel, raw_spec)]
+compose.merge_mounts(mounts)          MergedTree with cross-mount collision check
+
+emit_project_skeleton                 [one-shot] from manifest fields
+emit_root_init_extension              compute import lines for top-level
+                                       classes across every mount
+emit_runtime                          vendor runtime/, write base/__init__.py
+for each mount:
+    emit_models                       dmcg → base/<mount>/models.py
+                                       (skipped under shape=dicts)
+    emit_tree                         base/<mount>/{namespaces,collections,
+                                       resources,singletons,actions}/...
+    write base/<mount>/__init__.py + sub-__init__.py markers
+emit_client                           base/client.py — exposes one accessor
+                                       per top-level mount; composes the
+                                       cross-mount tree
+emit_stubs                            one-shot user-layer subclasses across
+                                       every mount
+emit_tests                            one-shot tests/<mount>/...
+compute_state                         base/_generated.json (always last)
 ```
 
-The order matters: the project skeleton emits first so subsequent emitters
-can rely on the package layout; `emit_root_init_extension` runs before
-`emit_runtime` so `base/__init__.py` can splice top-level `Namespace*Base`
-re-exports into a single `__all__` literal; the manifest is computed last
-so its `base_files` field reflects the full base tree.
+The order matters: the project skeleton emits first so subsequent
+emitters can rely on the package layout; per-mount work (`emit_models`,
+`emit_tree`) runs before `emit_client` so the client can import every
+mount's top-level classes; `emit_root_init_extension` precedes
+`emit_runtime` so `base/__init__.py` can splice the union of mount
+re-exports into a single `__all__` literal; the generated-state file is
+computed last so its `base_files` reflects the full multi-mount tree.
+
+When the manifest carries a single spec entry with `namespace: ""`, the
+loop runs once and `mount_under` is a no-op — the rest of the pipeline
+emits the historical flat layout.
 
 ### 2.3 Virtual filesystem (`vfs.py`)
 
@@ -330,7 +382,7 @@ covers the user layer + project skeleton + tests.
 `write_to_disk(vfs, output_dir, *, dry_run)` returns a `WriteReport`
 (`written`, `skipped`, `pruned`, `warnings`, `would_change`). The function:
 
-1. Reads the previous `_manifest.json` from disk.
+1. Reads the previous `_generated.json` from disk.
 2. Computes drift warnings against the *previous* on-disk state (must
    happen before writing).
 3. Iterates the VFS and either writes (regenerated paths or first-run
@@ -343,19 +395,26 @@ covers the user layer + project skeleton + tests.
 base file would be pruned", with the manifest itself excluded from the
 content comparison because its `generated_at` timestamp differs every run.
 
-### 2.4 Manifest (`manifest.py` + `edges.py`)
+### 2.4 Generated-state file (`state.py` + `edges.py`)
 
 `Edge(parent_module, factory_attr, child_user_class, child_user_module)`
 records one parent → child wiring; the async sibling is implicit (`Async` +
 the same names). One `Edge` per sync/async pair, not per emitted Python
-class.
+class. `parent_module` and `child_user_module` carry dotted paths that
+include any mount segment (`acme.commerce.users.collections.orders`),
+so cross-mount edges and intra-mount edges share the same encoding —
+drift detection (§3) needs no special case for "a new mount appeared."
 
-`manifest.py` and `edges.py` are split on purpose: keeping the dataclasses
-+ JSON encoder in `manifest.py` and the graph-walking logic in `edges.py`
-breaks what would otherwise be an import cycle (`vfs → manifest → stubs →
+`state.py` and `edges.py` are split on purpose: keeping the dataclasses
++ JSON encoder in `state.py` and the graph-walking logic in `edges.py`
+breaks what would otherwise be an import cycle (`vfs → state → stubs →
 vfs`) — `edges.py` is the only module that imports from both `stubs.py`
 and `walk.py`, so it sits at a higher layer than `vfs.py` and the cycle
 disappears.
+
+The on-disk file is `base/_generated.json` (renamed from the historical
+`_manifest.json`) so it is not confused with the user-authored project
+manifest (`./okapipy.yml`, loaded by `okapipy/manifest.py`).
 
 ### 2.5 Inline-schema flattening (`inline_schemas.py`)
 
@@ -596,13 +655,52 @@ sanitizes it into a Python identifier for use in test function names
 
 * Every rendered Python file goes through `ruff format`. `FormatError`
   carries the offending template name and ruff stderr.
-* `models.py` is post-processed to apply isort + format consistent with
-  the surrounding project.
+* Each mount's `models.py` is post-processed to apply isort + format
+  consistent with the surrounding project. Multi-mount projects run
+  dmcg once per mount; per-mount `available_models` sets are passed
+  into `emit_tree` so import-line filtering remains local to each
+  mount.
 * The vendored runtime is *not* re-templated and *not* run through ruff
   on emit — it is canonical at source. Tests in `tests/generator/` ruff-
   check the source runtime tree to catch drift early.
 * `StrictUndefined` makes any missing template variable fail loudly during
   generation rather than silently emit empty strings.
+
+### 2.13 Project-manifest loading (`okapipy/manifest.py`)
+
+The user-authored manifest is loaded by `load_manifest(path: Path) →
+GenerationManifest`. Responsibilities:
+
+* **Format auto-detection.** `.yml` / `.yaml` go through
+  `yaml.safe_load`; `.json` goes through `json.loads`. Anything else
+  raises `ManifestFormatError` (a `GenerationError` subclass).
+* **Pydantic v2 validation.** `GenerationManifest` and `SpecEntry`
+  validate types, required fields (`package`, `client_class`, at least
+  one `specs[]` entry), and that per-spec `source` is a path or
+  `http(s)://` URL while `rules` is a local path only (URLs rejected,
+  matching `parser.rules.load_rules`).
+* **Mount-namespace collision detection.** A post-validator builds the
+  fully-qualified mount paths from `specs[].namespace` (`""` →
+  top-level mount, `"platform.users"` → `["platform", "users"]`) and
+  raises `ManifestFormatError` when two entries resolve to the same
+  fully-qualified path. The check happens before any parsing so the
+  user sees a fast schema error rather than a deep stack trace from
+  the emitter.
+* **Relative-path resolution.** All paths in the manifest (`source`,
+  `rules`, `templates_dir`, `model_templates_dir`, `nlp_cache_dir`,
+  `output`) are resolved relative to the manifest file's parent
+  directory, not the process cwd, so a manifest is movable with its
+  consumer repo.
+* **CLI override merging.** `apply_cli_overrides(manifest, output=...)`
+  returns a new `GenerationManifest` with selected fields replaced —
+  used by `cli/spec_cmd.py:generate_command` to honor `--output` over
+  the manifest's `output` value. Other manifest fields have no CLI
+  counterpart; `apply_cli_overrides` is intentionally narrow.
+
+Errors raised here are `ManifestNotFoundError` (file missing on disk)
+and `ManifestFormatError` (everything else). Both inherit from
+`GenerationError` so the CLI's existing `print_error` boundary catches
+them with no extra wiring.
 
 ---
 
@@ -613,15 +711,27 @@ are no parser-side concessions.
 
 ### 3.1 Path layout
 
-`emit/walk.py` puts every regenerated file under `src/<package>/base/...`.
+`emit/walk.py` puts every regenerated file under
+`src/<package>/base/[<mount_path>/]...`, where `<mount_path>` is the
+spec's manifest `namespace` field split on `.` and joined with `/`. An
+empty mount (`namespace: ""`) collapses to the historical flat layout;
+a dotted mount (`namespace: platform.users`) nests under intermediate
+directories that may be shared by multiple specs (`platform.billing`
+joins the same `platform/` parent).
+
 `emit/stubs.py` writes the customer-facing layer at the sibling paths
-(`src/<package>/client.py`, `src/<package>/collections/<c>.py`, etc.).
-Module names match between layers; the import path's `base/` segment is
-what disambiguates.
+(`src/<package>/[<mount_path>/]client.py` for the project-wide client,
+`src/<package>/<mount_path>/collections/<c>.py` for per-spec
+collections, etc.). Module names match between layers; the
+`base/` segment of the import path disambiguates layer, and the
+optional `<mount_path>/` segment disambiguates spec.
 
 Class names in `base/` end with `Base` (`OrdersCollectionBase`,
 `OrderResourceBase`, …); user-layer classes drop the suffix
-(`OrdersCollection(OrdersCollectionBase)`).
+(`OrdersCollection(OrdersCollectionBase)`). Class-name collisions
+across mounts are impossible at the import level because each mount
+lives in its own sub-package; the contextual-PascalCase naming engine
+operates inside one mount at a time and is unchanged.
 
 ### 3.2 Factory hooks
 
@@ -648,12 +758,12 @@ Because stubs are one-shot, a *new* child added by a later spec change is
 not auto-wired into the existing parent stub. That gap is what manifest +
 drift detection covers.
 
-### 3.4 Manifest / pruning / drift
+### 3.4 Generated-state / pruning / drift
 
-`compute_manifest(api, package, base_files)` in `edges.py` walks the parser
+`compute_state(api, package, base_files)` in `edges.py` walks the parser
 tree symmetrically to the auto-wiring in `stubs.py` and produces one
-`Edge` per child; `manifest.py:serialize` writes deterministic JSON into
-`base/_manifest.json`. The same module exposes `read_from_disk` so
+`Edge` per child; `state.py:serialize` writes deterministic JSON into
+`base/_generated.json`. The same module exposes `read_from_disk` so
 `vfs.write_to_disk` can compare runs.
 
 Pruning logic in `vfs.py:write_to_disk`:
@@ -727,13 +837,28 @@ mounts two typer sub-apps:
 
 * `okapipy nlp` — `cli/nlp_cmd.py`. The only command is `fetch <LANG>
   [--cache-dir]` which forwards to `parser.nlp.fetch_model`.
-* `okapipy spec` — `cli/spec_cmd.py`. Two commands:
-  * `parse` runs the parser pipeline with a per-phase
-    `rich.console.Console.status` spinner, prints a counts panel +
-    syntax-highlighted JSON tree (or writes to `--output`).
-  * `generate` runs the parser then the generator, calls
-    `vfs.write_to_disk(dry_run=check)`, prints drift warnings (unless
-    `--quiet`), and reports written / skipped / pruned counts.
+* `okapipy spec` — `cli/spec_cmd.py`. Three commands:
+  * `parse <SOURCE>` runs the parser pipeline against a single spec with
+    a per-phase `rich.console.Console.status` spinner, prints a counts
+    panel + syntax-highlighted JSON tree (or writes to `--output`).
+    Bypasses the manifest by design — `parse` is an inspection tool.
+  * `generate [--manifest PATH] [--output PATH] [--check] [--quiet]`
+    loads the manifest via `okapipy.manifest.load_manifest`, applies
+    `--output` (if given) via `apply_cli_overrides`, then for each
+    `specs[]` entry runs `parser.parse(...)` and
+    `generator.compose.mount_under(api, entry.namespace)`. The
+    composed model is handed to `generator.generate(...)`, which calls
+    `vfs.write_to_disk(dry_run=check)`. Drift warnings print to
+    stderr in `Panel`s; `--quiet` suppresses them but pruning still
+    runs. Per-phase spinners label both the parse loop ("Parsing
+    `<entry.source>`") and the emit pass ("Generating client
+    project"). `ManifestNotFoundError` and `ManifestFormatError`
+    surface through the same `print_error` boundary used by
+    `GenerationError` and `ParserError`.
+  * `init [<SOURCE>] [--manifest PATH] [--package DOTTED]
+    [--client-class NAME] [--force]` writes a starter
+    `okapipy.yml`. Refuses to overwrite an existing file without
+    `--force`. Does not invoke the parser or the generator.
 
 `cli/console.py` owns the rich-printing helpers (`print_error`, `stderr`,
 `stdout`, `is_piped`) and `setup_logging(verbose)` — `-v` enables INFO,

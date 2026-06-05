@@ -1,17 +1,31 @@
-"""Typer-based CLI surface for okapipy."""
+"""Typer-based CLI surface for okapipy.
+
+Four top-level commands are exposed: `init`, `generate`, `parse`, and
+`fetch-language`. The command functions live in `cli.spec_cmd` (the
+three spec-related ones) and `cli.nlp_cmd` (the model fetcher); this
+module wires them into one flat root app.
+"""
 
 from __future__ import annotations
 
 import typer
 
-from okapipy.cli import nlp_cmd, spec_cmd
 from okapipy.cli.console import setup_logging
+from okapipy.cli.nlp_cmd import fetch_language_command
+from okapipy.cli.spec_cmd import (
+    generate_command,
+    init_command,
+    parse_command,
+)
 
 app = typer.Typer(
-    no_args_is_help=True, help="okapipy — Python OpenAPI client generator."
+    no_args_is_help=True,
+    help="okapipy — Python OpenAPI client generator.",
 )
-app.add_typer(nlp_cmd.app, name="nlp")
-app.add_typer(spec_cmd.app, name="spec")
+app.command("init")(init_command)
+app.command("generate")(generate_command)
+app.command("parse")(parse_command)
+app.command("fetch-language")(fetch_language_command)
 
 
 @app.callback()

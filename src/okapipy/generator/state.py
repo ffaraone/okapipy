@@ -1,7 +1,9 @@
-"""Cross-run manifest: tracks regenerated files and parser-tree edges.
+"""Cross-run generated-state file: tracks regenerated files and parser-tree edges.
 
-The manifest is written to `src/{package_path}/base/_manifest.json` on every
-generation. It serves two operational purposes:
+The state file is written to `src/{package_path}/base/_generated.json` on
+every generation. It is named `_generated.json` (rather than the historical
+`_manifest.json`) so it is not confused with the user-authored project
+manifest read by `okapipy.manifest`. It serves two operational purposes:
 
 * **Pruning.** `base_files` is the set of files the regenerated tree owns. On
   the next generation, `previous.base_files - current.base_files` is the set
@@ -21,8 +23,8 @@ two lines (sync + async) the user needs to add.
 This module is intentionally narrow: it owns the dataclasses and the
 JSON-on-disk format, and nothing else. The graph-walking logic that produces
 edges from a parsed `APIModel` lives in `okapipy.generator.edges`, kept apart
-so that `manifest.py` does not depend on `emit/stubs.py` (which itself
-depends on `vfs.py`, which depends back on `manifest.py`).
+so that `state.py` does not depend on `emit/stubs.py` (which itself
+depends on `vfs.py`, which depends back on `state.py`).
 """
 
 from __future__ import annotations
@@ -36,9 +38,10 @@ from pathlib import Path
 def _generator_version() -> str:
     """Return the installed okapipy version, falling back to `0.0.0+unknown`.
 
-    Resolved at import time from package metadata so the manifest always carries
-    the version of the okapipy that produced it. The fallback covers running
-    against a source tree that hasn't been installed (e.g. some packaging tests).
+    Resolved at import time from package metadata so the state file always
+    carries the version of the okapipy that produced it. The fallback covers
+    running against a source tree that hasn't been installed (e.g. some
+    packaging tests).
     """
     try:
         return version("okapipy")
@@ -47,10 +50,10 @@ def _generator_version() -> str:
 
 
 GENERATOR_VERSION = _generator_version()
-"""Version string written into every manifest. Sourced from package metadata."""
+"""Version string written into every generated-state file. Sourced from package metadata."""
 
-MANIFEST_FILENAME = "_manifest.json"
-"""Filename inside `<package>/base/` where the manifest is stored."""
+STATE_FILENAME = "_generated.json"
+"""Filename inside `<package>/base/` where the generated-state file is stored."""
 
 
 @dataclass(frozen=True)
@@ -71,8 +74,8 @@ class Edge:
 
 
 @dataclass(frozen=True)
-class Manifest:
-    """The full manifest written under `base/_manifest.json`."""
+class GeneratedState:
+    """The full generated-state record written under `base/_generated.json`."""
 
     generator_version: str
     generated_at: str
@@ -80,17 +83,17 @@ class Manifest:
     edges: list[Edge]
 
 
-def serialize(manifest: Manifest) -> str:
-    """Render the manifest as a deterministic JSON string."""
-    payload = asdict(manifest)
+def serialize(state: GeneratedState) -> str:
+    """Render the generated-state record as a deterministic JSON string."""
+    payload = asdict(state)
     return json.dumps(payload, indent=2, sort_keys=False) + "\n"
 
 
-def parse(text: str) -> Manifest:
-    """Parse a manifest JSON string into a `Manifest`. Tolerant of unknown keys."""
+def parse(text: str) -> GeneratedState:
+    """Parse a state-file JSON string into a `GeneratedState`. Tolerant of unknown keys."""
     data = json.loads(text)
     edges = [Edge(**e) for e in data.get("edges", [])]
-    return Manifest(
+    return GeneratedState(
         generator_version=data.get("generator_version", ""),
         generated_at=data.get("generated_at", ""),
         base_files=list(data.get("base_files", [])),
@@ -98,11 +101,11 @@ def parse(text: str) -> Manifest:
     )
 
 
-def read_from_disk(manifest_path: Path) -> Manifest | None:
-    """Read a manifest from disk; return None when the file does not exist."""
-    if not manifest_path.exists():
+def read_from_disk(state_path: Path) -> GeneratedState | None:
+    """Read a generated-state file from disk; return None when the file does not exist."""
+    if not state_path.exists():
         return None
     try:
-        return parse(manifest_path.read_text(encoding="utf-8"))
+        return parse(state_path.read_text(encoding="utf-8"))
     except (json.JSONDecodeError, TypeError, ValueError):
         return None

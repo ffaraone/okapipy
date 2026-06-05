@@ -41,6 +41,8 @@ def emit_client(
     project_context: Mapping[str, Any],
     package_path: str,
     api: APIModel,
+    *,
+    top_mount_namespaces: list[ChildRef] | None = None,
 ) -> dict[str, str]:
     """Render `client.py` (sync + async classes) and return `{path: content}`.
 
@@ -49,6 +51,13 @@ def emit_client(
     `client.orders` / `client.me` immediately. Each accessor carries an
     IDE-friendly docstring; the class docstring lists every reachable child
     so a hover on the client class reads as a top-of-tree map.
+
+    `top_mount_namespaces` (multi-spec only) are synthetic mount-namespace
+    references — one per non-root entry in the manifest's `specs[]`. They
+    render as extra `from .<mount> import <Mount>NamespaceBase` imports
+    plus `@cached_property` accessors on the client, alongside the parser
+    tree's own top-level namespaces. The root-mount entry's spec (if any)
+    contributes its top-level children via `api`.
     """
     top_namespaces = [
         ChildRef(
@@ -99,13 +108,18 @@ def emit_client(
         )
         for action in api.actions
     ]
+    mount_refs = list(top_mount_namespaces or [])
     project_name = str(project_context.get("project_name", ""))
     project_version = project_context.get("project_version")
+    # Mount namespaces appear in the docstring map alongside parser-tree
+    # namespaces so the client's IDE tooltip lists every top-level
+    # accessor in one place.
+    namespaces_for_docstring = top_namespaces + mount_refs
     sync_class_docstring = build_client_class_docstring(
         project_name=project_name,
         project_version=project_version if isinstance(project_version, str) else None,
         sync=True,
-        top_namespaces=top_namespaces,
+        top_namespaces=namespaces_for_docstring,
         top_collections=top_collections,
         top_singletons=top_singletons,
         top_actions=top_actions,
@@ -114,7 +128,7 @@ def emit_client(
         project_name=project_name,
         project_version=project_version if isinstance(project_version, str) else None,
         sync=False,
-        top_namespaces=top_namespaces,
+        top_namespaces=namespaces_for_docstring,
         top_collections=top_collections,
         top_singletons=top_singletons,
         top_actions=top_actions,
@@ -122,6 +136,7 @@ def emit_client(
     ctx = {
         **project_context,
         "top_namespaces": top_namespaces,
+        "top_mount_namespaces": mount_refs,
         "top_collections": top_collections,
         "top_singletons": top_singletons,
         "top_actions": top_actions,

@@ -47,6 +47,9 @@ def emit_tests(
     api: APIModel,
     project_context: Mapping[str, Any],
     top_package: str,
+    *,
+    mount_relpath: str = "",
+    emit_root: bool = True,
 ) -> dict[str, str]:
     """Render `conftest.py` plus one test module per node in `api`.
 
@@ -74,29 +77,31 @@ def emit_tests(
     package: str = project_context["package"]
     package_path = package.replace(".", "/")
     tests_root = f"tests/{package_path}"
-    out: dict[str, str] = {
-        f"{tests_root}/conftest.py": render_python(
+    mount_tests_root = f"{tests_root}/{mount_relpath}".rstrip("/")
+    initial_chain = mount_relpath.rstrip("/").replace("/", ".")
+    out: dict[str, str] = {}
+    if emit_root:
+        out[f"{tests_root}/conftest.py"] = render_python(
             env,
             "tests/conftest.py.jinja",
             project_context,
             known_first_party=top_package,
-        ),
-        f"{tests_root}/test_client.py": render_python(
+        )
+        out[f"{tests_root}/test_client.py"] = render_python(
             env,
             "tests/test_client.py.jinja",
             project_context,
             known_first_party=top_package,
-        ),
-    }
+        )
     for ns in api.namespaces:
         _emit_namespace_tests(
             env,
             ns,
             project_context,
             out,
-            parent_chain="",
+            parent_chain=initial_chain,
             top_package=top_package,
-            tests_root=tests_root,
+            tests_root=mount_tests_root,
         )
     for coll in api.collections:
         _emit_collection_tests(
@@ -104,9 +109,9 @@ def emit_tests(
             coll,
             project_context,
             out,
-            parent_chain="",
+            parent_chain=initial_chain,
             top_package=top_package,
-            tests_root=tests_root,
+            tests_root=mount_tests_root,
         )
     for sing in api.singletons:
         _emit_singleton_tests(
@@ -114,9 +119,9 @@ def emit_tests(
             sing,
             project_context,
             out,
-            parent_chain="",
+            parent_chain=initial_chain,
             top_package=top_package,
-            tests_root=tests_root,
+            tests_root=mount_tests_root,
         )
     for action in api.actions:
         _emit_action_tests(
@@ -124,9 +129,9 @@ def emit_tests(
             action,
             project_context,
             out,
-            parent_chain="",
+            parent_chain=initial_chain,
             top_package=top_package,
-            tests_root=tests_root,
+            tests_root=mount_tests_root,
         )
     # Empty `__init__.py` at every directory that contains a test file (or any
     # ancestor up to `tests/`). pytest's default `prepend` importer otherwise

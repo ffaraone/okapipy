@@ -28,7 +28,7 @@ class NlpModelMissingError(ParserError):
         self.cache_dir = cache_dir
         message = (
             f"spaCy model for language '{lang}' is not available under {cache_dir}. "
-            f"Run: okapipy nlp fetch {lang} --cache-dir {cache_dir}"
+            f"Run: okapipy fetch-language {lang} --cache-dir {cache_dir}"
         )
         super().__init__(message)
 

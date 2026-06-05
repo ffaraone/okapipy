@@ -18,13 +18,13 @@ runner = CliRunner()
 
 
 def test_nlp_fetch_invokes_the_loader(mocker: MockerFixture, tmp_path: Path) -> None:
-    """`okapipy nlp fetch en` calls fetch_model with the right cache directory."""
+    """`okapipy fetch-language en` calls fetch_model with the right cache directory."""
     fetch = mocker.patch(
         "okapipy.cli.nlp_cmd.fetch_model",
         return_value=tmp_path / "en_core_web_sm",
     )
 
-    result = runner.invoke(app, ["nlp", "fetch", "en", "--cache-dir", str(tmp_path)])
+    result = runner.invoke(app, ["fetch-language", "en", "--cache-dir", str(tmp_path)])
 
     assert result.exit_code == 0
     fetch.assert_called_once_with("en", tmp_path)
@@ -35,7 +35,7 @@ def test_nlp_fetch_renders_success_panel(mocker: MockerFixture, tmp_path: Path) 
     install_dir = tmp_path / "en_core_web_sm"
     mocker.patch("okapipy.cli.nlp_cmd.fetch_model", return_value=install_dir)
 
-    result = runner.invoke(app, ["nlp", "fetch", "en", "--cache-dir", str(tmp_path)])
+    result = runner.invoke(app, ["fetch-language", "en", "--cache-dir", str(tmp_path)])
 
     assert result.exit_code == 0
     assert "Installed model into" in result.stderr
@@ -49,7 +49,7 @@ def test_nlp_fetch_reports_failure(mocker: MockerFixture, tmp_path: Path) -> Non
         side_effect=NlpModelMissingError("xx", str(tmp_path)),
     )
 
-    result = runner.invoke(app, ["nlp", "fetch", "xx", "--cache-dir", str(tmp_path)])
+    result = runner.invoke(app, ["fetch-language", "xx", "--cache-dir", str(tmp_path)])
 
     assert result.exit_code == 1
     assert "Error" in result.stderr
@@ -67,7 +67,7 @@ def test_spec_parse_prints_json_to_stdout(
         return_value=APIModel(collections=[Collection(name="Orders", path="/orders")]),
     )
 
-    result = runner.invoke(app, ["spec", "parse", str(simple_spec_path)])
+    result = runner.invoke(app, ["parse", str(simple_spec_path)])
 
     assert result.exit_code == 0
     assert json.loads(result.stdout)["collections"][0]["name"] == "Orders"
@@ -86,7 +86,7 @@ def test_spec_parse_writes_yaml_when_extension_is_yaml(
     target = tmp_path / "out.yaml"
 
     result = runner.invoke(
-        app, ["spec", "parse", str(simple_spec_path), "--output", str(target)]
+        app, ["parse", str(simple_spec_path), "--output", str(target)]
     )
 
     assert result.exit_code == 0
@@ -104,7 +104,7 @@ def test_spec_parse_rejects_unknown_output_extension(
     target = tmp_path / "out.xml"
 
     result = runner.invoke(
-        app, ["spec", "parse", str(simple_spec_path), "--output", str(target)]
+        app, ["parse", str(simple_spec_path), "--output", str(target)]
     )
 
     assert result.exit_code == 1
@@ -121,7 +121,7 @@ def test_spec_parse_reports_parser_error(
         "okapipy.cli.spec_cmd._run_pipeline", side_effect=SpecLoadError("boom")
     )
 
-    result = runner.invoke(app, ["spec", "parse", str(simple_spec_path)])
+    result = runner.invoke(app, ["parse", str(simple_spec_path)])
 
     assert result.exit_code == 1
     assert "SpecLoadError" in result.stderr
@@ -142,7 +142,7 @@ def test_spec_parse_passes_url_source_through(
     )
     url = served_fixtures.url_for("/simple.yaml")
 
-    result = runner.invoke(app, ["spec", "parse", url])
+    result = runner.invoke(app, ["parse", url])
 
     assert result.exit_code == 0
     assert pipeline.call_args.kwargs["source"] == url
@@ -158,9 +158,7 @@ def test_spec_parse_forwards_unmatched_flag_to_pipeline(
         "okapipy.cli.spec_cmd._run_pipeline", return_value=APIModel()
     )
 
-    result = runner.invoke(
-        app, ["spec", "parse", str(simple_spec_path), "--unmatched", "ops"]
-    )
+    result = runner.invoke(app, ["parse", str(simple_spec_path), "--unmatched", "ops"])
 
     assert result.exit_code == 0
     assert pipeline.call_args.kwargs["unmatched_namespace"] == "ops"
@@ -176,7 +174,7 @@ def test_spec_parse_omits_unmatched_kwarg_when_flag_absent(
         "okapipy.cli.spec_cmd._run_pipeline", return_value=APIModel()
     )
 
-    result = runner.invoke(app, ["spec", "parse", str(simple_spec_path)])
+    result = runner.invoke(app, ["parse", str(simple_spec_path)])
 
     assert result.exit_code == 0
     assert pipeline.call_args.kwargs["unmatched_namespace"] is None
@@ -200,7 +198,7 @@ def test_spec_parse_renders_summary_table(
     )
     mocker.patch("okapipy.cli.spec_cmd._run_pipeline", return_value=api)
 
-    result = runner.invoke(app, ["spec", "parse", str(simple_spec_path)])
+    result = runner.invoke(app, ["parse", str(simple_spec_path)])
 
     assert result.exit_code == 0
     assert "Namespaces" in result.stderr
@@ -250,10 +248,10 @@ def test_top_level_verbose_flag_sets_handler_level(
                 return handler
         raise AssertionError("no RichHandler attached to the okapipy logger")
 
-    runner.invoke(app, ["-v", "spec", "parse", str(simple_spec_path)])
+    runner.invoke(app, ["-v", "parse", str(simple_spec_path)])
     assert rich_handler().level == logging.INFO
 
-    runner.invoke(app, ["-vv", "spec", "parse", str(simple_spec_path)])
+    runner.invoke(app, ["-vv", "parse", str(simple_spec_path)])
     assert rich_handler().level == logging.DEBUG
 
 
@@ -269,7 +267,7 @@ def test_default_verbosity_silences_info_logs(
 
     mocker.patch("okapipy.cli.spec_cmd._run_pipeline", side_effect=fake_pipeline)
 
-    result = runner.invoke(app, ["spec", "parse", str(simple_spec_path)])
+    result = runner.invoke(app, ["parse", str(simple_spec_path)])
 
     assert result.exit_code == 0
     assert "excluding /healthz" not in result.stderr
@@ -287,7 +285,7 @@ def test_verbose_flag_shows_info_logs(
 
     mocker.patch("okapipy.cli.spec_cmd._run_pipeline", side_effect=fake_pipeline)
 
-    result = runner.invoke(app, ["-v", "spec", "parse", str(simple_spec_path)])
+    result = runner.invoke(app, ["-v", "parse", str(simple_spec_path)])
 
     assert result.exit_code == 0
     assert "excluding /healthz" in result.stderr

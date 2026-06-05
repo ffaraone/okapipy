@@ -156,6 +156,7 @@ def build(
         len(spec_path_kinds),
         base,
     )
+    _hint_common_prefix(list(paths.keys()), base, strip_prefix)
     for path, path_item in paths.items():
         exclusion = _resolve_exclusion(path_item, rules, path)
         if exclusion == EXCLUDE_ALL:
@@ -184,6 +185,62 @@ def build(
     if unmatched_namespace is not None:
         _attach_unmatched_namespace(api, unmatched_namespace, unmatched or [])
     return api
+
+
+def _hint_common_prefix(paths: list[str], base: str, strip_prefix: str | None) -> None:
+    """Emit a one-shot WARNING when every path shares a non-trivial prefix.
+
+    Specs that lack a `servers[]` entry but ship every path under the same
+    `/<service>/<version>/` prefix produce a sea of "cannot be attached
+    under Action" warnings unless the user sets `strip_prefix` — the
+    leading segment usually classifies as an Action (`auth`, `login`, …)
+    and nothing else can attach below. This proactive hint surfaces the
+    fix before the per-path warnings drown it out.
+
+    The hint fires only when:
+    * the caller passed no explicit `strip_prefix`, AND
+    * `detect_base_path` found nothing on `servers[].url` (`base == ""`), AND
+    * at least 4 paths share a prefix of two or more segments.
+    """
+    if strip_prefix is not None or base:
+        return
+    if len(paths) < 4:
+        return
+    common = _longest_common_path_prefix(paths)
+    if common.count("/") < 2:  # need at least two segments under root
+        return
+    log.warning(
+        "all %d paths share the prefix %r; consider setting "
+        "`strip_prefix: %s` on this spec's manifest entry to drop it "
+        "before classification (or pass `--strip-prefix %s` to "
+        "`okapipy parse`).",
+        len(paths),
+        common,
+        common,
+        common,
+    )
+
+
+def _longest_common_path_prefix(paths: list[str]) -> str:
+    """Return the longest path prefix (segment-aligned) shared by every entry.
+
+    Trailing slashes are not included; the result is empty when no shared
+    prefix exists. Segment-aligned means `/auth/v2/x` and `/auth/v3/y`
+    share `/auth`, not `/auth/v`.
+    """
+    if not paths:
+        return ""
+    segments_per_path = [[s for s in p.split("/") if s] for p in paths]
+    shared: list[str] = []
+    for column in zip(*segments_per_path, strict=False):
+        first = column[0]
+        if all(seg == first for seg in column):
+            shared.append(first)
+        else:
+            break
+    if not shared:
+        return ""
+    return "/" + "/".join(shared)
 
 
 def _collect_tag_descriptions(spec: dict[str, Any]) -> dict[str, str]:

@@ -23,7 +23,7 @@ The generator emits **two cooperating layers** rooted at your package:
 
 | Layer | Location | Owner | Lifecycle |
 | --- | --- | --- | --- |
-| **Base** | `my_client/base/` | Generator | Rewritten on every `okapipy spec generate` run. |
+| **Base** | `my_client/base/` | Generator | Rewritten on every `okapipy generate` run. |
 | **User** | `my_client/*.py` | You | Emitted once, on first generation; never overwritten. |
 
 The base layer holds machine-translated code: HTTP wiring,
@@ -78,7 +78,7 @@ my_client/
     ├── resources/order.py
     ├── actions/order_submit.py
     ├── namespaces/commerce.py
-    └── _manifest.json
+    └── _generated.json
 ```
 
 A larger spec produces one user-layer module per namespace and one per
@@ -317,7 +317,7 @@ Purely cosmetic; runtime behavior is unchanged.
 ### A new collection appears
 
 Walk-through. The customer adds `/commerce/products` to their OpenAPI
-spec and reruns `okapipy spec generate`.
+spec and reruns `okapipy generate`.
 
 **Before:**
 
@@ -367,13 +367,13 @@ Two choices:
   `client.commerce.products` returns your `ProductsCollection`, ready
   to carry overrides.
 
-The drift detector is part of `okapipy spec generate --check`. It
+The drift detector is part of `okapipy generate --check`. It
 exits non-zero when unwired children are detected, so a CI run after a
 spec bump fails until someone makes the call.
 
 ## Regeneration semantics
 
-Each `okapipy spec generate <spec>` run does:
+Each `okapipy generate` run does:
 
 1. **Parse** the spec + rules file into the parser tree.
 2. **Plan** the file set — every `base/**` file, plus stubs for any
@@ -387,9 +387,10 @@ Each `okapipy spec generate <spec>` run does:
 5. **Prune** stale `base/**` files that correspond to removed
    namespaces/collections. User-layer files are **never pruned**, even
    if the matching base file is gone — you may still want them.
-6. **Emit a manifest** at `base/_manifest.json` recording the spec
-   hash, rules hash, generator version, and the list of base files
-   written. Used to detect drift and to power `--check`.
+6. **Emit a state file** at `base/_generated.json` recording the
+   generator version, generation timestamp, the list of base files
+   written, and every parent → child wiring edge. Used to detect drift
+   and to power `--check`.
 
 ### Failure modes regeneration intentionally surfaces
 
@@ -407,18 +408,18 @@ Each `okapipy spec generate <spec>` run does:
 
 ## Tooling
 
-* **`okapipy spec generate --check`** — exits non-zero if any base file
+* **`okapipy generate --check`** — exits non-zero if any base file
   would change, any drift warning fires, or any stale file would be
   pruned. CI gate to ensure regeneration is committed.
-* **`okapipy spec generate --quiet`** — suppress drift-detection
+* **`okapipy generate --quiet`** — suppress drift-detection
   warnings. Pruning still runs.
-* **`--shape models\|dicts`** — lock the generated client to a single
-  [response shape](shapes.md). Omit for the dual-shape default
-  (constructor `shape=` + `with_shape()`); `--shape dicts` also skips
-  `base/models.py`.
-* **`--templates-dir DIR`** and **`--model-templates-dir DIR`** — see
-  [Templates](templates.md) for per-project overrides of the Jinja
-  templates that drive code emission.
+* **`shape: models | dicts`** (in `okapipy.yml`) — lock the generated
+  client to a single [response shape](shapes.md). Omit for the
+  dual-shape default (constructor `shape=` + `with_shape()`);
+  `shape: dicts` also skips `base/models.py`.
+* **`templates_dir:` and `model_templates_dir:`** (in `okapipy.yml`)
+  — see [Templates](templates.md) for per-project overrides of the
+  Jinja templates that drive code emission.
 
 ## Out of scope
 

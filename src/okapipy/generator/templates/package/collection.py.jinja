@@ -15,10 +15,10 @@ from typing import TYPE_CHECKING, Any, cast
 {% endif %}
 from urllib.parse import urlencode
 
-from ..exceptions import UnsupportedPaginationError
-from ..filters import Filter
-from ..sort import Sort
-from ..types import RequestOptions
+from {{ runtime_dots }}exceptions import UnsupportedPaginationError
+from {{ runtime_dots }}filters import Filter
+from {{ runtime_dots }}sort import Sort
+from {{ runtime_dots }}types import RequestOptions
 {% if model_imports %}
 from ..models import {{ model_imports | join(", ") }}
 {% endif %}
@@ -33,7 +33,7 @@ from ..actions.{{ action.module }} import {{ action.class_name }}, Async{{ actio
 {% endfor %}
 
 if TYPE_CHECKING:
-    from ..client import {{ client_class }}Base, Async{{ client_class }}Base
+    from {{ runtime_dots }}client import {{ client_class }}Base, Async{{ client_class }}Base
 
 
 class {{ class_name }}:

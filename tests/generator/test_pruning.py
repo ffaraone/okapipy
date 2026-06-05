@@ -2,22 +2,22 @@
 
 When the spec loses a parser-tree node between two runs, the previous run's
 base file for that node becomes orphaned. `write_to_disk` reads the prior
-manifest, computes `previous.base_files - current` keys, and deletes those
-files from disk. User-layer files are never pruned.
+generated-state file, computes `previous.base_files - current` keys, and
+deletes those files from disk. User-layer files are never pruned.
 """
 
 from __future__ import annotations
 
 from pathlib import Path
 
-from okapipy.generator import generate
+from okapipy.generator import generate_for_mount
 from okapipy.generator.vfs import write_to_disk
 from okapipy.parser.api import parse
 
 
 def _generate_and_write(spec_path: Path, output_dir: Path):
     api = parse(spec_path)
-    vfs = generate(
+    vfs = generate_for_mount(
         api,
         raw_spec=spec_path,
         output_dir=output_dir,
@@ -30,7 +30,7 @@ def _generate_and_write(spec_path: Path, output_dir: Path):
 def test_first_run_prunes_nothing(
     orders_and_products_spec_file: Path, tmp_path: Path
 ) -> None:
-    """No previous manifest → nothing to prune."""
+    """No previous state file → nothing to prune."""
     out = tmp_path / "out"
 
     report = _generate_and_write(orders_and_products_spec_file, out)
@@ -91,7 +91,7 @@ def test_dry_run_reports_pruning_without_deleting(
     products_base = out / "src" / "prune" / "base" / "collections" / "products.py"
 
     api = parse(orders_only_spec_file)
-    vfs = generate(
+    vfs = generate_for_mount(
         api,
         raw_spec=orders_only_spec_file,
         output_dir=out,

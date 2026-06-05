@@ -64,10 +64,9 @@ catches up, and your code is exactly where you left it.
 
 ```bash
 pip install okapipy
-okapipy spec generate https://api.example.com/openapi.json \
-    --output ./my-client \
-    --package acme.commerce \
-    --client-class CommerceClient
+okapipy init https://api.example.com/openapi.json \
+    --package acme.commerce --client-class CommerceClient
+okapipy generate --output ./my-client
 ```
 
 ```python
@@ -149,7 +148,7 @@ async with AsyncCommerceClient(base_url="...") as client:
 
     ---
 
-    Re-run `okapipy spec generate` whenever the spec moves. Your user
+    Re-run `okapipy generate` whenever the spec moves. Your user
     code is left strictly alone; new namespaces and collections show up
     as drift warnings telling you exactly which line to add.
 
@@ -170,20 +169,22 @@ async with AsyncCommerceClient(base_url="...") as client:
 ## Get going in five minutes
 
 1. **Install.** `pip install okapipy` (or `uv add okapipy`).
-2. **Pre-warm the spaCy model.** `okapipy nlp fetch en` — ~12 MB,
+2. **Pre-warm the spaCy model.** `okapipy fetch-language en` — ~12 MB,
    one-time cost.
-3. **Sanity-check your spec.** `okapipy spec parse openapi.yaml` prints a
+3. **Sanity-check your spec.** `okapipy parse openapi.yaml` prints a
    structural tree and a counts panel; if any classifications look off,
    fix them in the rules file (see [Rules and extensions][rules]) before
    you generate.
-4. **Generate.** `okapipy spec generate openapi.yaml --output ./client
-   --package acme.commerce --client-class CommerceClient`.
-5. **Use it.** `from acme.commerce import CommerceClient`. The full
+4. **Scaffold the manifest.** `okapipy init openapi.yaml --package
+   acme.commerce --client-class CommerceClient` writes `./okapipy.yml`
+   — the only file the generator needs to read on subsequent runs.
+5. **Generate.** `okapipy generate --output ./client`.
+6. **Use it.** `from acme.commerce import CommerceClient`. The full
    surface — every collection, resource, action, sub-namespace — is
    already wired through the user-layer subclasses; you only edit them
    when you want to specialize.
 
-That's the whole loop. There is no step 6.
+That's the whole loop. There is no step 7.
 
 ## Status
 

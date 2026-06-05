@@ -1,13 +1,35 @@
 # Generator API reference
 
-The generator package exposes one supported entry point —
-`generate(...)` — that returns a virtual filesystem
-(`dict[str, GeneratedFile]`). The CLI flushes that dict to disk via
-`write_to_disk`; tests inspect it directly.
+The generator package exposes two supported entry points:
 
-## Public entry point
+* `generate(manifest)` — the manifest-driven public API that powers
+  `okapipy generate`.
+* `generate_for_mount(api, raw_spec, ...)` — the per-mount building
+  block used by `generate` and exposed for tests and embedded callers.
+
+Both return a virtual filesystem (`dict[str, GeneratedFile]`). The CLI
+flushes the dict to disk via `write_to_disk`; tests inspect it
+directly.
+
+## Project manifest
+
+The user-authored project manifest lives in
+[`okapipy.manifest`](../user-guide/quick-start.md#the-project-manifest).
+
+::: okapipy.manifest
+    options:
+      members:
+        - GenerationManifest
+        - SpecEntry
+        - load_manifest
+        - apply_cli_overrides
+        - DEFAULT_MANIFEST_FILENAME
+
+## Public entry points
 
 ::: okapipy.generator.api.generate
+
+::: okapipy.generator.api.generate_for_mount
 
 ## The virtual filesystem
 
@@ -26,18 +48,32 @@ The generator package exposes one supported entry point —
         - emit_models
         - public_names
 
-## Manifest and edges
+## Generated-state file and edges
 
-::: okapipy.generator.manifest
+::: okapipy.generator.state
     options:
       members:
+        - GeneratedState
+        - Edge
         - serialize
-        - MANIFEST_FILENAME
+        - STATE_FILENAME
 
 ::: okapipy.generator.edges
     options:
       members:
-        - compute_manifest
+        - compute_state
+        - compute_edges
+
+## Mount composition
+
+::: okapipy.generator.compose
+    options:
+      members:
+        - MountedSpec
+        - mount_segments
+        - mount_relpath
+        - check_mount_collisions
+        - iter_mount_namespace_prefixes
 
 ## Templating
 

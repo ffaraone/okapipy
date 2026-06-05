@@ -53,7 +53,7 @@ The first time the parser runs, it downloads the spaCy English model
 you can move it earlier:
 
 ```bash
-okapipy nlp fetch en
+okapipy fetch-language en
 ```
 
 In CI, cache `./.spacy/` between runs so you don't pay the download on
@@ -66,24 +66,25 @@ every job:
     path: .spacy
     key: spacy-en_core_web_sm-${{ runner.os }}
 
-- run: okapipy nlp fetch en
+- run: okapipy fetch-language en
 ```
 
 If you'd rather store the model somewhere else, every command that uses
 NLP accepts `--nlp-cache-dir`:
 
 ```bash
-okapipy nlp fetch en --cache-dir ~/.cache/okapipy/nlp
+okapipy fetch-language en --cache-dir ~/.cache/okapipy/nlp
 ```
 
 ## Other languages
 
 okapipy uses spaCy, which ships pipelines for 20+ languages. Use the
-ISO code on `nlp fetch` and again on `spec parse`/`spec generate`:
+ISO code on `fetch-language` and again on `parse` / in the manifest's
+`lang:` field:
 
 ```bash
-okapipy nlp fetch es
-okapipy spec parse openapi.yaml --lang es
+okapipy fetch-language es
+okapipy parse openapi.yaml --lang es
 ```
 
 The English heuristic registry (which catches a handful of API verbs that

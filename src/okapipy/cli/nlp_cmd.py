@@ -1,4 +1,8 @@
-"""`okapipy nlp ...` typer subcommands."""
+"""`okapipy fetch-language` command implementation.
+
+Registered on the root `app` in `cli/__init__.py`; this module just
+defines the function with a Typer-friendly signature.
+"""
 
 from __future__ import annotations
 
@@ -11,11 +15,8 @@ from okapipy.cli.console import print_error, stderr
 from okapipy.parser.errors import NlpModelMissingError
 from okapipy.parser.nlp import DEFAULT_CACHE_DIR, fetch_model
 
-app = typer.Typer(no_args_is_help=True, help="Manage local spaCy NLP models.")
 
-
-@app.command("fetch")
-def fetch(
+def fetch_language_command(
     ctx: typer.Context,
     lang: str = typer.Argument(..., help="ISO language code, e.g. 'en'."),
     cache_dir: Path = typer.Option(

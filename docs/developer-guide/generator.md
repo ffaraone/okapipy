@@ -2,8 +2,8 @@
 
 The generator turns the parser's `APIModel` tree into a runnable Python
 project: a `pyproject.toml`, a vendored runtime, base-layer files for
-every node, user-layer stubs, generated tests, and a manifest that
-makes drift detection possible across runs.
+every node, user-layer stubs, generated tests, and a generated-state
+file that makes drift detection possible across runs.
 
 The whole thing is structured as a **virtual filesystem** —
 `dict[str, GeneratedFile]` keyed by POSIX-style relative path. The CLI
@@ -11,19 +11,32 @@ flushes that dict to disk; tests inspect it directly. No filesystem
 side effects in the generator itself.
 
 ```
-APIModel
+okapipy.yml
    │
    ▼
-generate(api, raw_spec, ...)        ← orchestration, in api.py
+load_manifest(path)                 ← okapipy.manifest
+   │
+   ▼
+generate(manifest)                  ← orchestration, in generator/api.py
    │
    ├─►  emit_project_skeleton()     pyproject, README, LICENSE, .gitignore  (one-shot)
-   ├─►  emit_runtime()              vendored runtime + base/__init__.py     (regenerated)
-   ├─►  emit_models()               base/models.py via datamodel-code-gen   (regenerated)
-   ├─►  emit_client()               sync + async ClientBase                 (regenerated)
-   ├─►  emit_tree()                 one base/<node>.py per parser-tree node (regenerated)
-   ├─►  emit_stubs()                user-layer subclass stubs               (one-shot)
-   ├─►  emit_tests()                test scaffolding                        (one-shot)
-   └─►  compute_manifest()          base/_manifest.json                     (regenerated)
+   ├─►  compose.plan_mounts()       parse every specs[] entry → MountedSpec list
+   │
+   │   per mount:
+   ├─►    emit_models()             base/<mount>/models.py via dmcg          (regenerated)
+   ├─►    emit_tree()               base/<mount>/{ns,coll,res,sing,act}/...  (regenerated)
+   ├─►    emit_mount_namespace()    base/<mount>/__init__.py — synthetic     (regenerated)
+   │                                <Mount>MountBase class
+   ├─►    emit_stubs()              user-layer subclass stubs for the mount  (one-shot)
+   ├─►    emit_tests()              per-mount test scaffolding               (one-shot)
+   │
+   ├─►  emit_runtime()              vendored runtime + base/__init__.py      (regenerated)
+   ├─►  emit_client()               sync + async <Client>Base composing      (regenerated)
+   │                                every mount as a @cached_property
+   ├─►  emit_stubs(emit_root=True)  project-wide user-layer __init__ +       (one-shot)
+   │                                client.py + tests/conftest + test_client
+   └─►  GeneratedState              base/_generated.json — base_files +      (regenerated)
+                                    edges aggregated across every mount
    │
    ▼
 dict[str, GeneratedFile]            ← virtual FS
@@ -32,6 +45,13 @@ dict[str, GeneratedFile]            ← virtual FS
 write_to_disk(vfs, output_dir, dry_run=...)   ← in vfs.py; respects one_shot
 ```
 
+A single-spec manifest with `namespace: ''` collapses every mention of
+`base/<mount>/` to `base/` and produces the historical flat layout
+byte-for-byte. `generate_for_mount(api, raw_spec, ...)` — the
+single-spec building block exposed for tests and embedded callers —
+is the same pipeline minus the `compose.plan_mounts()` and the
+cross-mount composition.
+
 ## Lifecycle: one-shot vs. regenerated
 
 Every `GeneratedFile` carries a `one_shot` flag.
@@ -39,7 +59,7 @@ Every `GeneratedFile` carries a `one_shot` flag.
 * `one_shot=False` — files under `src/{package}/base/`. Rewritten on
   every run. Includes: vendored runtime, `models.py` from
   `datamodel-code-generator`, sync + async client base classes, one
-  file per parser-tree node, `_manifest.json`.
+  file per parser-tree node, `_generated.json`.
 * `one_shot=True` — files under `src/{package}/` (subclass stubs the
   customer customizes), the project skeleton (`pyproject.toml`,
   `README.md`, `LICENSE`, `.gitignore`, `.python-version`), and the
@@ -67,16 +87,22 @@ The order inside `generate()` matters:
 
 ## The walker (`emit/walk.py`)
 
-`emit_tree(env, api, project_context, package_path, available_models)`
-walks the parser tree and emits one base file per node. The visitor
-maintains a small context as it descends:
+`emit_tree(env, api, project_context, package_path, available_models,
+*, shape, mount_relpath)` walks the parser tree and emits one base
+file per node. The visitor maintains a small context as it descends:
 
 * The full breadcrumb of singular collection names (used for naming).
 * The current namespace path (so files land in the right `base/<ns>/`
   subdirectory).
-* The set of model names that actually exist in `models.py`. References
-  to missing schemas degrade gracefully: the type becomes `Any` and the
-  import is dropped.
+* The set of model names that actually exist in the current mount's
+  `models.py`. References to missing schemas degrade gracefully: the
+  type becomes `Any` and the import is dropped.
+* The `mount_relpath` (`"users/"`, `"platform/users/"`, or `""` for
+  the root mount), prepended to every emitted path so multi-mount
+  projects land their trees under `base/<mount>/...`. The companion
+  `runtime_dots(mount_relpath)` helper computes the relative-import
+  dot prefix templates use to reach the shared base-level modules
+  (`client.py`, `exceptions.py`, …) from deep inside a mount.
 
 For each node, the walker picks a Jinja template under
 `generator/templates/package/...` and renders it with a context dict
@@ -105,25 +131,28 @@ is passed) and packaged defaults second.
 * Optional `model_templates_dir` forwarded as `--custom-template-dir`.
 
 The result is a single Python source string written to
-`src/{package}/base/models.py`.
+`src/{package}/base/<mount>/models.py` (one per mount; the root mount
+collapses `<mount>/` away). Multi-mount projects invoke dmcg once per
+spec so two services declaring an unrelated `User` schema can't
+collide at the import level.
 
 `public_names(source)` parses the emitted source and returns the set of
 top-level class names. The walker uses that set to validate model
 references — anything not in the set becomes `Any` in the generated
 client.
 
-`--shape dicts` skips this step entirely. The walker then drops every
-`from ..models import ...` line and types every body / return as
-`dict[str, Any]`. The client base also drops the `shape=` constructor
-option and `with_shape(...)` — there is nothing to switch to. This is an
-escape hatch for two situations:
+`shape: dicts` (in `okapipy.yml`) skips this step entirely. The walker
+then drops every `from ..models import ...` line and types every body
+/ return as `dict[str, Any]`. The client base also drops the `shape=`
+constructor option and `with_shape(...)` — there is nothing to switch
+to. This is an escape hatch for two situations:
 
 * `datamodel-code-generator` can't process the spec's schemas (rare,
   but it happens with very baroque `oneOf` graphs).
 * The consumer wants to bring their own model layer (e.g. they already
   have hand-written Pydantic types they prefer).
 
-`--shape models` keeps `models.py` but locks the runtime to validation:
+`shape: models` keeps `models.py` but locks the runtime to validation:
 the `shape=` constructor option and `with_shape(...)` are dropped, and
 bodies / returns are typed strictly as the recovered model
 (`Foo` / `Foo | None`) rather than admitting a `dict[str, Any]` arm.
@@ -146,33 +175,88 @@ Vendoring (rather than depending on a separate `okapipy-runtime` PyPI
 package) is intentional: it keeps the generated client self-contained
 and lets us tighten the runtime API without breaking older clients.
 
-## The manifest (`manifest.py` + `edges.py`)
+## Multi-spec composition (`compose.py`)
 
-`base/_manifest.json` records:
+A project manifest can declare multiple `specs[]` entries. Each one
+parses independently into its own `APIModel`; the generator composes
+the results into one Python package.
+
+`compose.plan_mounts(manifest)` is the entry point: it walks
+`manifest.specs[]`, parses each source with the per-spec inputs
+(`rules`, `strip_prefix`, `unmatched`, `lang`), and returns a list of
+`MountedSpec` records carrying the mount path tuple, the parsed
+`APIModel`, the raw spec (for `datamodel-code-generator`), and the
+entry's manifest index. Dotted mounts (more than one segment) raise
+`GenerationError` here — the intermediate-namespace machinery is not
+yet wired through `emit_client`.
+
+`mount_segments("platform.users")` returns the tuple
+`("platform", "users")`; `mount_relpath(("users",))` returns
+`"users/"` (the trailing slash makes concatenation safe). The root
+mount (`()`) maps to `""` everywhere, which is how every per-mount
+emitter collapses to the historical flat layout for single-spec
+root-mount manifests.
+
+The synthetic **mount namespace** is a small `Namespace` node built by
+`compose.synthesize_mount_namespace(mount)`: same children as the
+spec's top-level, named after the mount's leaf segment. The walker
+renders it through the existing `namespace.py.jinja` template (with
+`is_mount_root=True` so the import section uses
+`from .namespaces.X import …` instead of the standard `from .X
+import …`), and the result lands at `base/<mount>/__init__.py` with
+class name `<Mount>MountBase` — the `Mount` suffix disambiguates it
+from any spec-internal `<Mount>NamespaceBase` that happens to share
+the leaf name.
+
+`compose.mount_class_name(mount_ns)` is the canonical helper for
+`<Mount>MountBase`. Use it anywhere you'd otherwise reach for
+`namespace_class(mount_ns)` on a synthetic mount node.
+
+The client template grows a parallel `top_mount_namespaces` list
+alongside the existing `top_namespaces` / `top_collections` / etc.
+Mount accessors render as `@cached_property`s on `<Client>Base` (and
+the async sibling), wired through a `__<mount>_factory__` ClassVar so
+the user-layer mount subclass plugs in via the same factory-hook
+mechanism every other tree edge uses.
+
+## The generated-state file (`state.py` + `edges.py`)
+
+`base/_generated.json` records:
 
 ```json
 {
-  "okapipy_version": "0.1.0",
-  "spec_hash": "<sha256>",
-  "rules_hash": "<sha256>",
-  "generated_at": "<ISO-8601>",
-  "base_files": [...],
+  "generator_version": "0.1.0",
+  "generated_at": "2026-06-05T11:42:00Z",
+  "base_files": [
+    "src/acme/commerce/base/__init__.py",
+    "src/acme/commerce/base/client.py",
+    "src/acme/commerce/base/collections/orders.py",
+    "..."
+  ],
   "edges": [
-    {"parent": "ClientBase", "child": "OrdersCollectionBase",
-     "factory": "__orders_factory__", "user_module": "orders"},
-    ...
+    {
+      "parent_module": "client.py",
+      "factory_attr": "__orders_factory__",
+      "child_user_class": "OrdersCollection",
+      "child_user_module": "collections/orders.py"
+    },
+    "..."
   ]
 }
 ```
 
-* `base_files` drives **pruning**: any `base/*.py` file present on disk
-  but absent from the new manifest is a stale leftover from a removed
-  namespace/collection, and gets deleted on the next run.
+* `base_files` drives **pruning**: any `base/*.py` file present on
+  disk but absent from the new run is a stale leftover from a removed
+  namespace/collection, and gets deleted on the next run. Multi-mount
+  projects union the per-mount file lists into one set.
 * `edges` drives **drift detection**: each edge says "the parent's
   `__<factory>__` should point at the user-layer subclass in
-  `<user_module>`." `vfs.py` checks the actual content of one-shot user
-  files against the expected edges and emits a warning per missing
-  factory binding.
+  `<child_user_module>`." `vfs.py` checks the actual content of
+  one-shot user files against the expected edges and emits a warning
+  per missing factory binding. Cross-mount edges (client → mount
+  namespace) are recorded the same way as intra-mount edges, so
+  drift on a removed `specs[]` entry surfaces identically to drift on
+  a removed namespace.
 
 `--check` is a dry-run mode that runs the full pipeline up to disk
 write, then refuses to write *anything* and exits non-zero if any base
