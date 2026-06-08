@@ -72,7 +72,7 @@ def test_singularize_handles_propn_lemma_via_wrapper(english_nlp: Language) -> N
 
 
 def test_build_treats_force_reimport_as_resource_action(english_nlp: Language) -> None:
-    """A `/orgs/{id}/datasources/{ds}/force-reimport` POST attaches as a resource action.
+    """A `/organizations/{id}/datasources/{ds}/force-reimport` POST attaches as a resource action.
 
     The action name reflects the full breadcrumb chain so it is unique even when the
     same trailing word appears under multiple parents.
@@ -934,7 +934,7 @@ def test_build_attaches_collection_under_singleton(english_nlp: Language) -> Non
 
     Singletons model "the one thing" (the current user, the current org, …) and
     real-world APIs commonly hang typed sub-collections off such endpoints
-    (`/me/orders`, `/orgs/current/members`). The builder accepts the structure
+    (`/me/orders`, `/organizations/current/members`). The builder accepts the structure
     so the generated client exposes `client.me.orders.list()`.
     """
     spec = {
@@ -1072,6 +1072,92 @@ def test_build_singletons_fixture(
     avatar = users.resource.singletons[0]
     assert avatar.update is not None
     assert avatar.delete is not None
+
+
+def test_build_canonicalizes_resource_id_param_when_spec_uses_inconsistent_names(
+    english_nlp: Language,
+) -> None:
+    """A child path that uses a different `{param}` than the parent resource canonicalizes to it.
+
+    OpenAPI documents in the wild often use `/organizations/{id}` for the resource
+    and `/organizations/{organization_id}/...` for its children. Since the wiring
+    propagates the parent's `path_params` dict down to every child, the
+    child's PATH_TEMPLATE must reference the same key the parent set —
+    otherwise `str.format` raises `KeyError` at runtime. The first
+    encountered parameter name wins.
+    """
+    spec = {
+        "paths": {
+            "/organizations/{id}": {
+                "get": {"responses": {"200": {"description": "OK"}}},
+            },
+            "/organizations/{organization_id}/subscription": {
+                "x-okapipy-kind": "singleton",
+                "get": {"responses": {"200": {"description": "OK"}}},
+            },
+        }
+    }
+
+    api = build(spec, Rules(), english_nlp)
+
+    orgs = api.collections[0]
+    assert orgs.resource is not None
+    assert orgs.resource.path == "/organizations/{id}"
+    subscription = orgs.resource.singletons[0]
+    assert subscription.path == "/organizations/{id}/subscription"
+
+
+def test_build_canonicalizes_nested_resource_id_params_independently(
+    english_nlp: Language,
+) -> None:
+    """Each nested resource canonicalizes to its own first-seen `{param}` name."""
+    spec = {
+        "paths": {
+            "/organizations/{org_id}/users/{user_id}": {
+                "get": {"responses": {"200": {"description": "OK"}}},
+            },
+            "/organizations/{id}/users/{id}/profile": {
+                "x-okapipy-kind": "singleton",
+                "get": {"responses": {"200": {"description": "OK"}}},
+            },
+        }
+    }
+
+    api = build(spec, Rules(), english_nlp)
+
+    orgs = api.collections[0]
+    assert orgs.resource is not None
+    assert orgs.resource.path == "/organizations/{org_id}"
+    users = orgs.resource.collections[0]
+    assert users.resource is not None
+    assert users.resource.path == "/organizations/{org_id}/users/{user_id}"
+    profile = users.resource.singletons[0]
+    assert profile.path == "/organizations/{org_id}/users/{user_id}/profile"
+
+
+def test_build_leaves_resource_id_segment_unchanged_when_no_prior_resource(
+    english_nlp: Language,
+) -> None:
+    """The first path through a collection sets the canonical param — no rewrite happens."""
+    spec = {
+        "paths": {
+            "/organizations/{organization_id}/subscription": {
+                "x-okapipy-kind": "singleton",
+                "get": {"responses": {"200": {"description": "OK"}}},
+            },
+            "/organizations/{id}": {
+                "get": {"responses": {"200": {"description": "OK"}}},
+            },
+        }
+    }
+
+    api = build(spec, Rules(), english_nlp)
+
+    orgs = api.collections[0]
+    assert orgs.resource is not None
+    assert orgs.resource.path == "/organizations/{organization_id}"
+    subscription = orgs.resource.singletons[0]
+    assert subscription.path == "/organizations/{organization_id}/subscription"
 
 
 def _find_namespace(api: APIModel | Namespace, name: str) -> Namespace:

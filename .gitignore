@@ -189,3 +189,5 @@ bandit.json
 
 # claude local settings
 .claude/settings.local.json
+
+samples

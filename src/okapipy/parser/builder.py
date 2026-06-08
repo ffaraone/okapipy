@@ -444,6 +444,13 @@ def _walk_path(
     breadcrumb: list[str] = []
     parent_kind: SegmentKind | None = None
     cumulative_parts: list[str] = []
+    # `canonical_parts` mirrors `cumulative_parts` but rewrites resource-id
+    # segments to the first-seen `{param}` name for that resource slot. Spec
+    # documents in the wild use inconsistent path-parameter names (e.g.
+    # `/orgs/{id}` next to `/orgs/{organization_id}/foo`); the wiring layer
+    # forwards the parent's `path_params` dict down to every child, so the
+    # child's PATH_TEMPLATE must reference the same key the parent set.
+    canonical_parts: list[str] = []
     # The full-path hint (rules wins over spec extension) applies to the last
     # segment; intermediate segments resolve their hints by cumulative-path
     # lookup so a rules entry like `/helpdesk/feedback: collection` propagates
@@ -473,17 +480,28 @@ def _walk_path(
             ns_registry=ns_registry,
             extension_hint=hint,
         )
+        canonical_segment = segment
+        if (
+            kind is SegmentKind.RESOURCE_ID
+            and isinstance(cursor, Collection)
+            and cursor.resource is not None
+        ):
+            canonical = _trailing_param_segment(cursor.resource.path)
+            if canonical is not None:
+                canonical_segment = canonical
+        canonical_parts.append(canonical_segment)
+        canonical_path = "/".join(canonical_parts)
         cursor, breadcrumb = _attach(
             cursor=cursor,
             kind=kind,
-            segment=segment,
-            cumulative_path="/" + cumulative_path,
+            segment=canonical_segment,
+            cumulative_path="/" + canonical_path,
             breadcrumb=breadcrumb,
             nlp=nlp,
         )
         terminal_kind = kind
         parent_kind = kind
-        last_path = "/" + cumulative_path
+        last_path = "/" + canonical_path
     if terminal_kind is None:
         return
     _install_operations(
@@ -651,6 +669,22 @@ def _resolve_paginated(
     if spec_value is not None:
         return spec_value
     return fallback
+
+
+def _trailing_param_segment(path: str) -> str | None:
+    """Return the trailing `{param}` segment of `path`, or `None` if it has none.
+
+    Used to canonicalize resource-id parameter names across spec paths that
+    use inconsistent names for the same resource slot (e.g.
+    `/orgs/{id}` and `/orgs/{organization_id}/...`). Returns the brace-wrapped
+    segment so the caller can drop it straight into `cumulative_parts`.
+    """
+    if not path.endswith("}"):
+        return None
+    open_brace = path.rfind("{")
+    if open_brace == -1 or path[open_brace - 1] != "/":
+        return None
+    return path[open_brace:]
 
 
 def _route(
