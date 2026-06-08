@@ -31,7 +31,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from okapipy.generator.emit.walk import (
+from okapipy.generator.emit.names import (
     action_attr,
     action_class,
     action_module,

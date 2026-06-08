@@ -3,7 +3,7 @@
 Two layers of coverage live here:
 
 * **Helper unit tests** call the public docstring builders in
-  `okapipy.generator.emit.walk` against hand-built parser nodes — small,
+  `okapipy.generator.emit.docstrings` against hand-built parser nodes — small,
   fast, and pinned to substring assertions so wording polish doesn't ripple
   through fixtures.
 * **Golden-file checks** generate a tree from the `nested.yaml` fixture
@@ -19,7 +19,7 @@ from pathlib import Path
 import pytest
 
 from okapipy.generator import generate_for_mount
-from okapipy.generator.emit.walk import (
+from okapipy.generator.emit.docstrings import (
     ChildRef,
     action_accessor_docstring,
     action_meta_inline,

@@ -18,6 +18,12 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
+from okapipy.generator.emit.names import (
+    collection_module,
+    namespace_module,
+    resource_module,
+    singleton_module,
+)
 from okapipy.generator.emit.stubs import (
     ChildWiring,
     client_wirings,
@@ -25,12 +31,6 @@ from okapipy.generator.emit.stubs import (
     namespace_wirings,
     resource_wirings,
     singleton_wirings,
-)
-from okapipy.generator.emit.walk import (
-    collection_module,
-    namespace_module,
-    resource_module,
-    singleton_module,
 )
 from okapipy.generator.state import GENERATOR_VERSION, Edge, GeneratedState
 from okapipy.parser.model import APIModel, Collection, Namespace, Resource, Singleton
