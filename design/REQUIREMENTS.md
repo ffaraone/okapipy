@@ -143,7 +143,7 @@ Read both from the spec and from the rules file (rules-file values win):
 |-----------|-------|--------|
 | `x-okapipy-ns` (root, list of strings) | spec / rules root | Adds path-prefixes to the namespace registry. Leading `/` accepted and stripped. |
 | `x-okapipy-kind: namespace\|collection\|action\|singleton\|resource` | path-item or operation | Forces the segment / operation classification. Path-item-level hints propagate to nested paths. |
-| `x-okapipy-paginated: true\|false` | path-item or operation | Sets `Operation.pagination_supported`; per-method override wins, then path-item, then default `True`. |
+| `x-okapipy-paginated: true\|false` | document root, path-item, or operation | Sets `Operation.pagination_supported`; per-method override wins, then path-item, then document root (rules > spec at each level), then default `True`. |
 | `x-okapipy-exclude: "*" \| ["GET", ...]` | path-item | Drops the entire path or selected methods (case-insensitive). |
 
 Unknown `x-okapipy-kind` values raise `RulesFormatError` at load time. Unknown

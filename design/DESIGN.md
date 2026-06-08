@@ -111,11 +111,12 @@ the same shape using Pydantic v2 models with field aliases (`alias=
 functions return values from the rules first, falling back to the spec —
 the **rules-file-wins** invariant.
 
-The `Rules` document accepts only namespace declarations and per-path /
-per-method overrides; URLs are rejected (`load_rules` requires a
-`Path`-resolvable source). Unknown `x-okapipy-kind` values and malformed
-`x-okapipy-exclude` entries raise `RulesFormatError` with the offending
-path so the customer knows where to look.
+The `Rules` document accepts namespace declarations, a document-root
+`x-okapipy-paginated` default, and per-path / per-method overrides; URLs
+are rejected (`load_rules` requires a `Path`-resolvable source). Unknown
+`x-okapipy-kind` values and malformed `x-okapipy-exclude` entries raise
+`RulesFormatError` with the offending path so the customer knows where
+to look.
 
 ### 1.6 Classifier (`classifier.py`)
 
@@ -203,7 +204,13 @@ etc., resolving the intermediate `me` segment correctly. Without this an
 intermediate singular noun would otherwise default to `NAMESPACE`.
 
 `_resolve_paginated` follows precedence: per-method rules → per-method spec
-extension → path-item rules → path-item spec extension → default `True`.
+extension → path-item rules → path-item spec extension → root rules → root
+spec extension → default `True`. The root tier is resolved once in `build`
+and threaded through `_walk_path` into `_install_operations` as the
+`item_paginated` fallback, so a document-level
+`x-okapipy-paginated: false` flips the default for every list endpoint
+while still letting individual collections or operations re-enable
+pagination.
 
 After every path is walked, `_apply_tag_descriptions` pulls root
 `tags[]` (indexed by `_collect_tag_descriptions` into a `{name →

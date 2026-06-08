@@ -15,6 +15,7 @@ from typing import Any
 from okapipy.generator.emit.tests import emit_tests
 from okapipy.generator.templating import make_environment
 from okapipy.parser.api import parse
+from okapipy.parser.model import Action, APIModel, Operation
 
 FIXTURES = Path(__file__).resolve().parent.parent / "fixtures"
 
@@ -131,3 +132,35 @@ def test_emit_tests_emits_async_tests_with_pytest_asyncio_marker(
     assert "@pytest.mark.asyncio" in rendered
     assert "async def test_async_" in rendered
     assert "async for" in rendered
+
+
+def test_emit_tests_action_with_inline_union_body_passes_body_to_run(
+    project_context: dict[str, Any],
+) -> None:
+    """An action whose request body is an inline `anyOf` of titled schemas calls `run(body)`.
+
+    Regression for the case where the operation has `request_model=None`
+    but `request_model_members=[...]`: the generated `run()` signature
+    still takes a body parameter, so the test must pass one or the call
+    raises `TypeError: missing 1 required positional argument: 'body'`.
+    """
+    action = Action(
+        name="Tokens",
+        path="/auth/tokens",
+        operations=[
+            Operation(
+                method="POST",
+                request_content_type="application/json",
+                request_model=None,
+                request_model_members=["Login", "RefreshAccessToken"],
+            )
+        ],
+    )
+    api = APIModel(actions=[action])
+    env = make_environment(None)
+
+    out = emit_tests(env, api, project_context, top_package="demoapi")
+
+    rendered = out["tests/demoapi/actions/test_tokens.py"]
+    assert "client.tokens.run({" in rendered
+    assert "await async_client.tokens.run({" in rendered

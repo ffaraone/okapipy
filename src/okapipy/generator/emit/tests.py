@@ -407,7 +407,7 @@ def _emit_action_tests(
     operations = [
         {
             "method": op.method,
-            "has_body": op.request_model is not None,
+            "has_body": bool(op.request_model) or bool(op.request_model_members),
         }
         for op in action.operations
     ]
