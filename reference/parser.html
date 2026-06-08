@@ -3081,10 +3081,11 @@ URL has no path), the empty string is returned and no stripping is performed.</p
     <div class="doc doc-contents first">
 
         <p>External rules file: a project-local override layer for OpenAPI parsing.</p>
-<p>A rules file lets a user supply (or override) <code>x-okapipy-ns</code> at the document
-root and <code>x-okapipy-kind</code> / <code>x-okapipy-paginated</code> / <code>x-okapipy-exclude</code> on path-items
-or operations without editing the OpenAPI document itself. Rules-file values
-take precedence over values declared inline in the spec.</p>
+<p>A rules file lets a user supply (or override) <code>x-okapipy-ns</code> and
+<code>x-okapipy-paginated</code> at the document root and <code>x-okapipy-kind</code> /
+<code>x-okapipy-paginated</code> / <code>x-okapipy-exclude</code> on path-items or operations
+without editing the OpenAPI document itself. Rules-file values take
+precedence over values declared inline in the spec.</p>
 <p>The file must be local. URLs are not supported.</p>
 
 
