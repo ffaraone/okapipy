@@ -40,6 +40,18 @@ def path_item_extension(path_item: dict[str, Any]) -> str | None:
     return value if isinstance(value, str) else None
 
 
+def root_paginated_extension(spec: dict[str, Any]) -> bool | None:
+    """Return the document-root `x-okapipy-paginated` value, if explicitly set.
+
+    Acts as the default for every operation in the document: when set to
+    `False`, list endpoints are non-paginated unless a path-item or
+    operation re-enables pagination. Returns `None` when the extension is
+    absent or has an unsupported shape.
+    """
+    value = spec.get(OKAPIPY_PAGINATED_EXT)
+    return value if isinstance(value, bool) else None
+
+
 def operation_paginated_extension(operation: dict[str, Any]) -> bool | None:
     """Return the `x-okapipy-paginated` value declared on a single operation.
 

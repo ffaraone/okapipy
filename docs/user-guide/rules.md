@@ -102,9 +102,12 @@ Method names are case-insensitive.
 
 ## `x-okapipy-paginated` — opt out of pagination
 
-Path-item or operation level. Defaults to `true`; set it to `false` for
-list-shaped endpoints that return a bounded list (enum-like reference
-data, configuration, etc.).
+Three scopes — document root, path-item, or operation. Defaults to `true`;
+set it to `false` for list-shaped endpoints that return a bounded list
+(enum-like reference data, configuration, etc.).
+
+Precedence, narrowest first: operation → path-item → document root → default
+`true`. Within each scope, a rules-file value wins over the spec value.
 
 ```yaml
 paths:
@@ -119,6 +122,34 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Currency'
+```
+
+Use the **root-level** form when the API as a whole isn't paginated and
+you don't want to repeat the flag on every collection:
+
+```yaml
+openapi: 3.0.0
+info:
+  title: Reference Data API
+  version: 1.0.0
+x-okapipy-paginated: false             # disable pagination by default
+
+paths:
+  /currencies:    { get: { ... } }     # non-paginated
+  /countries:     { get: { ... } }     # non-paginated
+  /transactions:
+    x-okapipy-paginated: true          # this one is paginated
+    get: { ... }
+```
+
+The same key works at the root of a rules file:
+
+```yaml
+# okapipy.rules.yaml
+x-okapipy-paginated: false
+paths:
+  /transactions:
+    x-okapipy-paginated: true
 ```
 
 ## The rules file

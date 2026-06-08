@@ -137,6 +137,105 @@ def test_rules_per_method_paginated_overrides_path_item(
     assert orders.fetch.pagination_supported is True
 
 
+def test_root_spec_extension_disables_pagination(english_nlp: Language) -> None:
+    """A root-level `x-okapipy-paginated: false` in the spec disables pagination by default."""
+    spec = {
+        "x-okapipy-paginated": False,
+        "paths": {
+            "/orders": {
+                "get": {"responses": {"200": {"description": "OK"}}},
+            }
+        },
+    }
+
+    api = build(spec, Rules(), english_nlp)
+
+    orders = api.collections[0]
+    assert orders.fetch is not None
+    assert orders.fetch.pagination_supported is False
+
+
+def test_root_rules_disable_pagination(english_nlp: Language, tmp_path: Path) -> None:
+    """A root `x-okapipy-paginated: false` in the rules disables pagination by default."""
+    rules_file = tmp_path / "side.yaml"
+    rules_file.write_text("x-okapipy-paginated: false\n")
+    spec = {
+        "paths": {
+            "/orders": {
+                "get": {"responses": {"200": {"description": "OK"}}},
+            }
+        }
+    }
+
+    api = build(spec, load_rules(rules_file), english_nlp)
+
+    orders = api.collections[0]
+    assert orders.fetch is not None
+    assert orders.fetch.pagination_supported is False
+
+
+def test_root_rules_paginated_wins_over_root_spec(
+    english_nlp: Language, tmp_path: Path
+) -> None:
+    """When both rules and spec set a root-level `x-okapipy-paginated`, rules win."""
+    rules_file = tmp_path / "side.yaml"
+    rules_file.write_text("x-okapipy-paginated: false\n")
+    spec = {
+        "x-okapipy-paginated": True,
+        "paths": {
+            "/orders": {
+                "get": {"responses": {"200": {"description": "OK"}}},
+            }
+        },
+    }
+
+    api = build(spec, load_rules(rules_file), english_nlp)
+
+    orders = api.collections[0]
+    assert orders.fetch is not None
+    assert orders.fetch.pagination_supported is False
+
+
+def test_path_item_extension_overrides_root_default(english_nlp: Language) -> None:
+    """A path-item `x-okapipy-paginated` overrides a root-level default."""
+    spec = {
+        "x-okapipy-paginated": False,
+        "paths": {
+            "/orders": {
+                "x-okapipy-paginated": True,
+                "get": {"responses": {"200": {"description": "OK"}}},
+            }
+        },
+    }
+
+    api = build(spec, Rules(), english_nlp)
+
+    orders = api.collections[0]
+    assert orders.fetch is not None
+    assert orders.fetch.pagination_supported is True
+
+
+def test_operation_extension_overrides_root_default(english_nlp: Language) -> None:
+    """A per-operation `x-okapipy-paginated` overrides a root-level default."""
+    spec = {
+        "x-okapipy-paginated": False,
+        "paths": {
+            "/orders": {
+                "get": {
+                    "x-okapipy-paginated": True,
+                    "responses": {"200": {"description": "OK"}},
+                },
+            }
+        },
+    }
+
+    api = build(spec, Rules(), english_nlp)
+
+    orders = api.collections[0]
+    assert orders.fetch is not None
+    assert orders.fetch.pagination_supported is True
+
+
 def test_response_headers_are_captured(english_nlp: Language) -> None:
     """Header names declared on the chosen 2xx response are surfaced on Operation."""
     spec = {

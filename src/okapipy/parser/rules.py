@@ -1,9 +1,10 @@
 """External rules file: a project-local override layer for OpenAPI parsing.
 
-A rules file lets a user supply (or override) `x-okapipy-ns` at the document
-root and `x-okapipy-kind` / `x-okapipy-paginated` / `x-okapipy-exclude` on path-items
-or operations without editing the OpenAPI document itself. Rules-file values
-take precedence over values declared inline in the spec.
+A rules file lets a user supply (or override) `x-okapipy-ns` and
+`x-okapipy-paginated` at the document root and `x-okapipy-kind` /
+`x-okapipy-paginated` / `x-okapipy-exclude` on path-items or operations
+without editing the OpenAPI document itself. Rules-file values take
+precedence over values declared inline in the spec.
 
 The file must be local. URLs are not supported.
 """
@@ -55,6 +56,7 @@ class Rules(BaseModel):
     model_config = ConfigDict(populate_by_name=True, extra="ignore")
 
     x_okapipy_ns: list[str] = Field(default_factory=list, alias="x-okapipy-ns")
+    x_okapipy_paginated: bool | None = Field(default=None, alias="x-okapipy-paginated")
     paths: dict[str, PathRules] = Field(default_factory=dict)
 
 
@@ -116,6 +118,15 @@ def path_item_hint(rules: Rules, path: str) -> str | None:
     """Return the path-item-level `x-okapipy-kind`, ignoring per-method overrides."""
     item = rules.paths.get(path)
     return item.x_okapipy_kind if item is not None else None
+
+
+def root_paginated(rules: Rules) -> bool | None:
+    """Return the rules' document-root `x-okapipy-paginated`, if set.
+
+    Acts as the default for every operation across the spec when no closer
+    override exists; path-item and operation entries still win on conflict.
+    """
+    return rules.x_okapipy_paginated
 
 
 def path_item_paginated(rules: Rules, path: str) -> bool | None:

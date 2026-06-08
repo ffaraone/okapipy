@@ -55,6 +55,7 @@ from okapipy.parser.extension import (
     path_item_extension,
     path_item_paginated_extension,
     root_namespaces,
+    root_paginated_extension,
 )
 from okapipy.parser.extension import (
     path_item_exclusion as spec_path_exclusion,
@@ -77,6 +78,7 @@ from okapipy.parser.rules import (
     operation_paginated,
     path_item_hint,
     path_item_paginated,
+    root_paginated,
 )
 from okapipy.parser.rules import (
     path_exclusion as rules_path_exclusion,
@@ -146,6 +148,10 @@ def build(
     paths = strip_base_path(paths_obj, base)
     ns_registry = root_namespaces(spec) | extra_namespaces(rules)
     spec_path_kinds = _collect_spec_path_kinds(paths)
+    root_paginated_default = _resolve_paginated(
+        rules_value=root_paginated(rules),
+        spec_value=root_paginated_extension(spec),
+    )
     unmatched: list[_UnmatchedOp] | None = (
         [] if unmatched_namespace is not None else None
     )
@@ -177,6 +183,7 @@ def build(
                 spec_path_kinds=spec_path_kinds,
                 excluded_methods=excluded_methods,
                 spec=spec,
+                root_paginated_default=root_paginated_default,
                 unmatched=unmatched,
             )
         except InvalidStructureError as exc:
@@ -425,6 +432,7 @@ def _walk_path(
     spec_path_kinds: dict[str, str],
     excluded_methods: set[str],
     spec: dict[str, Any],
+    root_paginated_default: bool,
     unmatched: list[_UnmatchedOp] | None,
 ) -> None:
     """Walk a single OpenAPI path and attach its operations to the tree."""
@@ -487,6 +495,7 @@ def _walk_path(
         action_path=last_path,
         excluded_methods=excluded_methods,
         spec=spec,
+        root_paginated_default=root_paginated_default,
         unmatched=unmatched,
     )
 
@@ -575,12 +584,19 @@ def _install_operations(
     action_path: str,
     excluded_methods: set[str],
     spec: dict[str, Any],
+    root_paginated_default: bool,
     unmatched: list[_UnmatchedOp] | None,
 ) -> None:
-    """Attach Operation entries onto the terminal node according to its kind."""
+    """Attach Operation entries onto the terminal node according to its kind.
+
+    Pagination resolves on a five-tier cascade: per-method rules → per-method
+    spec extension → path-item rules → path-item spec extension →
+    `root_paginated_default` (root rules → root spec → `True`).
+    """
     item_paginated = _resolve_paginated(
         rules_value=path_item_paginated(rules, path),
         spec_value=path_item_paginated_extension(path_item),
+        fallback=root_paginated_default,
     )
     for method in HTTP_METHODS:
         op_data = path_item.get(method)
