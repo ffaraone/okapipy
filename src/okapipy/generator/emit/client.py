@@ -7,30 +7,32 @@ from typing import Any
 
 from jinja2 import Environment
 
-from okapipy.generator.emit.walk import (
+from okapipy.generator.emit.docstrings import (
     ChildRef,
     action_accessor_docstring,
-    action_attr,
-    action_class,
     action_meta_inline,
-    action_module,
     action_one_line,
     build_client_class_docstring,
+    collection_one_line,
+    collection_property_docstring,
+    namespace_accessor_docstring,
+    node_one_line,
+    singleton_accessor_docstring,
+    singleton_one_line,
+)
+from okapipy.generator.emit.names import (
+    action_attr,
+    action_class,
+    action_module,
     collection_attr,
     collection_class,
     collection_module,
-    collection_one_line,
-    collection_property_docstring,
     factory_attr,
-    namespace_accessor_docstring,
     namespace_class,
     namespace_module,
-    node_one_line,
-    singleton_accessor_docstring,
     singleton_attr,
     singleton_class,
     singleton_module,
-    singleton_one_line,
 )
 from okapipy.generator.templating import render_python, snake_case
 from okapipy.parser.model import APIModel

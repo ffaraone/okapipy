@@ -32,6 +32,12 @@ from typing import Any, Literal
 from okapipy.generator import compose
 from okapipy.generator.edges import compute_edges, compute_state
 from okapipy.generator.emit.client import emit_client
+from okapipy.generator.emit.docstrings import (
+    ChildRef,
+    namespace_accessor_docstring,
+    node_one_line,
+)
+from okapipy.generator.emit.names import factory_attr
 from okapipy.generator.emit.project import emit_project_skeleton
 from okapipy.generator.emit.runtime import emit_runtime
 from okapipy.generator.emit.stubs import (
@@ -41,13 +47,9 @@ from okapipy.generator.emit.stubs import (
 )
 from okapipy.generator.emit.tests import emit_tests
 from okapipy.generator.emit.walk import (
-    ChildRef,
     emit_mount_namespace,
     emit_root_init_extension,
     emit_tree,
-    factory_attr,
-    namespace_accessor_docstring,
-    node_one_line,
 )
 from okapipy.generator.models import emit_models, public_names
 from okapipy.generator.state import (

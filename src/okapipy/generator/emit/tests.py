@@ -18,7 +18,7 @@ from typing import Any
 
 from jinja2 import Environment
 
-from okapipy.generator.emit.walk import (
+from okapipy.generator.emit.names import (
     action_attr,
     action_module,
     collection_attr,
