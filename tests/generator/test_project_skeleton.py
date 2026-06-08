@@ -20,6 +20,8 @@ def _generate(
     *,
     license_id: str = "Proprietary",
     author: str | None = None,
+    project_description: str | None = None,
+    repo_url: str | None = None,
 ) -> dict[str, GeneratedFile]:
     """Render the skeleton with the given license and author, in dicts shape.
 
@@ -34,6 +36,8 @@ def _generate(
         client_class="AcmeClient",
         license=license_id,
         author=author,
+        project_description=project_description,
+        repo_url=repo_url,
         shape="dicts",
     )
 
@@ -134,6 +138,75 @@ def test_pyproject_emits_authors_when_author_set() -> None:
     pyproject = _generate(author="Alice Example")["pyproject.toml"].content
     assert "authors = [" in pyproject
     assert '{ name = "Alice Example" }' in pyproject
+
+
+def test_pyproject_emits_readme_pointing_at_generated_readme() -> None:
+    """`pyproject.toml` always points `readme` at the co-emitted README.md."""
+    pyproject = _generate()["pyproject.toml"].content
+    assert 'readme = "README.md"' in pyproject
+
+
+def test_pyproject_always_emits_license_files_glob() -> None:
+    """`license-files` is always emitted; the LICENSE file is always generated."""
+    pyproject = _generate(license_id="Proprietary")["pyproject.toml"].content
+    assert 'license-files = ["LICEN[CS]E*"]' in pyproject
+
+
+def test_pyproject_emits_license_files_alongside_spdx_license() -> None:
+    """`license-files` is emitted regardless of whether the SPDX `license` line is."""
+    pyproject = _generate(license_id="MIT")["pyproject.toml"].content
+    assert 'license = "MIT"' in pyproject
+    assert 'license-files = ["LICEN[CS]E*"]' in pyproject
+
+
+def test_pyproject_description_defaults_to_generated_blurb() -> None:
+    """Without a manifest `project_description`, the description falls back to a generated blurb."""
+    pyproject = _generate()["pyproject.toml"].content
+    assert 'description = "Generated client for client"' in pyproject
+
+
+def test_pyproject_description_uses_manifest_value_when_set() -> None:
+    """A manifest-supplied `project_description` is emitted verbatim."""
+    pyproject = _generate(project_description="Acme commerce SDK")[
+        "pyproject.toml"
+    ].content
+    assert 'description = "Acme commerce SDK"' in pyproject
+
+
+def test_pyproject_omits_project_urls_when_no_repo_url() -> None:
+    """Without `repo_url`, no `[project.urls]` table is emitted."""
+    pyproject = _generate()["pyproject.toml"].content
+    assert "[project.urls]" not in pyproject
+
+
+def test_pyproject_emits_github_urls_for_github_repo() -> None:
+    """A `github.com` `repo_url` renders Homepage / Repository / Issues entries."""
+    pyproject = _generate(repo_url="https://github.com/acme/client")[
+        "pyproject.toml"
+    ].content
+    assert "[project.urls]" in pyproject
+    assert 'Homepage = "https://github.com/acme/client"' in pyproject
+    assert 'Repository = "https://github.com/acme/client"' in pyproject
+    assert 'Issues = "https://github.com/acme/client/issues"' in pyproject
+
+
+def test_pyproject_omits_issues_for_non_github_repo() -> None:
+    """A non-GitHub `repo_url` does not gain a synthetic `/issues` URL."""
+    pyproject = _generate(repo_url="https://gitlab.com/acme/client")[
+        "pyproject.toml"
+    ].content
+    assert 'Homepage = "https://gitlab.com/acme/client"' in pyproject
+    assert 'Repository = "https://gitlab.com/acme/client"' in pyproject
+    assert "Issues" not in pyproject
+
+
+def test_pyproject_strips_trailing_slash_from_repo_url() -> None:
+    """A trailing slash on `repo_url` is normalized away before rendering."""
+    pyproject = _generate(repo_url="https://github.com/acme/client/")[
+        "pyproject.toml"
+    ].content
+    assert 'Homepage = "https://github.com/acme/client"' in pyproject
+    assert 'Issues = "https://github.com/acme/client/issues"' in pyproject
 
 
 def test_readme_emits_shields_io_badge_with_brand_color() -> None:

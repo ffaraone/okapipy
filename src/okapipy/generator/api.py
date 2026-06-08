@@ -84,10 +84,12 @@ def generate_for_mount(
     package: str,
     client_class: str,
     project_name: str | None = None,
+    project_description: str | None = None,
     project_version: str = "0.1.0",
     python_version: str = "3.13",
     license: str = "Proprietary",
     author: str | None = None,
+    repo_url: str | None = None,
     templates_dir: Path | None = None,
     model_templates_dir: Path | None = None,
     shape: Shape = "auto",
@@ -108,6 +110,8 @@ def generate_for_mount(
             `Async<client_class>`. Base classes carry an additional `Base` suffix.
         project_name: PEP 503 distribution name. Defaults to the last segment of
             `package`.
+        project_description: free-form PEP 621 `description` field for
+            `pyproject.toml`. Defaults to `"Generated client for <project_name>"`.
         project_version: initial version string emitted into `pyproject.toml`.
         python_version: pinned Python version for the generated project.
         license: SPDX identifier; drives the `LICENSE` placeholder.
@@ -115,6 +119,9 @@ def generate_for_mount(
             `authors` entry in `pyproject.toml`. When omitted, the LICENSE
             falls back to the project name and `pyproject.toml` omits the
             `authors` block.
+        repo_url: optional source-repository URL. When set, drives the
+            `[project.urls]` table in `pyproject.toml` (Homepage,
+            Repository, and — for `github.com` URLs — Issues).
         templates_dir: optional directory of user templates. Resolved before the
             packaged defaults (ChoiceLoader).
         model_templates_dir: optional directory of `datamodel-code-generator`
@@ -140,15 +147,20 @@ def generate_for_mount(
     package_path = package.replace(".", "/")
     top_package = package.split(".", 1)[0]
     resolved_project_name = project_name or package.rsplit(".", 1)[-1]
+    resolved_project_description = (
+        project_description or f"Generated client for {resolved_project_name}"
+    )
     project_context = {
         "package": package,
         "client_class": client_class,
         "project_name": resolved_project_name,
+        "project_description": resolved_project_description,
         "project_version": project_version,
         "python_version": python_version,
         "license": license,
         "license_is_spdx": license in _SPDX_LICENSES,
         "author": author,
+        "project_urls": _project_urls(repo_url),
         "current_year": date.today().year,
         "shape": shape,
     }
@@ -230,15 +242,20 @@ def generate(manifest: GenerationManifest) -> dict[str, GeneratedFile]:
     package_path = manifest.package.replace(".", "/")
     top_package = manifest.package.split(".", 1)[0]
     resolved_project_name = manifest.project_name or manifest.package.rsplit(".", 1)[-1]
+    resolved_project_description = (
+        manifest.project_description or f"Generated client for {resolved_project_name}"
+    )
     project_context = {
         "package": manifest.package,
         "client_class": manifest.client_class,
         "project_name": resolved_project_name,
+        "project_description": resolved_project_description,
         "project_version": manifest.project_version,
         "python_version": manifest.python_version,
         "license": manifest.license,
         "license_is_spdx": manifest.license in _SPDX_LICENSES,
         "author": manifest.author,
+        "project_urls": _project_urls(manifest.repo_url),
         "current_year": date.today().year,
         "shape": manifest.shape,
     }
@@ -478,3 +495,24 @@ def _wrap(
     """Promote a `dict[str, str]` from a sub-emitter into the lifecycle-tagged VFS."""
     for path, content in files.items():
         vfs[path] = GeneratedFile(content=content, one_shot=one_shot)
+
+
+def _project_urls(repo_url: str | None) -> list[tuple[str, str]]:
+    """Build the PEP 621 `[project.urls]` entries from a source-repository URL.
+
+    Returns an empty list when `repo_url` is `None`. Otherwise emits
+    `Homepage` and `Repository` pointing at `repo_url`, and — for
+    `github.com` URLs — an `Issues` entry under `<repo_url>/issues`.
+    Order is preserved so the rendered TOML table is deterministic.
+    """
+    if not repo_url:
+        return []
+    trimmed = repo_url.rstrip("/")
+    urls: list[tuple[str, str]] = [
+        ("Homepage", trimmed),
+        ("Repository", trimmed),
+    ]
+    host = trimmed.split("://", 1)[-1].split("/", 1)[0].lower()
+    if host == "github.com":
+        urls.append(("Issues", f"{trimmed}/issues"))
+    return urls

@@ -55,12 +55,21 @@ That writes `./okapipy.yml`:
 
 ```yaml
 # okapipy project manifest. See https://ffaraone.github.io/okapipy/ for details.
+
+# Required.
 package: acme.commerce
 client_class: CommerceClient
 
-# Optional project-level settings (uncomment and edit as needed).
-# project_version: "0.1.0"
-# python_version: "3.13"
+# Project metadata — drives pyproject.toml, LICENSE, and README.
+project_name: commerce
+project_description: Generated client for commerce
+project_version: "0.1.0"
+python_version: "3.13"
+license: Proprietary  # SPDX id (MIT, Apache-2.0, BSD-3-Clause, MPL-2.0, ...)
+author: Your Organization
+repo_url: https://github.com/your-org/your-repo
+
+# Optional generation settings — see the manifest reference for details.
 # shape: auto  # auto | models | dicts
 # output: ./out
 
@@ -69,8 +78,10 @@ specs:
     source: openapi.yaml
 ```
 
-Commit this file alongside your consumer code. It's the source of truth
-for what the generated client looks like.
+Edit the `author` and `repo_url` lines (and the `license` if you have
+one in mind), commit the file alongside your consumer code, and you're
+done — it's the source of truth for what the generated client looks
+like.
 
 ## 4. Generate a client
 
@@ -181,44 +192,33 @@ warning fires, or any stale base file would be pruned.
 
 ## The project manifest
 
-Every option used to drive generation lives in `okapipy.yml`. A full
-reference:
+Every option used to drive generation lives in `okapipy.yml`. A typical
+one for a single-spec project:
 
 ```yaml
-# Required.
-package: acme.commerce              # dotted Python package
-client_class: CommerceClient        # PascalCase
+package: acme.commerce              # required: dotted Python package
+client_class: CommerceClient        # required: PascalCase
+output: ./out                       # optional: --output overrides this
 
-# Optional project metadata.
-project_name: acme-commerce         # PEP 503 distribution name; defaults to "commerce"
-project_version: "0.1.0"
-python_version: "3.13"              # 3.10 / 3.11 / 3.12 / 3.13
-license: Proprietary                # SPDX id; recognised values emit full text
-author: Acme Corp                   # copyright holder for LICENSE / authors[]
+# Optional project metadata — populates pyproject.toml + LICENSE.
+project_description: Acme commerce API client
+license: Apache-2.0
+author: Acme Corp
+repo_url: https://github.com/acme/commerce
 
-# Optional generation settings.
-shape: auto                         # auto | models | dicts (see Response shape)
-lang: en                            # default NLP language for every spec
-nlp_cache_dir: .spacy
-templates_dir: ./templates          # override packaged Jinja templates
-model_templates_dir: ./model_tpls   # override datamodel-code-generator templates
-
-# Optional default output directory; CLI --output wins on conflict.
-output: ./out
-
-# Required: at least one spec entry.
-specs:
+specs:                              # required: at least one entry
   - namespace: ''                   # '' mounts at the package root
     source: ./openapi.yaml          # path or http(s) URL
     rules: ./rules.yaml             # optional, local path only
-    strip_prefix: /v1               # optional
-    unmatched: misc                 # optional (see Rules and extensions)
-    lang: en                        # optional; inherits the top-level lang
 ```
 
 Paths are resolved relative to the manifest file's directory, so the
 manifest is portable with the consumer repo. URLs (`source:
 https://…`) are left verbatim.
+
+For every field the manifest accepts — version, Python, response
+shape, templates, per-spec overrides — see the [manifest
+reference](../reference/manifest.md).
 
 ### Multi-spec projects
 
