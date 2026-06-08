@@ -12,13 +12,13 @@
         <meta name="author" content="Francesco Faraone">
       
       
-        <link rel="canonical" href="https://ffaraone.github.io/okapipy/reference/cli.html">
+        <link rel="canonical" href="https://ffaraone.github.io/okapipy/reference/manifest.html">
       
       
-        <link rel="prev" href="../developer-guide/generator.html">
+        <link rel="prev" href="cli.html">
       
       
-        <link rel="next" href="manifest.html">
+        <link rel="next" href="parser.html">
       
       
         
@@ -29,7 +29,7 @@
     
     
       
-        <title>CLI reference - okapipy</title>
+        <title>Manifest reference - okapipy</title>
       
     
     
@@ -84,7 +84,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#cli-reference" class="md-skip">
+        <a href="#manifest-reference" class="md-skip">
           Skip to content
         </a>
       
@@ -119,7 +119,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              CLI reference
+              Manifest reference
             
           </span>
         </div>
@@ -925,6 +925,34 @@
                 
   
   
+  
+  
+    <li class="md-nav__item">
+      <a href="cli.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
     
   
   
@@ -944,7 +972,7 @@
   <span class="md-ellipsis">
     
   
-    CLI reference
+    Manifest reference
   
 
     
@@ -955,14 +983,14 @@
           <span class="md-nav__icon md-icon"></span>
         </label>
       
-      <a href="cli.html" class="md-nav__link md-nav__link--active">
+      <a href="manifest.html" class="md-nav__link md-nav__link--active">
         
   
   
   <span class="md-ellipsis">
     
   
-    CLI reference
+    Manifest reference
   
 
     
@@ -988,10 +1016,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#okapipy-fetch-language" class="md-nav__link">
+  <a href="#shape" class="md-nav__link">
     <span class="md-ellipsis">
       
-        okapipy fetch-language
+        Shape
       
     </span>
   </a>
@@ -999,10 +1027,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#okapipy.parser.nlp.fetch_model" class="md-nav__link">
+  <a href="#required-fields" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;fetch_model
+        Required fields
       
     </span>
   </a>
@@ -1010,45 +1038,22 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#okapipy-parse" class="md-nav__link">
+  <a href="#project-metadata" class="md-nav__link">
     <span class="md-ellipsis">
       
-        okapipy parse
+        Project metadata
       
     </span>
   </a>
   
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#okapipy-generate" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        okapipy generate
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="okapipy generate">
+    <nav class="md-nav" aria-label="Project metadata">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#examples" class="md-nav__link">
+  <a href="#license-handling" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Examples
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Examples">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#generate-from-okapipyyml" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Generate from ./okapipy.yml
+        License handling
       
     </span>
   </a>
@@ -1056,21 +1061,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#override-the-output-directory" class="md-nav__link">
+  <a href="#url-handling" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Override the output directory
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#ci-gate" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        CI gate
+        URL handling
       
     </span>
   </a>
@@ -1081,8 +1075,19 @@
     </nav>
   
 </li>
-        
-          <li class="md-nav__item">
+      
+        <li class="md-nav__item">
+  <a href="#generation-settings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Generation settings
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#output" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1092,23 +1097,24 @@
   </a>
   
 </li>
-        
-          <li class="md-nav__item">
-  <a href="#exit-codes" class="md-nav__link">
+      
+        <li class="md-nav__item">
+  <a href="#per-spec-entries" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Exit codes
+        Per-spec entries
       
     </span>
   </a>
   
-</li>
+    <nav class="md-nav" aria-label="Per-spec entries">
+      <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#see-also" class="md-nav__link">
+  <a href="#multi-spec-composition" class="md-nav__link">
     <span class="md-ellipsis">
       
-        See also
+        Multi-spec composition
       
     </span>
   </a>
@@ -1121,69 +1127,35 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#okapipy-init" class="md-nav__link">
+  <a href="#what-does-not-live-in-the-manifest" class="md-nav__link">
     <span class="md-ellipsis">
       
-        okapipy init
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="okapipy init">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#examples_1" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Examples
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Examples">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#scaffold-from-scratch" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Scaffold from scratch
+        What does not live in the manifest
       
     </span>
   </a>
   
 </li>
-        
-          <li class="md-nav__item">
-  <a href="#scaffold-for-a-known-spec" class="md-nav__link">
+      
+        <li class="md-nav__item">
+  <a href="#errors" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Scaffold for a known spec
+        Errors
       
     </span>
   </a>
   
 </li>
-        
-      </ul>
-    </nav>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#exit-codes_1" class="md-nav__link">
+      
+        <li class="md-nav__item">
+  <a href="#see-also" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Exit codes
+        See also
       
     </span>
   </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -1191,34 +1163,6 @@
   
 </nav>
       
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="manifest.html" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Manifest reference
-  
-
-    
-  </span>
-  
-  
-
-      </a>
     </li>
   
 
@@ -1314,10 +1258,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#okapipy-fetch-language" class="md-nav__link">
+  <a href="#shape" class="md-nav__link">
     <span class="md-ellipsis">
       
-        okapipy fetch-language
+        Shape
       
     </span>
   </a>
@@ -1325,10 +1269,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#okapipy.parser.nlp.fetch_model" class="md-nav__link">
+  <a href="#required-fields" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;fetch_model
+        Required fields
       
     </span>
   </a>
@@ -1336,45 +1280,22 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#okapipy-parse" class="md-nav__link">
+  <a href="#project-metadata" class="md-nav__link">
     <span class="md-ellipsis">
       
-        okapipy parse
+        Project metadata
       
     </span>
   </a>
   
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#okapipy-generate" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        okapipy generate
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="okapipy generate">
+    <nav class="md-nav" aria-label="Project metadata">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#examples" class="md-nav__link">
+  <a href="#license-handling" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Examples
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Examples">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#generate-from-okapipyyml" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Generate from ./okapipy.yml
+        License handling
       
     </span>
   </a>
@@ -1382,21 +1303,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#override-the-output-directory" class="md-nav__link">
+  <a href="#url-handling" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Override the output directory
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#ci-gate" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        CI gate
+        URL handling
       
     </span>
   </a>
@@ -1407,8 +1317,19 @@
     </nav>
   
 </li>
-        
-          <li class="md-nav__item">
+      
+        <li class="md-nav__item">
+  <a href="#generation-settings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Generation settings
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#output" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1418,23 +1339,24 @@
   </a>
   
 </li>
-        
-          <li class="md-nav__item">
-  <a href="#exit-codes" class="md-nav__link">
+      
+        <li class="md-nav__item">
+  <a href="#per-spec-entries" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Exit codes
+        Per-spec entries
       
     </span>
   </a>
   
-</li>
+    <nav class="md-nav" aria-label="Per-spec entries">
+      <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#see-also" class="md-nav__link">
+  <a href="#multi-spec-composition" class="md-nav__link">
     <span class="md-ellipsis">
       
-        See also
+        Multi-spec composition
       
     </span>
   </a>
@@ -1447,69 +1369,35 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#okapipy-init" class="md-nav__link">
+  <a href="#what-does-not-live-in-the-manifest" class="md-nav__link">
     <span class="md-ellipsis">
       
-        okapipy init
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="okapipy init">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#examples_1" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Examples
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Examples">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#scaffold-from-scratch" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Scaffold from scratch
+        What does not live in the manifest
       
     </span>
   </a>
   
 </li>
-        
-          <li class="md-nav__item">
-  <a href="#scaffold-for-a-known-spec" class="md-nav__link">
+      
+        <li class="md-nav__item">
+  <a href="#errors" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Scaffold for a known spec
+        Errors
       
     </span>
   </a>
   
 </li>
-        
-      </ul>
-    </nav>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#exit-codes_1" class="md-nav__link">
+      
+        <li class="md-nav__item">
+  <a href="#see-also" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Exit codes
+        See also
       
     </span>
   </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -1581,327 +1469,400 @@
   
 
 
-<h1 id="cli-reference">CLI reference<a class="headerlink" href="#cli-reference" title="Permanent link">&para;</a></h1>
-<p>The <code>okapipy</code> command is a flat <a href="https://typer.tiangolo.com/">Typer</a> application with four
-top-level commands. Run <code>okapipy --help</code> (or any subcommand with
-<code>--help</code>) for the canonical, version-pinned usage; this page is a
-human-readable summary.</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>okapipy [-v | -vv] {init | generate | parse | fetch-language} ...
+<h1 id="manifest-reference">Manifest reference<a class="headerlink" href="#manifest-reference" title="Permanent link">&para;</a></h1>
+<p>The project manifest is the single YAML (or JSON) file that drives
+<code>okapipy generate</code>. Scaffold one with <a href="cli.html#okapipy-init"><code>okapipy init</code></a>;
+edit it; check it into your repo. The CLI looks for <code>./okapipy.yml</code> by
+default.</p>
+<p>This page lists every field the manifest accepts — what each one does,
+what it defaults to, and what it shows up as in the generated project.
+For the <em>commands</em> that read it, see the <a href="cli.html">CLI reference</a>. For a
+guided first run, see the <a href="../user-guide/quick-start.html">quick start</a>.</p>
+<h2 id="shape">Shape<a class="headerlink" href="#shape" title="Permanent link">&para;</a></h2>
+<div class="language-yaml highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># okapipy.yml</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="nt">package</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">acme.commerce</span><span class="w">              </span><span class="c1"># required</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="nt">client_class</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">CommerceClient</span><span class="w">        </span><span class="c1"># required</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="c1"># Project metadata</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="nt">project_name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">acme-commerce</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="nt">project_description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Acme commerce API client</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="nt">project_version</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;0.1.0&quot;</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="nt">python_version</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;3.13&quot;</span>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="nt">license</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Apache-2.0</span>
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="nt">author</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Acme Corp</span>
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="nt">repo_url</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">https://github.com/acme/commerce</span>
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>
+</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="c1"># Generation settings</span>
+</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="nt">shape</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">auto</span><span class="w">                         </span><span class="c1"># auto | models | dicts</span>
+</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="nt">lang</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">en</span>
+</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="nt">nlp_cache_dir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">.spacy</span>
+</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a><span class="nt">templates_dir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">./templates</span>
+</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a><span class="nt">model_templates_dir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">./model_tpls</span>
+</span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>
+</span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a><span class="c1"># Output</span>
+</span><span id="__span-0-22"><a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a><span class="nt">output</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">./out</span>
+</span><span id="__span-0-23"><a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a>
+</span><span id="__span-0-24"><a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a><span class="nt">specs</span><span class="p">:</span><span class="w">                              </span><span class="c1"># required, at least one</span>
+</span><span id="__span-0-25"><a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;&#39;</span>
+</span><span id="__span-0-26"><a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a><span class="w">    </span><span class="nt">source</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">./openapi.yaml</span>
+</span><span id="__span-0-27"><a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a><span class="w">    </span><span class="nt">rules</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">./rules.yaml</span>
+</span><span id="__span-0-28"><a id="__codelineno-0-28" name="__codelineno-0-28" href="#__codelineno-0-28"></a><span class="w">    </span><span class="nt">strip_prefix</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/v1</span>
+</span><span id="__span-0-29"><a id="__codelineno-0-29" name="__codelineno-0-29" href="#__codelineno-0-29"></a><span class="w">    </span><span class="nt">unmatched</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">misc</span>
+</span><span id="__span-0-30"><a id="__codelineno-0-30" name="__codelineno-0-30" href="#__codelineno-0-30"></a><span class="w">    </span><span class="nt">lang</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">en</span>
 </span></code></pre></div>
-<p>The top-level <code>-v</code> / <code>-vv</code> flag controls log verbosity (INFO / DEBUG).
-Without it, only WARNING and above reach stderr.</p>
-<hr />
-<h2 id="okapipy-fetch-language"><code>okapipy fetch-language</code><a class="headerlink" href="#okapipy-fetch-language" title="Permanent link">&para;</a></h2>
-<p>Download and install the spaCy model for a language into a local cache.</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>okapipy<span class="w"> </span>fetch-language<span class="w"> </span>&lt;LANG&gt;<span class="w"> </span><span class="o">[</span>--cache-dir<span class="w"> </span>DIR<span class="o">]</span>
-</span></code></pre></div>
+<p>Unknown top-level fields and unknown per-spec fields are <strong>rejected</strong> —
+typos surface as a validation error rather than a silent no-op. Paths
+are resolved relative to the manifest file's parent directory, so the
+manifest is portable with the consumer repo. URL <code>source</code> values
+(<code>http://…</code> / <code>https://…</code>) are passed through verbatim.</p>
+<h2 id="required-fields">Required fields<a class="headerlink" href="#required-fields" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
-<th>Argument / option</th>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>package</code></td>
+<td>string</td>
+<td>Dotted Python package path for the generated client (e.g. <code>acme.commerce</code>). Drives the <code>src/&lt;package&gt;/</code> layout and the import path consumers will use.</td>
+</tr>
+<tr>
+<td><code>client_class</code></td>
+<td>string</td>
+<td>PascalCase class name for the sync client. The async sibling is named <code>Async&lt;client_class&gt;</code> automatically. Base classes carry an additional <code>Base</code> suffix.</td>
+</tr>
+<tr>
+<td><code>specs</code></td>
+<td>list of <a href="#per-spec-entries">spec entries</a></td>
+<td>At least one entry; each one mounts an OpenAPI document under a namespace in the generated client.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="project-metadata">Project metadata<a class="headerlink" href="#project-metadata" title="Permanent link">&para;</a></h2>
+<p>These fields drive the generated <code>pyproject.toml</code>, <code>LICENSE</code>, and
+<code>README.md</code>. They are PEP 621-flavored — see the <a href="https://packaging.python.org/en/latest/guides/writing-pyproject-toml/">packaging user
+guide</a>
+for the upstream contract.</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
 <th>Default</th>
 <th>Description</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>LANG</code></td>
+<td><code>project_name</code></td>
+<td>string</td>
+<td>last segment of <code>package</code></td>
+<td>PEP 503 distribution name. Becomes <code>[project] name</code>.</td>
+</tr>
+<tr>
+<td><code>project_description</code></td>
+<td>string</td>
+<td><code>"Generated client for &lt;project_name&gt;"</code></td>
+<td>Free-form short summary. Becomes <code>[project] description</code>.</td>
+</tr>
+<tr>
+<td><code>project_version</code></td>
+<td>string</td>
+<td><code>"0.1.0"</code></td>
+<td>Initial version string. Becomes <code>[project] version</code>.</td>
+</tr>
+<tr>
+<td><code>python_version</code></td>
+<td>string</td>
+<td><code>"3.13"</code></td>
+<td>Pinned Python minor version. Becomes <code>[project] requires-python = "&gt;=&lt;version&gt;,&lt;4"</code> and the project's <code>.python-version</code>.</td>
+</tr>
+<tr>
+<td><code>license</code></td>
+<td>string</td>
+<td><code>"Proprietary"</code></td>
+<td>SPDX license id. Recognised values (<code>MIT</code>, <code>Apache-2.0</code>, <code>BSD-2-Clause</code>, <code>BSD-3-Clause</code>, <code>MPL-2.0</code>) emit the full license text into <code>LICENSE</code> <strong>and</strong> an SPDX <code>[project] license = "..."</code> line. Free-form values like <code>Proprietary</code> emit a placeholder <code>LICENSE</code> and omit the SPDX line — see <a href="#license-handling">License handling</a>.</td>
+</tr>
+<tr>
+<td><code>author</code></td>
+<td>string</td>
+<td><em>none</em></td>
+<td>Copyright holder for <code>LICENSE</code> and the <code>[project] authors = [{ name = "..." }]</code> entry. When omitted, the LICENSE falls back to the project name and <code>pyproject.toml</code> omits the authors block.</td>
+</tr>
+<tr>
+<td><code>repo_url</code></td>
+<td>string</td>
+<td><em>none</em></td>
+<td>Source-repository URL. When set, drives <code>[project.urls]</code> with <code>Homepage</code> and <code>Repository</code> pointing at the URL. <code>github.com</code> URLs also gain a synthetic <code>Issues = "&lt;url&gt;/issues"</code> entry.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="license-handling">License handling<a class="headerlink" href="#license-handling" title="Permanent link">&para;</a></h3>
+<p>okapipy recognises a small set of common SPDX identifiers. The behavior
+depends on whether yours is on the list.</p>
+<table>
+<thead>
+<tr>
+<th><code>license:</code> value</th>
+<th><code>LICENSE</code> file</th>
+<th><code>[project] license =</code> line</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>MIT</code>, <code>Apache-2.0</code>, <code>BSD-2-Clause</code>, <code>BSD-3-Clause</code>, <code>MPL-2.0</code></td>
+<td>Full canonical license text</td>
+<td>Emitted verbatim</td>
+</tr>
+<tr>
+<td>Anything else (default: <code>Proprietary</code>)</td>
+<td>Placeholder with a <code>TODO: replace with the full license text</code> line</td>
+<td>Omitted</td>
+</tr>
+</tbody>
+</table>
+<p><code>license-files = ["LICEN[CS]E*"]</code> is <strong>always</strong> emitted because okapipy
+always writes a <code>LICENSE</code> file alongside the generated project.</p>
+<p>If you need an SPDX expression that isn't on the safelist (a custom
+<code>LicenseRef-Proprietary</code>, a compound expression like <code>MIT OR
+Apache-2.0</code>), generate first, then edit <code>pyproject.toml</code> by hand —
+it's one-shot, so your edits survive subsequent runs.</p>
+<h3 id="url-handling">URL handling<a class="headerlink" href="#url-handling" title="Permanent link">&para;</a></h3>
+<p><code>repo_url</code> is intentionally narrow. One URL in, up to three labels out:</p>
+<div class="language-toml highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="k">[project.urls]</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="n">Homepage</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;https://github.com/acme/commerce&quot;</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">Repository</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;https://github.com/acme/commerce&quot;</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="n">Issues</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;https://github.com/acme/commerce/issues&quot;</span><span class="w">   </span><span class="c1"># github.com only</span>
+</span></code></pre></div>
+<p>For richer <code>[project.urls]</code> (Documentation, Changelog, Funding, …),
+edit <code>pyproject.toml</code> after the first run. It's one-shot.</p>
+<h2 id="generation-settings">Generation settings<a class="headerlink" href="#generation-settings" title="Permanent link">&para;</a></h2>
+<p>These shape <em>how</em> the generator turns parsed trees into code. They are
+project-wide; per-spec overrides are documented under <a href="#per-spec-entries">per-spec
+entries</a>.</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>shape</code></td>
+<td><code>auto</code> | <code>models</code> | <code>dicts</code></td>
+<td><code>auto</code></td>
+<td>Response-shape policy. <code>auto</code> emits a dual-shape client whose bodies and returns admit <code>Foo \| dict[str, Any]</code>. <code>models</code> locks every body and return to typed Pydantic. <code>dicts</code> locks them to <code>dict[str, Any]</code> and skips <code>base/models.py</code> entirely. See <a href="../user-guide/shapes.html">Response shape</a>.</td>
+</tr>
+<tr>
+<td><code>lang</code></td>
+<td>string</td>
+<td><code>"en"</code></td>
+<td>Default ISO language code for the NLP pipeline. Per-spec <code>lang</code> overrides this.</td>
+</tr>
+<tr>
+<td><code>nlp_cache_dir</code></td>
+<td>path</td>
+<td><code>&lt;cwd&gt;/.spacy</code></td>
+<td>Directory in which spaCy models are stored. Resolved relative to the manifest file.</td>
+</tr>
+<tr>
+<td><code>templates_dir</code></td>
+<td>path</td>
+<td><em>none</em></td>
+<td>Directory of user-authored Jinja templates. Resolved before the packaged defaults via a <code>ChoiceLoader</code>. See <a href="../user-guide/templates.html">Templates</a>.</td>
+</tr>
+<tr>
+<td><code>model_templates_dir</code></td>
+<td>path</td>
+<td><em>none</em></td>
+<td>Directory of <code>datamodel-code-generator</code> templates. Forwarded as dmcg's <code>custom_template_dir</code>.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="output">Output<a class="headerlink" href="#output" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>output</code></td>
+<td>path</td>
+<td><em>none</em></td>
+<td>Directory to write the generated project into. Resolved relative to the manifest file. The CLI's <code>--output</code> flag overrides this; one of the two is required.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="per-spec-entries">Per-spec entries<a class="headerlink" href="#per-spec-entries" title="Permanent link">&para;</a></h2>
+<p><code>specs:</code> is a list of entries. Each entry pairs one OpenAPI document
+with the namespace it mounts under. A single-entry manifest with
+<code>namespace: ''</code> mounts the spec at the root — the historical
+single-spec layout. Multiple entries compose under one client, with
+each spec keeping its own per-spec inputs.</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>namespace</code></td>
+<td>string</td>
 <td>required</td>
-<td>ISO language code (e.g. <code>en</code>, <code>es</code>, <code>fr</code>).</td>
+<td>Dotted mount path. <code>''</code> mounts at the package root. Dotted values (<code>platform.users</code>) nest under intermediate namespaces synthesized as <code>Namespace</code> nodes and may be shared by multiple specs (<code>platform.billing</code> joins the same <code>platform/</code> parent). Two entries resolving to the same fully-qualified mount path are rejected at load time.</td>
 </tr>
 <tr>
-<td><code>--cache-dir</code></td>
-<td><code>./.spacy</code></td>
-<td>Directory in which to store the downloaded model.</td>
-</tr>
-</tbody>
-</table>
-<p>The cache directory persists across runs; subsequent invocations are
-no-ops if the model is already present at the right version. Useful in
-CI before any other okapipy command, so the first parse doesn't pay
-the network cost.</p>
-
-
-<div class="doc doc-object doc-function">
-
-
-<h2 id="okapipy.parser.nlp.fetch_model" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <span class="doc doc-object-name doc-function-name">fetch_model</span>
-
-
-<a href="#okapipy.parser.nlp.fetch_model" class="headerlink" title="Permanent link">&para;</a></h2>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">fetch_model</span><span class="p">(</span><span class="n">lang</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">cache_dir</span><span class="p">:</span> <span class="n">Path</span> <span class="o">=</span> <span class="n">DEFAULT_CACHE_DIR</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span>
-</span></code></pre></div>
-
-    <div class="doc doc-contents first">
-
-        <p>Download the spaCy model for <code>lang</code> into <code>cache_dir</code> and return its path.</p>
-<p>Uses spaCy's own <code>download</code> command, passing <code>--target</code> so the package is laid
-out under <code>cache_dir/&lt;model_name&gt;/...</code> instead of being installed globally.</p>
-
-
-<p><span class="doc-section-title">Raises:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Type</th>
-          <th>Description</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                  <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-class-name&quot;&gt;NlpModelMissingError&lt;/span&gt; (&lt;code&gt;okapipy.parser.errors.NlpModelMissingError&lt;/code&gt;)" href="parser.html#okapipy.parser.errors.NlpModelMissingError">NlpModelMissingError</a></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>When the download fails for any reason (network down,
-unknown model name, pip failure).</p>
-              </div>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-    </div>
-
-</div><hr />
-<h2 id="okapipy-parse"><code>okapipy parse</code><a class="headerlink" href="#okapipy-parse" title="Permanent link">&para;</a></h2>
-<p>Parse an OpenAPI document and either print the resulting structural
-tree as JSON to stdout, or save it to a file.</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>okapipy<span class="w"> </span>parse<span class="w"> </span>&lt;SOURCE&gt;<span class="w"> </span><span class="o">[</span>OPTIONS<span class="o">]</span>
-</span></code></pre></div>
-<table>
-<thead>
-<tr>
-<th>Argument / option</th>
-<th>Default</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>SOURCE</code></td>
+<td><code>source</code></td>
+<td>string</td>
 <td>required</td>
-<td>Path or http(s) URL of the OpenAPI document.</td>
+<td>Path or <code>http(s)://</code> URL of the OpenAPI document. Paths resolve relative to the manifest file.</td>
 </tr>
 <tr>
-<td><code>--rules PATH</code></td>
-<td>none</td>
-<td>Local path to a JSON/YAML rules file.</td>
+<td><code>rules</code></td>
+<td>path</td>
+<td><em>none</em></td>
+<td>Local path to a JSON/YAML rules file. <strong>URLs are rejected.</strong> Mirrors the OpenAPI extension shape and overrides any spec value on conflict — see <a href="../user-guide/rules.html">Rules and extensions</a>.</td>
 </tr>
 <tr>
-<td><code>--lang CODE</code></td>
-<td><code>en</code></td>
-<td>ISO language code for NLP.</td>
+<td><code>strip_prefix</code></td>
+<td>string</td>
+<td><em>none</em></td>
+<td>Path prefix to strip from every operation in this spec before classification. Overrides the prefix inferred from <code>servers[].url</code>.</td>
 </tr>
 <tr>
-<td><code>--strip-prefix STRING</code></td>
-<td><code>None</code></td>
-<td>Path prefix to strip from every path before classification (e.g. <code>/public/v1</code>). Overrides the prefix inferred from <code>servers[].url</code>.</td>
+<td><code>unmatched</code></td>
+<td>string</td>
+<td><em>none</em></td>
+<td>Top-level namespace name (inside this spec's mount) to hold operations the routing table would otherwise drop. Equivalent to the parser's <code>--unmatched</code> flag.</td>
 </tr>
 <tr>
-<td><code>--nlp-cache-dir DIR</code></td>
-<td><code>./.spacy</code></td>
-<td>Where to look for / store the spaCy model.</td>
-</tr>
-<tr>
-<td><code>--unmatched NAME</code></td>
-<td>none</td>
-<td>Bulk escape hatch: keep operations that would otherwise be dropped by the routing table as flat actions under a top-level namespace called <code>NAME</code>. Each action is named after its <code>operationId</code>, falling back to <code>&lt;method&gt;_&lt;path&gt;</code> when no <code>operationId</code> is declared. <code>NAME</code> must not collide with any existing top-level node. See <a href="../user-guide/rules.html#i-have-many-non-conforming-endpoints-and-i-dont-want-to-annotate-each-one">Rules and extensions</a>.</td>
-</tr>
-<tr>
-<td><code>--output PATH</code></td>
-<td>none</td>
-<td>Write the parsed tree to a file. Format inferred from <code>.json</code> / <code>.yaml</code> / <code>.yml</code> extension.</td>
+<td><code>lang</code></td>
+<td>string</td>
+<td>inherits top-level <code>lang</code></td>
+<td>ISO language code for the NLP pipeline for this spec.</td>
 </tr>
 </tbody>
 </table>
-<p>Output:</p>
-<ul>
-<li><strong>stderr</strong> — a counts panel (namespaces / collections / resources /
-  actions) and any non-fatal warnings.</li>
-<li><strong>stdout</strong> — JSON dump of the parsed tree, syntax-highlighted on a
-  TTY, plain when piped.</li>
-</ul>
-<p>Exit codes:</p>
-<ul>
-<li><code>0</code> — parse succeeded.</li>
-<li><code>1</code> — parser raised; the error message is printed to stderr.</li>
-</ul>
-<hr />
-<h2 id="okapipy-generate"><code>okapipy generate</code><a class="headerlink" href="#okapipy-generate" title="Permanent link">&para;</a></h2>
-<p>Generate a Python client project from the project manifest.</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>okapipy<span class="w"> </span>generate<span class="w"> </span><span class="o">[</span>--manifest<span class="w"> </span>PATH<span class="o">]</span><span class="w"> </span><span class="o">[</span>--output<span class="w"> </span>DIR<span class="o">]</span><span class="w"> </span><span class="o">[</span>--check<span class="o">]</span><span class="w"> </span><span class="o">[</span>--quiet<span class="o">]</span>
+<h3 id="multi-spec-composition">Multi-spec composition<a class="headerlink" href="#multi-spec-composition" title="Permanent link">&para;</a></h3>
+<p>Two examples that compose three services into one client:</p>
+<div class="tabbed-set tabbed-alternate" data-tabs="1:2"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="__tabbed_1_1">Flat mounts</label><label for="__tabbed_1_2">Shared parent namespace</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<div class="language-yaml highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nt">package</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">acme.platform</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="nt">client_class</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">PlatformClient</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="nt">output</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">./out</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="nt">specs</span><span class="p">:</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">auth</span>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="w">    </span><span class="nt">source</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">./specs/auth.yaml</span>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">billing</span>
+</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="w">    </span><span class="nt">source</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">./specs/billing.yaml</span>
+</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">orders</span>
+</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="w">    </span><span class="nt">source</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">./specs/orders.yaml</span>
 </span></code></pre></div>
-<p>Every project-level setting (package name, client class, response
-shape, templates, license) and every per-spec setting (source, rules,
-strip-prefix, unmatched namespace, language) lives in the manifest —
-typically <code>./okapipy.yml</code>, alongside the consumer code. The CLI carries
-only the four flags that change between runs, not between projects.
-Use <a href="#okapipy-init"><code>okapipy init</code></a> to scaffold a starter
-manifest.</p>
+</div>
+<div class="tabbed-block">
+<div class="language-yaml highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nt">package</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">acme.platform</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="nt">client_class</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">PlatformClient</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="nt">output</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">./out</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="nt">specs</span><span class="p">:</span>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">platform.auth</span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="w">    </span><span class="nt">source</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">./specs/auth.yaml</span>
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">platform.billing</span>
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="w">    </span><span class="nt">source</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">./specs/billing.yaml</span>
+</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">platform.orders</span>
+</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="w">    </span><span class="nt">source</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">./specs/orders.yaml</span>
+</span></code></pre></div>
+</div>
+</div>
+</div>
+<p>Consumers reach each service through a top-level accessor on the
+client (<code>client.auth.…</code>, <code>client.platform.auth.…</code>). For the design
+behind multi-spec composition see <a href="../user-guide/advanced.html">Advanced
+usage</a>.</p>
+<h2 id="what-does-not-live-in-the-manifest">What does <strong>not</strong> live in the manifest<a class="headerlink" href="#what-does-not-live-in-the-manifest" title="Permanent link">&para;</a></h2>
+<p>A few things look like they belong here but don't — they are deliberate
+gaps, not oversights:</p>
+<ul>
+<li><strong>Dependencies and dev-dependencies.</strong> The generated <code>pyproject.toml</code>
+  pins <code>httpx</code> and <code>pydantic[email]</code> at versions matching the vendored
+  runtime, and the dev group ships <code>pytest</code>, <code>ruff</code>, <code>mypy</code>, and
+  friends. These are not user-configurable; the runtime requires them.
+  Add your own dependencies by editing <code>pyproject.toml</code> after the first
+  run — it's one-shot, your edits survive.</li>
+<li><strong>Keywords, classifiers, maintainers, additional <code>project.urls</code>
+  labels.</strong> Not exposed by the manifest. Edit <code>pyproject.toml</code> by hand;
+  one-shot lifecycle.</li>
+<li><strong>README content, CHANGELOG.</strong> The generator writes a starter
+  <code>README.md</code> once; the file is one-shot, so further edits are yours.</li>
+<li><strong>Pre-commit hooks, CI workflows, formatter configs beyond what's
+  emitted.</strong> Out of scope; add them yourself.</li>
+<li><strong>CLI flags.</strong> Only <code>--output</code> overrides a manifest field
+  (<code>output</code>). <code>--check</code> and <code>--quiet</code> are run-time switches with no
+  manifest counterpart. Everything else lives only in the manifest.</li>
+</ul>
+<p>If you reach for a field that isn't here, the answer is almost always
+"edit <code>pyproject.toml</code> after the first run." That file is one-shot —
+your edits survive subsequent regenerations.</p>
+<h2 id="errors">Errors<a class="headerlink" href="#errors" title="Permanent link">&para;</a></h2>
+<p><code>okapipy generate</code> exits with <code>1</code> and a stderr panel when the manifest
+fails to load. Common cases:</p>
 <table>
 <thead>
 <tr>
-<th>Flag</th>
-<th>Default</th>
-<th>Description</th>
+<th>Error</th>
+<th>Cause</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>--manifest PATH</code></td>
-<td><code>./okapipy.yml</code></td>
-<td>Path to the project manifest (YAML or JSON).</td>
+<td><code>ManifestNotFoundError</code></td>
+<td>The file at <code>--manifest PATH</code> (default <code>./okapipy.yml</code>) does not exist.</td>
 </tr>
 <tr>
-<td><code>--output DIR</code>, <code>-o DIR</code></td>
-<td>from manifest</td>
-<td>Directory to write the generated project into. Overrides the manifest's <code>output</code> field; required when the manifest omits <code>output</code>.</td>
+<td><code>ManifestFormatError: ... is not valid JSON/YAML</code></td>
+<td>The file exists but does not parse.</td>
 </tr>
 <tr>
-<td><code>--check</code></td>
-<td>off</td>
-<td>Dry-run: report drift, exit non-zero on any change. CI gate.</td>
+<td><code>ManifestFormatError: ... failed validation: ...</code></td>
+<td>A required field is missing, a value has the wrong type, or an unknown field is present. The trailing detail names the offending field.</td>
 </tr>
 <tr>
-<td><code>--quiet</code>, <code>-q</code></td>
-<td>off</td>
-<td>Suppress drift-detection warnings. Pruning still runs.</td>
+<td><code>ManifestFormatError: mount namespace collision</code></td>
+<td>Two <code>specs[]</code> entries resolve to the same fully-qualified namespace.</td>
+</tr>
+<tr>
+<td><code>ManifestFormatError: rules must be a local path, got URL</code></td>
+<td>A <code>specs[].rules</code> value uses an <code>http(s)://</code> scheme. Rules files are local-only.</td>
 </tr>
 </tbody>
 </table>
-<h4 id="examples">Examples<a class="headerlink" href="#examples" title="Permanent link">&para;</a></h4>
-<h5 id="generate-from-okapipyyml">Generate from <code>./okapipy.yml</code><a class="headerlink" href="#generate-from-okapipyyml" title="Permanent link">&para;</a></h5>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>$<span class="w"> </span>okapipy<span class="w"> </span>generate
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>╭──────────────────────────────────────────────────────────────────────╮
-</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>│<span class="w"> </span>Wrote<span class="w"> </span><span class="m">53</span><span class="w"> </span>files<span class="w"> </span>to<span class="w"> </span>./out<span class="w">                                              </span>│
-</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>╰──────────────────────────────────────────────────────────────────────╯
-</span></code></pre></div>
-<h5 id="override-the-output-directory">Override the output directory<a class="headerlink" href="#override-the-output-directory" title="Permanent link">&para;</a></h5>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>$<span class="w"> </span>okapipy<span class="w"> </span>generate<span class="w"> </span>--output<span class="w"> </span>./build/sdk
-</span></code></pre></div>
-<h5 id="ci-gate">CI gate<a class="headerlink" href="#ci-gate" title="Permanent link">&para;</a></h5>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>$<span class="w"> </span>okapipy<span class="w"> </span>generate<span class="w"> </span>--check
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>╭──────────────────────────────────────────────────────────────────────╮
-</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>│<span class="w"> </span>No<span class="w"> </span>changes<span class="p">;</span><span class="w"> </span>no<span class="w"> </span>drift.<span class="w">                                                </span>│
-</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>╰──────────────────────────────────────────────────────────────────────╯
-</span></code></pre></div>
-<h4 id="output">Output<a class="headerlink" href="#output" title="Permanent link">&para;</a></h4>
+<h2 id="see-also">See also<a class="headerlink" href="#see-also" title="Permanent link">&para;</a></h2>
 <ul>
-<li><strong>stderr</strong> — a green summary panel naming the output directory and
-  the file count (<code>Wrote 53 files to ./out</code>). When the parser emitted
-  any warnings during the run, the panel appends <code>; N warning(s)
-  emitted</code> so the count is visible even if individual warnings
-  scrolled past in the terminal.</li>
+<li><a href="../user-guide/quick-start.html">Quick start</a> — your first <code>okapipy.yml</code>.</li>
+<li><a href="cli.html#okapipy-init"><code>okapipy init</code></a> — scaffold a starter manifest.</li>
+<li><a href="cli.html#okapipy-generate"><code>okapipy generate</code></a> — what the manifest drives.</li>
+<li><a href="../user-guide/rules.html">Rules and extensions</a> — what goes in <code>rules:</code> files.</li>
+<li><a href="../user-guide/shapes.html">Response shape</a> — what the <code>shape:</code> field controls.</li>
+<li><a href="../user-guide/templates.html">Templates</a> — what the <code>templates_dir:</code> field overrides.</li>
 </ul>
-<h4 id="exit-codes">Exit codes<a class="headerlink" href="#exit-codes" title="Permanent link">&para;</a></h4>
-<table>
-<thead>
-<tr>
-<th>Code</th>
-<th>Meaning</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>0</code></td>
-<td>Generated successfully (or <code>--check</code> passed with no drift).</td>
-</tr>
-<tr>
-<td><code>1</code></td>
-<td><code>ManifestNotFoundError</code>, <code>ManifestFormatError</code>, <code>ParserError</code>, <code>GenerationError</code>, or <code>--check</code> found drift.</td>
-</tr>
-</tbody>
-</table>
-<h4 id="see-also">See also<a class="headerlink" href="#see-also" title="Permanent link">&para;</a></h4>
-<ul>
-<li><a href="../user-guide/quick-start.html#the-project-manifest">The project manifest</a> — schema and conventions.</li>
-<li><a href="../user-guide/rules.html">Rules and extensions</a></li>
-<li><a href="../user-guide/shapes.html">Response shape</a></li>
-</ul>
-<hr />
-<h2 id="okapipy-init"><code>okapipy init</code><a class="headerlink" href="#okapipy-init" title="Permanent link">&para;</a></h2>
-<p>Scaffold a starter <code>okapipy.yml</code>.</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>okapipy<span class="w"> </span>init<span class="w"> </span><span class="o">[</span>&lt;SOURCE&gt;<span class="o">]</span><span class="w"> </span><span class="o">[</span>--manifest<span class="w"> </span>PATH<span class="o">]</span><span class="w"> </span><span class="o">[</span>--package<span class="w"> </span>DOTTED<span class="o">]</span><span class="w"> </span><span class="o">[</span>--client-class<span class="w"> </span>NAME<span class="o">]</span><span class="w"> </span><span class="o">[</span>--force<span class="o">]</span>
-</span></code></pre></div>
-<p>Writes a starter manifest you can then edit and run <code>okapipy
-generate</code> against. Without <code>SOURCE</code>, the starter has an empty
-<code>specs:</code> array and inline comments demonstrating the multi-spec
-shape — fill in the entries by hand. With <code>SOURCE</code>, the starter
-contains one root-mount spec entry pointing at it. Either way, when
-<code>--package</code> or <code>--client-class</code> are omitted, the starter carries
-<code>TODO</code> placeholders so it fails validation on the first <code>generate</code>
-until you edit them — protection against accidentally generating
-against the wrong package name.</p>
-<table>
-<thead>
-<tr>
-<th>Flag</th>
-<th>Default</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>SOURCE</code></td>
-<td>none</td>
-<td>Path or <code>http(s)://</code> URL of an OpenAPI document. When given, becomes the single <code>specs[]</code> entry's <code>source</code>.</td>
-</tr>
-<tr>
-<td><code>--manifest PATH</code></td>
-<td><code>./okapipy.yml</code></td>
-<td>Where to write the starter manifest.</td>
-</tr>
-<tr>
-<td><code>--package DOTTED</code></td>
-<td><em>TODO placeholder</em></td>
-<td>Dotted Python package path.</td>
-</tr>
-<tr>
-<td><code>--client-class NAME</code></td>
-<td><em>TODO placeholder</em></td>
-<td>PascalCase client class name.</td>
-</tr>
-<tr>
-<td><code>--force</code>, <code>-f</code></td>
-<td>off</td>
-<td>Overwrite an existing manifest.</td>
-</tr>
-</tbody>
-</table>
-<h4 id="examples_1">Examples<a class="headerlink" href="#examples_1" title="Permanent link">&para;</a></h4>
-<h5 id="scaffold-from-scratch">Scaffold from scratch<a class="headerlink" href="#scaffold-from-scratch" title="Permanent link">&para;</a></h5>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>$<span class="w"> </span>okapipy<span class="w"> </span>init
-</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>╭──────────────────────────────────────────────────────────────────────╮
-</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>│<span class="w"> </span>Wrote<span class="w"> </span>starter<span class="w"> </span>manifest<span class="w"> </span>to<span class="w"> </span>okapipy.yml<span class="w">                                </span>│
-</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>╰──────────────────────────────────────────────────────────────────────╯
-</span></code></pre></div>
-<h5 id="scaffold-for-a-known-spec">Scaffold for a known spec<a class="headerlink" href="#scaffold-for-a-known-spec" title="Permanent link">&para;</a></h5>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>$<span class="w"> </span>okapipy<span class="w"> </span>init<span class="w"> </span>./openapi.yaml<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="w">    </span>--package<span class="w"> </span>acme.commerce<span class="w"> </span>--client-class<span class="w"> </span>CommerceClient
-</span></code></pre></div>
-<h4 id="exit-codes_1">Exit codes<a class="headerlink" href="#exit-codes_1" title="Permanent link">&para;</a></h4>
-<table>
-<thead>
-<tr>
-<th>Code</th>
-<th>Meaning</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>0</code></td>
-<td>Wrote the starter manifest.</td>
-</tr>
-<tr>
-<td><code>1</code></td>
-<td>Refused to overwrite an existing manifest without <code>--force</code>.</td>
-</tr>
-</tbody>
-</table>
 
 
 
