@@ -416,6 +416,8 @@
       
         
       
+        
+      
     
     
     
@@ -1098,6 +1100,34 @@
     
   
     Template customization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="advanced.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Advanced usage
   
 
     
@@ -1876,10 +1906,11 @@
 <h1 id="using-the-client">Using the client<a class="headerlink" href="#using-the-client" title="Permanent link">&para;</a></h1>
 <p>This page is the field guide to every shape the generated client
 exposes. Code samples assume a client generated with
-<code>--package acme.commerce --client-class CommerceClient</code> from a spec that
-contains a <code>commerce</code> namespace, an <code>orders</code> collection with a resource,
-sub-collection <code>lines</code>, an <code>submit</code> action, and an <code>auth</code> namespace.
-Adapt the names to your own spec.</p>
+<code>package: acme.commerce</code> and <code>client_class: CommerceClient</code> in
+<code>okapipy.yml</code> from a spec that contains a <code>commerce</code> namespace, an
+<code>orders</code> collection with a resource, sub-collection <code>lines</code>, a
+<code>submit</code> action, and an <code>auth</code> namespace. Adapt the names to your own
+spec.</p>
 <h2 id="constructing-a-client">Constructing a client<a class="headerlink" href="#constructing-a-client" title="Permanent link">&para;</a></h2>
 <p>The sync client is a context manager:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">acme.commerce</span><span class="w"> </span><span class="kn">import</span> <span class="n">CommerceClient</span>
@@ -1963,7 +1994,7 @@ keyword-only options:</p>
 <tr>
 <td><code>shape</code></td>
 <td><code>"models" \| "dicts"</code></td>
-<td>Only present when the client was generated without <code>--shape</code> (dual-shape mode). See <a href="shapes.html">Response shape</a>.</td>
+<td>Only present when the client was generated with <code>shape: auto</code> (the default — dual-shape mode). See <a href="shapes.html">Response shape</a>.</td>
 </tr>
 <tr>
 <td><code>pagination_strategy</code></td>
@@ -2257,11 +2288,11 @@ string:</p>
 <h2 id="response-shape">Response shape<a class="headerlink" href="#response-shape" title="Permanent link">&para;</a></h2>
 <p>The shape of every method's body parameter and return type — typed
 Pydantic models, raw dicts, or both — is settled at generation time by
-the <code>--shape</code> flag of <code>okapipy spec generate</code>. The default emits a
-dual-shape client where the constructor takes a <code>shape="models"|"dicts"</code>
-keyword and <code>with_shape(...)</code> returns a sibling that flips it at
-runtime; <code>--shape models</code> and <code>--shape dicts</code> produce locked clients
-without the runtime switch.</p>
+the <code>shape:</code> field of <code>okapipy.yml</code>. The default (<code>shape: auto</code>) emits
+a dual-shape client where the constructor takes a
+<code>shape="models"|"dicts"</code> keyword and <code>with_shape(...)</code> returns a
+sibling that flips it at runtime; <code>shape: models</code> and <code>shape: dicts</code>
+produce locked clients without the runtime switch.</p>
 <p><a href="shapes.html">Response shape</a> is the full story: which signatures each
 mode produces, when to pick which, and the dual-flavor recipe (one
 project, two clients — typed and raw).</p>

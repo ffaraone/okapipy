@@ -15,7 +15,7 @@
         <link rel="canonical" href="https://ffaraone.github.io/okapipy/developer-guide/index.html">
       
       
-        <link rel="prev" href="../user-guide/templates.html">
+        <link rel="prev" href="../user-guide/advanced.html">
       
       
         <link rel="next" href="parser.html">
@@ -414,6 +414,8 @@
       
         
       
+        
+      
     
     
     
@@ -670,6 +672,34 @@
     
   
     Template customization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../user-guide/advanced.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Advanced usage
   
 
     
@@ -1168,7 +1198,7 @@ pytest, pytest-cov, pytest-mock, pytest-httpserver, etc.).</p>
 <p>The first NLP-dependent test run will download the spaCy
 <code>en_core_web_sm</code> model (~12 MB) into <code>./.spacy/</code>. Subsequent runs are
 offline. To pre-warm:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>uv<span class="w"> </span>run<span class="w"> </span>okapipy<span class="w"> </span>nlp<span class="w"> </span>fetch<span class="w"> </span>en
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>uv<span class="w"> </span>run<span class="w"> </span>okapipy<span class="w"> </span>fetch-language<span class="w"> </span>en
 </span></code></pre></div>
 <h2 id="common-commands">Common commands<a class="headerlink" href="#common-commands" title="Permanent link">&para;</a></h2>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>uv<span class="w"> </span>sync<span class="w">                                    </span><span class="c1"># install deps (incl. dev group)</span>
@@ -1188,7 +1218,7 @@ offline. To pre-warm:</p>
 </span><span id="__span-2-15"><a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a>
 </span><span id="__span-2-16"><a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a><span class="c1"># CLI smoke</span>
 </span><span id="__span-2-17"><a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a>uv<span class="w"> </span>run<span class="w"> </span>okapipy<span class="w"> </span>--help
-</span><span id="__span-2-18"><a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a>uv<span class="w"> </span>run<span class="w"> </span>okapipy<span class="w"> </span>spec<span class="w"> </span>parse<span class="w"> </span>tests/fixtures/&lt;some&gt;.yaml
+</span><span id="__span-2-18"><a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a>uv<span class="w"> </span>run<span class="w"> </span>okapipy<span class="w"> </span>parse<span class="w"> </span>tests/fixtures/&lt;some&gt;.yaml
 </span></code></pre></div>
 <p><code>pyproject.toml</code> configures <code>--cov=okapipy</code> so plain <code>pytest</code> always emits
 a coverage report; <code>htmlcov/</code> and <code>coverage.xml</code> are written. The
@@ -1196,34 +1226,36 @@ a coverage report; <code>htmlcov/</code> and <code>coverage.xml</code> are writt
 <h2 id="project-layout">Project layout<a class="headerlink" href="#project-layout" title="Permanent link">&para;</a></h2>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>src/okapipy/
 </span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>├── app.py            # entry point (typer)
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>├── parser/           # spec → APIModel tree (the &quot;lift&quot;)
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>│   ├── api.py        # public parse(...) entry
-</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>│   ├── loader.py     # JSON/YAML loader, $ref inlining, base path detect
-</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>│   ├── nlp.py        # spaCy pipeline, fetch_model, plural/verb detection
-</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>│   ├── extension.py  # x-okapipy-* readers
-</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>│   ├── rules.py      # Pydantic models for the rules file
-</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>│   ├── classifier.py # segment → kind decision logic
-</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>│   ├── builder.py    # walks paths, mutates APIModel in place
-</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>│   ├── model.py      # the APIModel / Namespace / Collection / ... Pydantic types
-</span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>│   ├── dump.py       # write APIModel to JSON / YAML
-</span><span id="__span-3-13"><a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a>│   └── errors.py     # ParserError hierarchy
-</span><span id="__span-3-14"><a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a>├── generator/        # APIModel → Python project (the &quot;emit&quot;)
-</span><span id="__span-3-15"><a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a>│   ├── api.py        # public generate(...) entry
-</span><span id="__span-3-16"><a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a>│   ├── emit/         # one module per output surface (client, project, runtime, …)
-</span><span id="__span-3-17"><a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a>│   ├── runtime/      # runtime helpers vendored into every generated client
-</span><span id="__span-3-18"><a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a>│   ├── templates/    # Jinja templates for the generated code
-</span><span id="__span-3-19"><a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a>│   ├── models.py     # datamodel-code-generator integration
-</span><span id="__span-3-20"><a id="__codelineno-3-20" name="__codelineno-3-20" href="#__codelineno-3-20"></a>│   ├── manifest.py   # _manifest.json (drift detection)
-</span><span id="__span-3-21"><a id="__codelineno-3-21" name="__codelineno-3-21" href="#__codelineno-3-21"></a>│   ├── edges.py      # parent-child wiring metadata
-</span><span id="__span-3-22"><a id="__codelineno-3-22" name="__codelineno-3-22" href="#__codelineno-3-22"></a>│   ├── inline_schemas.py  # schema name recovery from $refs
-</span><span id="__span-3-23"><a id="__codelineno-3-23" name="__codelineno-3-23" href="#__codelineno-3-23"></a>│   ├── templating.py # ChoiceLoader: user templates → packaged templates
-</span><span id="__span-3-24"><a id="__codelineno-3-24" name="__codelineno-3-24" href="#__codelineno-3-24"></a>│   ├── vfs.py        # virtual filesystem + write_to_disk
-</span><span id="__span-3-25"><a id="__codelineno-3-25" name="__codelineno-3-25" href="#__codelineno-3-25"></a>│   └── errors.py     # GenerationError hierarchy
-</span><span id="__span-3-26"><a id="__codelineno-3-26" name="__codelineno-3-26" href="#__codelineno-3-26"></a>└── cli/              # typer subcommands
-</span><span id="__span-3-27"><a id="__codelineno-3-27" name="__codelineno-3-27" href="#__codelineno-3-27"></a>    ├── __init__.py   # `okapipy` root, dispatches to nlp / spec
-</span><span id="__span-3-28"><a id="__codelineno-3-28" name="__codelineno-3-28" href="#__codelineno-3-28"></a>    ├── nlp_cmd.py    # `okapipy nlp ...`
-</span><span id="__span-3-29"><a id="__codelineno-3-29" name="__codelineno-3-29" href="#__codelineno-3-29"></a>    ├── spec_cmd.py   # `okapipy spec ...`
-</span><span id="__span-3-30"><a id="__codelineno-3-30" name="__codelineno-3-30" href="#__codelineno-3-30"></a>    └── console.py    # rich-based stdout/stderr helpers
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>├── manifest.py       # project manifest model + loader (okapipy.yml)
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>├── parser/           # spec → APIModel tree (the &quot;lift&quot;)
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>│   ├── api.py        # public parse(...) entry
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>│   ├── loader.py     # JSON/YAML loader, $ref inlining, base path detect
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>│   ├── nlp.py        # spaCy pipeline, fetch_model, plural/verb detection
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>│   ├── extension.py  # x-okapipy-* readers
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>│   ├── rules.py      # Pydantic models for the rules file
+</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>│   ├── classifier.py # segment → kind decision logic
+</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>│   ├── builder.py    # walks paths, mutates APIModel in place
+</span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>│   ├── model.py      # the APIModel / Namespace / Collection / ... Pydantic types
+</span><span id="__span-3-13"><a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a>│   ├── dump.py       # write APIModel to JSON / YAML
+</span><span id="__span-3-14"><a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a>│   └── errors.py     # ParserError hierarchy
+</span><span id="__span-3-15"><a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a>├── generator/        # APIModel → Python project (the &quot;emit&quot;)
+</span><span id="__span-3-16"><a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a>│   ├── api.py        # public generate(...) entry
+</span><span id="__span-3-17"><a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a>│   ├── emit/         # one module per output surface (client, project, runtime, …)
+</span><span id="__span-3-18"><a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a>│   ├── runtime/      # runtime helpers vendored into every generated client
+</span><span id="__span-3-19"><a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a>│   ├── templates/    # Jinja templates for the generated code
+</span><span id="__span-3-20"><a id="__codelineno-3-20" name="__codelineno-3-20" href="#__codelineno-3-20"></a>│   ├── models.py     # datamodel-code-generator integration
+</span><span id="__span-3-21"><a id="__codelineno-3-21" name="__codelineno-3-21" href="#__codelineno-3-21"></a>│   ├── state.py      # _generated.json (drift detection)
+</span><span id="__span-3-22"><a id="__codelineno-3-22" name="__codelineno-3-22" href="#__codelineno-3-22"></a>│   ├── compose.py    # multi-spec mount planning
+</span><span id="__span-3-23"><a id="__codelineno-3-23" name="__codelineno-3-23" href="#__codelineno-3-23"></a>│   ├── edges.py      # parent-child wiring metadata
+</span><span id="__span-3-24"><a id="__codelineno-3-24" name="__codelineno-3-24" href="#__codelineno-3-24"></a>│   ├── inline_schemas.py  # schema name recovery from $refs
+</span><span id="__span-3-25"><a id="__codelineno-3-25" name="__codelineno-3-25" href="#__codelineno-3-25"></a>│   ├── templating.py # ChoiceLoader: user templates → packaged templates
+</span><span id="__span-3-26"><a id="__codelineno-3-26" name="__codelineno-3-26" href="#__codelineno-3-26"></a>│   ├── vfs.py        # virtual filesystem + write_to_disk
+</span><span id="__span-3-27"><a id="__codelineno-3-27" name="__codelineno-3-27" href="#__codelineno-3-27"></a>│   └── errors.py     # GenerationError hierarchy
+</span><span id="__span-3-28"><a id="__codelineno-3-28" name="__codelineno-3-28" href="#__codelineno-3-28"></a>└── cli/              # typer commands (flat, no sub-apps)
+</span><span id="__span-3-29"><a id="__codelineno-3-29" name="__codelineno-3-29" href="#__codelineno-3-29"></a>    ├── __init__.py   # builds the root app, registers init / generate / parse / fetch-language
+</span><span id="__span-3-30"><a id="__codelineno-3-30" name="__codelineno-3-30" href="#__codelineno-3-30"></a>    ├── nlp_cmd.py    # `okapipy fetch-language` implementation
+</span><span id="__span-3-31"><a id="__codelineno-3-31" name="__codelineno-3-31" href="#__codelineno-3-31"></a>    ├── spec_cmd.py   # `okapipy init / generate / parse` implementations
+</span><span id="__span-3-32"><a id="__codelineno-3-32" name="__codelineno-3-32" href="#__codelineno-3-32"></a>    └── console.py    # rich-based stdout/stderr helpers
 </span></code></pre></div>
 <p>The split is intentional: the parser is a <strong>pure function</strong> from
 (spec, rules) → tree. The generator is a <strong>pure function</strong> from

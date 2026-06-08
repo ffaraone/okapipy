@@ -12,13 +12,13 @@
         <meta name="author" content="Francesco Faraone">
       
       
-        <link rel="canonical" href="https://ffaraone.github.io/okapipy/user-guide/templates.html">
+        <link rel="canonical" href="https://ffaraone.github.io/okapipy/user-guide/advanced.html">
       
       
-        <link rel="prev" href="customization.html">
+        <link rel="prev" href="templates.html">
       
       
-        <link rel="next" href="advanced.html">
+        <link rel="next" href="../developer-guide/index.html">
       
       
         
@@ -29,7 +29,7 @@
     
     
       
-        <title>Template customization - okapipy</title>
+        <title>Advanced usage - okapipy</title>
       
     
     
@@ -84,7 +84,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#template-customization" class="md-skip">
+        <a href="#advanced-usage" class="md-skip">
           Skip to content
         </a>
       
@@ -119,7 +119,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Template customization
+              Advanced usage
             
           </span>
         </div>
@@ -666,6 +666,34 @@
                 
   
   
+  
+  
+    <li class="md-nav__item">
+      <a href="templates.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Template customization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
     
   
   
@@ -685,7 +713,7 @@
   <span class="md-ellipsis">
     
   
-    Template customization
+    Advanced usage
   
 
     
@@ -696,14 +724,14 @@
           <span class="md-nav__icon md-icon"></span>
         </label>
       
-      <a href="templates.html" class="md-nav__link md-nav__link--active">
+      <a href="advanced.html" class="md-nav__link md-nav__link--active">
         
   
   
   <span class="md-ellipsis">
     
   
-    Template customization
+    Advanced usage
   
 
     
@@ -729,22 +757,44 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#how-it-works" class="md-nav__link">
+  <a href="#multi-spec-projects-one-client-several-services" class="md-nav__link">
     <span class="md-ellipsis">
       
-        How it works
+        Multi-spec projects: one client, several services
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="How it works">
+    <nav class="md-nav" aria-label="Multi-spec projects: one client, several services">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#okapipy-branding-globals" class="md-nav__link">
+  <a href="#the-manifest" class="md-nav__link">
     <span class="md-ellipsis">
       
-        okapipy branding globals
+        The manifest
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#what-gets-emitted" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What gets emitted
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#using-the-client" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Using the client
       
     </span>
   </a>
@@ -757,22 +807,22 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#available-templates" class="md-nav__link">
+  <a href="#spec-side-gotchas-to-know-about" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Available templates
+        Spec-side gotchas to know about
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Available templates">
+    <nav class="md-nav" aria-label="Spec-side gotchas to know about">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#per-node-code-package" class="md-nav__link">
+  <a href="#all-20-paths-share-the-prefix-authv2" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Per-node code (package/)
+        "All 20 paths share the prefix '/auth/v2'…"
       
     </span>
   </a>
@@ -780,10 +830,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#project-skeleton-project" class="md-nav__link">
+  <a href="#mount-tags-on-every-warning" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Project skeleton (project/)
+        [&lt;mount&gt;] tags on every warning
       
     </span>
   </a>
@@ -791,10 +841,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#test-scaffolding-tests" class="md-nav__link">
+  <a href="#unmatched-on-a-per-spec-basis" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Test scaffolding (tests/)
+        unmatched: on a per-spec basis
       
     </span>
   </a>
@@ -807,10 +857,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#filters-available-in-templates" class="md-nav__link">
+  <a href="#regeneration-semantics-in-a-multi-spec-project" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Filters available in templates
+        Regeneration semantics in a multi-spec project
       
     </span>
   </a>
@@ -818,43 +868,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#worked-example-a-custom-file-header" class="md-nav__link">
+  <a href="#see-also" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Worked example: a custom file header
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#basemodelspy-a-separate-template-directory" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        base/models.py: a separate template directory
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#tips" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Tips
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#when-templates-are-not-enough" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        When templates are not enough
+        See also
       
     </span>
   </a>
@@ -865,34 +882,6 @@
   
 </nav>
       
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="advanced.html" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Advanced usage
-  
-
-    
-  </span>
-  
-  
-
-      </a>
     </li>
   
 
@@ -1217,22 +1206,44 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#how-it-works" class="md-nav__link">
+  <a href="#multi-spec-projects-one-client-several-services" class="md-nav__link">
     <span class="md-ellipsis">
       
-        How it works
+        Multi-spec projects: one client, several services
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="How it works">
+    <nav class="md-nav" aria-label="Multi-spec projects: one client, several services">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#okapipy-branding-globals" class="md-nav__link">
+  <a href="#the-manifest" class="md-nav__link">
     <span class="md-ellipsis">
       
-        okapipy branding globals
+        The manifest
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#what-gets-emitted" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What gets emitted
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#using-the-client" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Using the client
       
     </span>
   </a>
@@ -1245,22 +1256,22 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#available-templates" class="md-nav__link">
+  <a href="#spec-side-gotchas-to-know-about" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Available templates
+        Spec-side gotchas to know about
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Available templates">
+    <nav class="md-nav" aria-label="Spec-side gotchas to know about">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#per-node-code-package" class="md-nav__link">
+  <a href="#all-20-paths-share-the-prefix-authv2" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Per-node code (package/)
+        "All 20 paths share the prefix '/auth/v2'…"
       
     </span>
   </a>
@@ -1268,10 +1279,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#project-skeleton-project" class="md-nav__link">
+  <a href="#mount-tags-on-every-warning" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Project skeleton (project/)
+        [&lt;mount&gt;] tags on every warning
       
     </span>
   </a>
@@ -1279,10 +1290,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#test-scaffolding-tests" class="md-nav__link">
+  <a href="#unmatched-on-a-per-spec-basis" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Test scaffolding (tests/)
+        unmatched: on a per-spec basis
       
     </span>
   </a>
@@ -1295,10 +1306,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#filters-available-in-templates" class="md-nav__link">
+  <a href="#regeneration-semantics-in-a-multi-spec-project" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Filters available in templates
+        Regeneration semantics in a multi-spec project
       
     </span>
   </a>
@@ -1306,43 +1317,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#worked-example-a-custom-file-header" class="md-nav__link">
+  <a href="#see-also" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Worked example: a custom file header
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#basemodelspy-a-separate-template-directory" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        base/models.py: a separate template directory
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#tips" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Tips
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#when-templates-are-not-enough" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        When templates are not enough
+        See also
       
     </span>
   </a>
@@ -1417,364 +1395,197 @@
   
 
 
-<h1 id="template-customization">Template customization<a class="headerlink" href="#template-customization" title="Permanent link">&para;</a></h1>
-<p>Every Python file the generator writes is rendered from a <strong>Jinja2
-template</strong>. The templates that ship with okapipy work out of the box for
-most projects, but when you need to bend the output to a corporate
-style, an internal stack, or an opinionated team convention, you can
-override any template per project — without forking the package.</p>
-<p>This is a power-user feature. You don't need it to use okapipy, and
-you can ignore this page entirely. Reach for it when:</p>
+<h1 id="advanced-usage">Advanced usage<a class="headerlink" href="#advanced-usage" title="Permanent link">&para;</a></h1>
+<p>The basics — one spec, one client — are covered in
+<a href="quick-start.html">Quick start</a>. This page covers the patterns that
+come up when you outgrow a single OpenAPI document.</p>
+<h2 id="multi-spec-projects-one-client-several-services">Multi-spec projects: one client, several services<a class="headerlink" href="#multi-spec-projects-one-client-several-services" title="Permanent link">&para;</a></h2>
+<p>Microservice projects typically expose several OpenAPI documents under
+one umbrella product. okapipy generates a single Python package from
+<em>all of them</em> and exposes each service as a top-level namespace on the
+client. You write:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">client</span> <span class="o">=</span> <span class="n">OptscaleClient</span><span class="p">(</span><span class="n">base_url</span><span class="o">=</span><span class="s2">&quot;https://api.example.com&quot;</span><span class="p">)</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="n">client</span><span class="o">.</span><span class="n">auth</span><span class="o">.</span><span class="n">tokens</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="n">body</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;email&quot;</span><span class="p">:</span> <span class="s2">&quot;...&quot;</span><span class="p">,</span> <span class="s2">&quot;password&quot;</span><span class="p">:</span> <span class="s2">&quot;...&quot;</span><span class="p">})</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">client</span><span class="o">.</span><span class="n">restapi</span><span class="o">.</span><span class="n">organizations</span><span class="p">[</span><span class="s2">&quot;org_42&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">cloud_accounts</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="n">body</span><span class="o">=</span><span class="p">{</span><span class="o">...</span><span class="p">})</span>
+</span></code></pre></div>
+<p>and the generator handles the layout, the imports, the
+per-service models, and the regeneration semantics.</p>
+<h3 id="the-manifest">The manifest<a class="headerlink" href="#the-manifest" title="Permanent link">&para;</a></h3>
+<p>Declare one entry under <code>specs:</code> per service. Each entry pairs a
+spec source with the namespace it mounts under, plus its own optional
+rules, prefix stripping, and so on:</p>
+<div class="language-yaml highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># okapipy.yml</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="nt">package</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ffc.optscale</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="nt">client_class</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">OptscaleClient</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="nt">shape</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dicts</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="nt">output</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">./out</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="nt">specs</span><span class="p">:</span>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">auth</span>
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="w">    </span><span class="nt">source</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">./specs/auth.yaml</span>
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="w">    </span><span class="nt">rules</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">./rules/auth.yaml</span>
+</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="w">    </span><span class="nt">strip_prefix</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/auth/v2</span>
+</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">restapi</span>
+</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="w">    </span><span class="nt">source</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">./specs/restapi.yaml</span>
+</span><span id="__span-1-14"><a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="w">    </span><span class="nt">rules</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">./rules/restapi.yaml</span>
+</span><span id="__span-1-15"><a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a><span class="w">    </span><span class="nt">strip_prefix</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/restapi/v2</span>
+</span></code></pre></div>
+<p>Generate as usual:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>$<span class="w"> </span>okapipy<span class="w"> </span>generate
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>╭──────────────────────────────────────────────────────────────────────╮
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>│<span class="w"> </span>Wrote<span class="w"> </span><span class="m">679</span><span class="w"> </span>files<span class="w"> </span>to<span class="w"> </span>./out<span class="w">                                             </span>│
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>╰──────────────────────────────────────────────────────────────────────╯
+</span></code></pre></div>
+<p>A few project-wide fields (<code>package</code>, <code>client_class</code>, <code>shape</code>,
+<code>output</code>, <code>templates_dir</code>, <code>python_version</code>, …) are declared once at
+the top of the manifest and apply to every spec. The per-spec fields
+(<code>source</code>, <code>rules</code>, <code>strip_prefix</code>, <code>unmatched</code>, <code>lang</code>) live inside
+each <code>specs[]</code> entry.</p>
+<div class="admonition note">
+<p class="admonition-title">Shape is project-wide</p>
+<p><code>shape: auto | models | dicts</code> controls the response-shape policy
+for the whole client — one project, one type surface across every
+mount.</p>
+</div>
+<h3 id="what-gets-emitted">What gets emitted<a class="headerlink" href="#what-gets-emitted" title="Permanent link">&para;</a></h3>
+<p>Each spec lands in its own sub-tree under <code>base/&lt;mount&gt;/...</code>:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>src/ffc/optscale/
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>├── client.py                          # user-layer subclass; wires both mounts
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>├── auth/                              # user-layer for the auth mount
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>│   ├── __init__.py                    # class AuthMount(AuthMountBase)
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>│   ├── collections/
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>│   └── ...
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>├── restapi/                           # user-layer for the restapi mount
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>│   ├── __init__.py                    # class RestapiMount(RestapiMountBase)
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>│   └── ...
+</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>└── base/                              # regenerated every run
+</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>    ├── client.py                      # OptscaleClientBase: @cached_property auth, @cached_property restapi
+</span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>    ├── exceptions.py                  # vendored runtime (one set, project-wide)
+</span><span id="__span-3-13"><a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a>    ├── filters.py, sort.py, ...
+</span><span id="__span-3-14"><a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a>    ├── auth/                          # the auth spec&#39;s parsed tree
+</span><span id="__span-3-15"><a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a>    │   ├── __init__.py                # class AuthMountBase
+</span><span id="__span-3-16"><a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a>    │   ├── models.py                  # auth&#39;s Pydantic models only
+</span><span id="__span-3-17"><a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a>    │   ├── collections/, namespaces/, ...
+</span><span id="__span-3-18"><a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a>    └── restapi/                       # the restapi spec&#39;s parsed tree
+</span><span id="__span-3-19"><a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a>        ├── __init__.py                # class RestapiMountBase
+</span><span id="__span-3-20"><a id="__codelineno-3-20" name="__codelineno-3-20" href="#__codelineno-3-20"></a>        ├── models.py                  # restapi&#39;s Pydantic models only
+</span><span id="__span-3-21"><a id="__codelineno-3-21" name="__codelineno-3-21" href="#__codelineno-3-21"></a>        └── ...
+</span></code></pre></div>
+<p>Two consequences worth knowing about:</p>
 <ul>
-<li>You want a different file header on every regenerated file (license,
-  ownership, "machine-translated, do not edit" wording).</li>
-<li>Your team has a house style for <code>pyproject.toml</code>, <code>LICENSE</code>,
-  <code>README.md</code>, or the <code>.gitignore</code> of the generated project.</li>
-<li>You want to change the docstring style, add type-hint variations, or
-  tweak how operations dispatch.</li>
-<li>You need a different shape for <code>base/models.py</code> — the
-  <code>datamodel-code-generator</code> step has its own template directory.</li>
+<li><strong>Class names can't collide.</strong> The synthetic mount-namespace class
+  uses a <code>Mount</code> suffix (<code>AuthMountBase</code>, not <code>AuthNamespaceBase</code>), so
+  even if a spec contains its own top-level <code>auth</code> namespace the two
+  classes coexist without aliasing.</li>
+<li><strong>Models are scoped per mount.</strong> <code>datamodel-code-generator</code> runs
+  once per spec, so two services that each define a <code>User</code> schema get
+  two distinct classes (<code>acme.optscale.base.auth.models.User</code> and
+  <code>acme.optscale.base.restapi.models.User</code>) with no rename mangling.</li>
 </ul>
-<h2 id="how-it-works">How it works<a class="headerlink" href="#how-it-works" title="Permanent link">&para;</a></h2>
-<p>The generator uses Jinja2 with a <code>ChoiceLoader</code>:</p>
-<ol>
-<li><strong>Your <code>--templates-dir</code></strong> (when supplied) is searched first via
-   <code>FileSystemLoader</code>. If a template by the same name exists there, it
-   wins.</li>
-<li><strong>The packaged defaults</strong> in <code>okapipy.generator.templates</code> are
-   searched second. Anything you didn't override falls through.</li>
-</ol>
-<p>Missing templates and missing context variables fail loudly
-(<code>StrictUndefined</code>); the run aborts with a clear error rather than
-silently emitting <code>""</code>.</p>
-<p>Point <code>templates_dir</code> at your override directory in <code>okapipy.yml</code>:</p>
-<div class="language-yaml highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nt">package</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">acme.commerce</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="nt">client_class</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">CommerceClient</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="nt">templates_dir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">./project-templates</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="nt">specs</span><span class="p">:</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;&#39;</span>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="w">    </span><span class="nt">source</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">openapi.yaml</span>
+<h3 id="using-the-client">Using the client<a class="headerlink" href="#using-the-client" title="Permanent link">&para;</a></h3>
+<p>The user-layer client class exposes one accessor per mount, plus any
+root-mounted spec's own top-level (in this manifest there is no root
+mount, so the client has just <code>auth</code> and <code>restapi</code>):</p>
+<div class="tabbed-set tabbed-alternate" data-tabs="1:2"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="__tabbed_1_1">Sync</label><label for="__tabbed_1_2">Async</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">ffc.optscale</span><span class="w"> </span><span class="kn">import</span> <span class="n">OptscaleClient</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="k">with</span> <span class="n">OptscaleClient</span><span class="p">(</span><span class="n">base_url</span><span class="o">=</span><span class="s2">&quot;https://api.example.com&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">client</span><span class="p">:</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>    <span class="n">tokens</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">auth</span><span class="o">.</span><span class="n">tokens</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>    <span class="n">token</span> <span class="o">=</span> <span class="n">tokens</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="n">body</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;email&quot;</span><span class="p">:</span> <span class="s2">&quot;...&quot;</span><span class="p">,</span> <span class="s2">&quot;password&quot;</span><span class="p">:</span> <span class="s2">&quot;...&quot;</span><span class="p">})</span>
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>    <span class="n">orgs</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">restapi</span><span class="o">.</span><span class="n">organizations</span>
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>    <span class="k">for</span> <span class="n">org</span> <span class="ow">in</span> <span class="n">orgs</span><span class="p">:</span>
+</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>        <span class="nb">print</span><span class="p">(</span><span class="n">org</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">org</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
 </span></code></pre></div>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>okapipy<span class="w"> </span>generate<span class="w"> </span>--output<span class="w"> </span>./my-client
+</div>
+<div class="tabbed-block">
+<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">ffc.optscale</span><span class="w"> </span><span class="kn">import</span> <span class="n">AsyncOptscaleClient</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="k">async</span> <span class="k">with</span> <span class="n">AsyncOptscaleClient</span><span class="p">(</span><span class="n">base_url</span><span class="o">=</span><span class="s2">&quot;https://api.example.com&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">client</span><span class="p">:</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>    <span class="n">token</span> <span class="o">=</span> <span class="k">await</span> <span class="n">client</span><span class="o">.</span><span class="n">auth</span><span class="o">.</span><span class="n">tokens</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>        <span class="n">body</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;email&quot;</span><span class="p">:</span> <span class="s2">&quot;...&quot;</span><span class="p">,</span> <span class="s2">&quot;password&quot;</span><span class="p">:</span> <span class="s2">&quot;...&quot;</span><span class="p">},</span>
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>    <span class="p">)</span>
+</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>
+</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>    <span class="k">async</span> <span class="k">for</span> <span class="n">org</span> <span class="ow">in</span> <span class="n">client</span><span class="o">.</span><span class="n">restapi</span><span class="o">.</span><span class="n">organizations</span><span class="p">:</span>
+</span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>        <span class="nb">print</span><span class="p">(</span><span class="n">org</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">org</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
 </span></code></pre></div>
-<p>After rendering, every Python file passes through <code>ruff check --fix
---select I</code> (isort) and then <code>ruff format</code>. <strong>You don't need to format
-the output of your templates</strong> — broken indentation in your jinja is
-canonical-formatted on the way out. What you do need to do is emit
-<em>valid</em> Python; if ruff can't parse it, the run aborts with a
-<code>FormatError</code> pointing at the template name.</p>
-<h3 id="okapipy-branding-globals">okapipy branding globals<a class="headerlink" href="#okapipy-branding-globals" title="Permanent link">&para;</a></h3>
-<p>These constants are registered as Jinja globals and are always available
-to every template (default or user override) without needing to be
-passed through context. The default <code>project/README.md.jinja</code> uses them
-to stamp a "generated with okapipy" badge on the rendered README; you
-can drop them into your own override to keep — or replace — the
-attribution.</p>
-<table>
-<thead>
-<tr>
-<th>Global</th>
-<th>Meaning</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>okapipy_repo_url</code></td>
-<td>Canonical URL of the okapipy GitHub repository.</td>
-</tr>
-<tr>
-<td><code>okapipy_brand_color</code></td>
-<td>Brand color (hex, no <code>#</code>) for the message half of a shields.io badge.</td>
-</tr>
-<tr>
-<td><code>okapipy_brand_label_color</code></td>
-<td>Darker brand color (hex, no <code>#</code>) for the label half of a shields.io badge.</td>
-</tr>
-<tr>
-<td><code>okapipy_logo_data_uri</code></td>
-<td>Inline <code>data:image/png;base64,…</code> URI of the okapipy mascot, sized for use as a shields.io <code>logo=</code> value.</td>
-</tr>
-<tr>
-<td><code>okapipy_footer_badge_url</code></td>
-<td>Direct URL of the full-size "generated with okapipy" badge image, suitable for an <code>&lt;img src="…"&gt;</code> footer.</td>
-</tr>
-</tbody>
-</table>
-<h2 id="available-templates">Available templates<a class="headerlink" href="#available-templates" title="Permanent link">&para;</a></h2>
-<p><code>--templates-dir</code> looks for templates under <code>package/</code>,
-<code>project/</code>, and <code>tests/</code> subdirectories — the same layout as the
-packaged defaults. Anything outside those subdirectories is ignored.</p>
-<h3 id="per-node-code-package">Per-node code (<code>package/</code>)<a class="headerlink" href="#per-node-code-package" title="Permanent link">&para;</a></h3>
-<p>Rendered once per parser-tree node, into <code>base/&lt;kind&gt;/&lt;name&gt;.py</code>.</p>
-<table>
-<thead>
-<tr>
-<th>Template</th>
-<th>Output</th>
-<th>Variables (selection)</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>package/client.py.jinja</code></td>
-<td><code>base/client.py</code></td>
-<td><code>class_name</code>, <code>client_class</code>, <code>project_name</code>, <code>namespaces</code>, <code>collections</code>, <code>singletons</code>, <code>actions</code></td>
-</tr>
-<tr>
-<td><code>package/namespace.py.jinja</code></td>
-<td><code>base/namespaces/&lt;name&gt;.py</code></td>
-<td><code>class_name</code>, <code>client_class</code>, <code>namespaces</code>, <code>collections</code>, <code>singletons</code>, <code>actions</code></td>
-</tr>
-<tr>
-<td><code>package/collection.py.jinja</code></td>
-<td><code>base/collections/&lt;name&gt;.py</code></td>
-<td><code>class_name</code>, <code>client_class</code>, <code>path_template</code>, <code>resource</code>, <code>actions</code>, <code>create_op</code>, <code>fetch_item_model</code>, <code>model_imports</code></td>
-</tr>
-<tr>
-<td><code>package/resource.py.jinja</code></td>
-<td><code>base/resources/&lt;name&gt;.py</code></td>
-<td><code>class_name</code>, <code>client_class</code>, <code>path_template</code>, <code>id_param</code>, <code>retrieve_op</code>, <code>update_op</code>, <code>partial_update_op</code>, <code>delete_op</code>, <code>actions</code>, <code>collections</code>, <code>singletons</code>, <code>model_imports</code></td>
-</tr>
-<tr>
-<td><code>package/singleton.py.jinja</code></td>
-<td><code>base/singletons/&lt;name&gt;.py</code></td>
-<td>Same shape as <code>resource.py.jinja</code> (singletons share the resource contract).</td>
-</tr>
-<tr>
-<td><code>package/action.py.jinja</code></td>
-<td><code>base/actions/&lt;name&gt;.py</code></td>
-<td><code>class_name</code>, <code>client_class</code>, <code>path_template</code>, <code>method</code>, <code>request_model</code>, <code>response_model</code>, <code>model_imports</code></td>
-</tr>
-<tr>
-<td><code>package/models.py.jinja</code></td>
-<td><code>base/models.py</code></td>
-<td>Wrapping template around the dmcg-emitted source; rarely customized.</td>
-</tr>
-</tbody>
-</table>
-<p>The exact set of context variables for each template is defined by the
-emitter that drives it. The fastest way to learn it is to read the
-packaged template:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>python<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;import okapipy.generator.templates as t; \</span>
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="s2">           print(__import__(&#39;importlib.resources&#39;).resources.files(t).joinpath(&#39;package/collection.py.jinja&#39;).read_text())&quot;</span>
+</div>
+</div>
+</div>
+<p>Everything else — filters, sorts, pagination, <code>RequestOptions</code>,
+errors, retries — works the same way it does for a single-spec
+client. See <a href="client-usage.html">Using the client</a> for the full surface.</p>
+<h2 id="spec-side-gotchas-to-know-about">Spec-side gotchas to know about<a class="headerlink" href="#spec-side-gotchas-to-know-about" title="Permanent link">&para;</a></h2>
+<h3 id="all-20-paths-share-the-prefix-authv2">"All 20 paths share the prefix '/auth/v2'…"<a class="headerlink" href="#all-20-paths-share-the-prefix-authv2" title="Permanent link">&para;</a></h3>
+<p>When the spec has no <code>servers[]</code> entry and ships every path under the
+same <code>/&lt;service&gt;/&lt;version&gt;/</code> prefix, okapipy fires one upfront WARNING
+naming the fix:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>WARNING all 20 paths share the prefix &#39;/auth/v2&#39;; consider setting
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>        `strip_prefix: /auth/v2` on this spec&#39;s manifest entry to drop it
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>        before classification.
 </span></code></pre></div>
-<p>…and copy the parts you care about into your override.</p>
-<h3 id="project-skeleton-project">Project skeleton (<code>project/</code>)<a class="headerlink" href="#project-skeleton-project" title="Permanent link">&para;</a></h3>
-<p>Rendered once at first generation, then <strong>never overwritten</strong> —
-they're one-shot, like the user-layer subclass stubs. To regenerate
-them on demand, delete the file and re-run.</p>
-<table>
-<thead>
-<tr>
-<th>Template</th>
-<th>Output</th>
-<th>Variables</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>project/pyproject.toml.jinja</code></td>
-<td><code>pyproject.toml</code></td>
-<td><code>project_name</code>, <code>project_version</code>, <code>python_version</code>, <code>package</code>, <code>top_package</code>, <code>client_class</code>, <code>license</code>, <code>license_is_spdx</code> (gates the <code>license = "..."</code> line), <code>author</code> (gates the PEP 621 <code>authors</code> block).</td>
-</tr>
-<tr>
-<td><code>project/README.md.jinja</code></td>
-<td><code>README.md</code></td>
-<td>Same as above.</td>
-</tr>
-<tr>
-<td><code>project/LICENSE.jinja</code></td>
-<td><code>LICENSE</code></td>
-<td><code>license</code> (SPDX), <code>author</code> (copyright holder; falls back to <code>project_name</code>), <code>current_year</code>.</td>
-</tr>
-<tr>
-<td><code>project/gitignore.jinja</code></td>
-<td><code>.gitignore</code></td>
-<td>(no variables)</td>
-</tr>
-<tr>
-<td><code>project/python-version.jinja</code></td>
-<td><code>.python-version</code></td>
-<td><code>python_version</code></td>
-</tr>
-</tbody>
-</table>
-<h3 id="test-scaffolding-tests">Test scaffolding (<code>tests/</code>)<a class="headerlink" href="#test-scaffolding-tests" title="Permanent link">&para;</a></h3>
-<p>Rendered into the generated <code>tests/</code> tree at first generation; one-shot
-like the project skeleton.</p>
-<table>
-<thead>
-<tr>
-<th>Template</th>
-<th>Output</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>tests/conftest.py.jinja</code></td>
-<td><code>tests/conftest.py</code></td>
-</tr>
-<tr>
-<td><code>tests/test_client.py.jinja</code></td>
-<td><code>tests/test_client.py</code></td>
-</tr>
-<tr>
-<td><code>tests/resources/&lt;name&gt;.py.jinja</code></td>
-<td><code>tests/resources/test_&lt;name&gt;.py</code></td>
-</tr>
-<tr>
-<td><code>tests/collections/&lt;name&gt;.py.jinja</code></td>
-<td><code>tests/collections/test_&lt;name&gt;.py</code></td>
-</tr>
-<tr>
-<td><code>tests/actions/&lt;name&gt;.py.jinja</code></td>
-<td><code>tests/actions/test_&lt;name&gt;.py</code></td>
-</tr>
-<tr>
-<td><code>tests/namespaces/&lt;name&gt;.py.jinja</code></td>
-<td><code>tests/namespaces/test_&lt;name&gt;.py</code></td>
-</tr>
-</tbody>
-</table>
-<h2 id="filters-available-in-templates">Filters available in templates<a class="headerlink" href="#filters-available-in-templates" title="Permanent link">&para;</a></h2>
-<p>Beyond Jinja2's built-ins, the generator's environment registers:</p>
-<table>
-<thead>
-<tr>
-<th>Filter</th>
-<th>What it does</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>snake_case</code></td>
-<td><code>"OrderLine"</code> → <code>"order_line"</code>, <code>"orderLine"</code> → <code>"order_line"</code>.</td>
-</tr>
-<tr>
-<td><code>pascal_case</code></td>
-<td><code>"order_line"</code> → <code>"OrderLine"</code>.</td>
-</tr>
-<tr>
-<td><code>kebab_case</code></td>
-<td><code>"order_line"</code> → <code>"order-line"</code>.</td>
-</tr>
-<tr>
-<td><code>tojson</code></td>
-<td>JSON literal — for emitting JSON-like payloads inline.</td>
-</tr>
-<tr>
-<td><code>py_repr</code></td>
-<td><code>repr(value)</code> — Python-literal escape hatch.</td>
-</tr>
-<tr>
-<td><code>py_class_or_none</code></td>
-<td>Class name (<code>"Order"</code>) or the literal <code>None</code>; used in operation methods that may have no response model.</td>
-</tr>
-</tbody>
-</table>
-<h2 id="worked-example-a-custom-file-header">Worked example: a custom file header<a class="headerlink" href="#worked-example-a-custom-file-header" title="Permanent link">&para;</a></h2>
-<p>Suppose every regenerated file in your company should carry a license
-banner.</p>
-<ol>
-<li>Create <code>project-templates/package/</code>.</li>
-<li>
-<p>Copy the packaged <code>client.py.jinja</code> over and replace the header:</p>
-<div class="language-jinja highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="x"># Copyright </span><span class="cp">{{</span> <span class="s2">&quot;now&quot;</span><span class="o">|</span><span class="nf">date</span><span class="o">(</span><span class="s2">&quot;Y&quot;</span><span class="o">)</span> <span class="cp">}}</span><span class="x"> Acme Corp.  All rights reserved.</span>
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="x"># SPDX-License-Identifier: Proprietary</span>
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="x">#</span>
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="x"># AUTO-GENERATED by okapipy. DO NOT EDIT.</span>
-</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="x">&quot;&quot;&quot;</span><span class="cp">{{</span> <span class="nv">client_class</span> <span class="cp">}}</span><span class="x"> base class for </span><span class="cp">{{</span> <span class="nv">project_name</span> <span class="cp">}}</span><span class="x">.&quot;&quot;&quot;</span>
-</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>
-</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="c">{# …rest of the template body unchanged… #}</span>
+<p>Take the suggestion. The leading segment of an un-stripped spec
+usually classifies as an Action (spaCy reads <code>auth</code> as a verb), and
+every downstream path then raises a "cannot be attached under
+Action" warning — drowning out the actual issue.</p>
+<h3 id="mount-tags-on-every-warning"><code>[&lt;mount&gt;]</code> tags on every warning<a class="headerlink" href="#mount-tags-on-every-warning" title="Permanent link">&para;</a></h3>
+<p>In a multi-spec run, parser log records carry the mount name as a
+bracketed prefix:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>WARNING [restapi] skipping path /cloud_accounts/.../bulk: action &#39;bulk&#39;
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>        cannot be attached under Action
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>WARNING [auth] skipping PATCH /users/{id}: method has no canonical slot
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>        on collection &#39;User&#39; and the operation does not fit ...
 </span></code></pre></div>
-</li>
-<li>
-<p>Repeat for any other template whose header you care about
-   (<code>namespace.py.jinja</code>, <code>collection.py.jinja</code>, <code>resource.py.jinja</code>,
-   <code>action.py.jinja</code>).</p>
-</li>
-<li>
-<p>Re-generate (<code>templates_dir</code> already lives in <code>okapipy.yml</code>):</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>okapipy<span class="w"> </span>generate<span class="w"> </span>--output<span class="w"> </span>./my-client
+<p>Use the tag to find the right rules file. Single-spec runs intentionally
+drop the prefix — there's only one source, the tag would be noise.</p>
+<h3 id="unmatched-on-a-per-spec-basis"><code>unmatched:</code> on a per-spec basis<a class="headerlink" href="#unmatched-on-a-per-spec-basis" title="Permanent link">&para;</a></h3>
+<p>A spec that contains operations okapipy's routing table drops (<code>PUT</code>
+on a collection, <code>GET</code> on a bare namespace, …) can keep them as flat
+actions by setting <code>unmatched:</code> <em>inside</em> the spec entry:</p>
+<div class="language-yaml highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="nt">specs</span><span class="p">:</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">restapi</span>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="w">    </span><span class="nt">source</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">./specs/restapi.yaml</span>
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="w">    </span><span class="nt">unmatched</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">misc</span><span class="w">        </span><span class="c1"># catch-all under client.restapi.misc.*</span>
 </span></code></pre></div>
-</li>
-</ol>
-<p>Templates you didn't override fall through to the packaged defaults.</p>
-<h2 id="basemodelspy-a-separate-template-directory"><code>base/models.py</code>: a separate template directory<a class="headerlink" href="#basemodelspy-a-separate-template-directory" title="Permanent link">&para;</a></h2>
-<p><code>base/models.py</code> is produced by
-<a href="https://github.com/koxudaxi/datamodel-code-generator"><code>datamodel-code-generator</code></a>
-(dmcg), which has its own templating system separate from okapipy's
-Jinja templates. To customize the <strong>model</strong> layout — extra base
-classes, custom validators, alternate field aliases — set
-<code>model_templates_dir</code> in <code>okapipy.yml</code>:</p>
-<div class="language-yaml highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="nt">package</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">acme.commerce</span>
-</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="nt">client_class</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">CommerceClient</span>
-</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="nt">model_templates_dir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">./model-templates</span>
-</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="nt">specs</span><span class="p">:</span>
-</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;&#39;</span>
-</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="w">    </span><span class="nt">source</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">openapi.yaml</span>
-</span></code></pre></div>
-<p>The directory uses dmcg's own template names, not okapipy's:</p>
-<table>
-<thead>
-<tr>
-<th>Template</th>
-<th>Purpose</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>BaseModel.jinja2</code></td>
-<td>The body of every emitted Pydantic model.</td>
-</tr>
-<tr>
-<td><code>ConfigDict.jinja2</code></td>
-<td>The <code>model_config = ConfigDict(...)</code> line.</td>
-</tr>
-<tr>
-<td><code>RootModel.jinja2</code></td>
-<td>Root models (Pydantic v2's <code>RootModel[T]</code>).</td>
-</tr>
-</tbody>
-</table>
-<p>A starter set lives at
-<a href="https://github.com/ffaraone/okapipy/tree/main/sample_model_templates">sample_model_templates/</a>
-in the okapipy repo — a useful base to fork from. Custom dmcg templates
-are documented at
-<a href="https://docs.koxudaxi.com/datamodel-code-generator/template/">dmcg's docs</a>.</p>
-<p>A common reason to override: switch every field that's nullable in the
-spec from <code>Optional[T] = None</code> to <code>T | None = Field(default=None,
-validation_alias=AliasChoices(...))</code> so unknown JSON keys don't crash
-deserialization. The default templates do something close to this
-already — read them first to see whether you really need an override.</p>
-<h2 id="tips">Tips<a class="headerlink" href="#tips" title="Permanent link">&para;</a></h2>
+<p>Each entry has its own <code>unmatched</code> namespace; the synthetic catch-all
+nests inside the mount, not at the project root.</p>
+<h2 id="regeneration-semantics-in-a-multi-spec-project">Regeneration semantics in a multi-spec project<a class="headerlink" href="#regeneration-semantics-in-a-multi-spec-project" title="Permanent link">&para;</a></h2>
+<p>The lifecycle that single-spec projects rely on — one-shot user
+stubs, regenerated <code>base/</code>, <code>--check</code> as a CI gate, drift warnings on
+new children — extends per-mount in the obvious way:</p>
 <ul>
-<li><strong>Treat overrides as code.</strong> Commit <code>project-templates/</code> and
-  <code>model-templates/</code> to your repo; their drift between team members is
-  a real source of "works on my machine" confusion otherwise.</li>
-<li><strong>Override one template at a time.</strong> The packaged templates evolve
-  release to release; the more you override, the more you'll need to
-  rebase on each upgrade. Override only what you actually care about.</li>
-<li><strong>Run <code>--check</code> after every change.</strong> Template churn shows up as base
-  file diffs; <code>okapipy generate --check</code> is the fastest way to see
-  whether your overrides produced expected output.</li>
-<li><strong><code>StrictUndefined</code> is your friend.</strong> When you reference a variable
-  that doesn't exist in the template's context, the run aborts with a
-  clear error. Don't disable it.</li>
-<li><strong>Don't override templates to add new files.</strong> <code>--templates-dir</code>
-  changes the <em>content</em> of files okapipy already emits; it doesn't add
-  files okapipy doesn't know about. For genuinely new files, write
-  them yourself in the user layer (which the generator never touches).</li>
+<li><strong>Idempotent regeneration.</strong> Running <code>okapipy generate</code> twice
+  against an unchanged manifest writes the same bytes (except the
+  state file's timestamp).</li>
+<li><strong><code>okapipy generate --check</code></strong> passes when nothing changed; fails
+  when any mount's <code>base/&lt;mount&gt;/...</code> would change, when any mount's
+  user stub is missing a factory wiring, or when a mount's stale
+  base files would be pruned.</li>
+<li><strong>Drift warnings localize to the right mount.</strong> Adding a new
+  top-level collection to <code>auth/openapi.yaml</code> fires a warning that
+  names <code>src/ffc/optscale/auth/__init__.py</code>, not <code>restapi/</code>'s init,
+  and not the project-wide <code>client.py</code>.</li>
+<li><strong>Dropping a <code>specs[]</code> entry prunes its sub-tree.</strong> Removing the
+  <code>auth</code> entry from the manifest deletes every file under
+  <code>base/auth/</code> on the next run. The user-layer <code>auth/</code> tree is
+  never pruned — okapipy never touches one-shot files.</li>
+<li><strong>User stubs survive every regeneration</strong>, in every mount. Edit
+  freely.</li>
 </ul>
-<h2 id="when-templates-are-not-enough">When templates are not enough<a class="headerlink" href="#when-templates-are-not-enough" title="Permanent link">&para;</a></h2>
-<p>If you find yourself reaching for things templates can't do — a custom
-manifest layout, a different drift-detection algorithm, a separate
-output target — open an issue. Most "I want to do X with templates"
-problems are actually missing extension points elsewhere; the
-<code>x-okapipy-*</code> extensions and the rules file already cover most
-classification overrides, and the strategies cover most wire-format
-overrides. Templates are the right tool for <em>cosmetic</em> and
-<em>organizational</em> tweaks; they shouldn't carry behavior.</p>
+<h2 id="see-also">See also<a class="headerlink" href="#see-also" title="Permanent link">&para;</a></h2>
+<ul>
+<li><a href="quick-start.html">Quick start</a> — the single-spec workflow and the
+  full manifest schema.</li>
+<li><a href="client-usage.html">Using the client</a> — the API surface available on
+  every collection / resource / action regardless of mount.</li>
+<li><a href="rules.html">Rules and extensions</a> — <code>x-okapipy-*</code> extensions and
+  rules-file overrides, applied per-spec via each entry's <code>rules:</code>
+  field.</li>
+<li><a href="../reference/cli.html">CLI reference</a> — every flag of
+  <code>okapipy generate</code>.</li>
+</ul>
 
 
 

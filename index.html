@@ -527,6 +527,8 @@
       
         
       
+        
+      
     
     
     
@@ -783,6 +785,34 @@
     
   
     Template customization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="user-guide/advanced.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Advanced usage
   
 
     
@@ -1261,10 +1291,9 @@ changes a year from now, you re-run one command, the <code>base/</code> tree
 catches up, and your code is exactly where you left it.</p>
 <h2 id="a-30-second-tour">A 30-second tour<a class="headerlink" href="#a-30-second-tour" title="Permanent link">&para;</a></h2>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>pip<span class="w"> </span>install<span class="w"> </span>okapipy
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>okapipy<span class="w"> </span>spec<span class="w"> </span>generate<span class="w"> </span>https://api.example.com/openapi.json<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">    </span>--output<span class="w"> </span>./my-client<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">    </span>--package<span class="w"> </span>acme.commerce<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="w">    </span>--client-class<span class="w"> </span>CommerceClient
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>okapipy<span class="w"> </span>init<span class="w"> </span>https://api.example.com/openapi.json<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">    </span>--package<span class="w"> </span>acme.commerce<span class="w"> </span>--client-class<span class="w"> </span>CommerceClient
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>okapipy<span class="w"> </span>generate<span class="w"> </span>--output<span class="w"> </span>./my-client
 </span></code></pre></div>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">acme.commerce</span><span class="w"> </span><span class="kn">import</span> <span class="n">CommerceClient</span>
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
@@ -1330,7 +1359,7 @@ work out of the box.</p>
 <li>
 <p><span class="twemoji lg middle"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18a6 6 0 0 1-6-6c0-1 .25-1.97.7-2.8L5.24 7.74A7.93 7.93 0 0 0 4 12a8 8 0 0 0 8 8v3l4-4-4-4m0-11V1L8 5l4 4V6a6 6 0 0 1 6 6c0 1-.25 1.97-.7 2.8l1.46 1.46A7.93 7.93 0 0 0 20 12a8 8 0 0 0-8-8"/></svg></span> <strong>Lossless regeneration</strong></p>
 <hr />
-<p>Re-run <code>okapipy spec generate</code> whenever the spec moves. Your user
+<p>Re-run <code>okapipy generate</code> whenever the spec moves. Your user
 code is left strictly alone; new namespaces and collections show up
 as drift warnings telling you exactly which line to add.</p>
 <p><a href="user-guide/customization.html#regeneration-semantics"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13.22 19.03a.75.75 0 0 1 0-1.06L18.19 13H3.75a.75.75 0 0 1 0-1.5h14.44l-4.97-4.97a.749.749 0 0 1 .326-1.275.75.75 0 0 1 .734.215l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0"/></svg></span> Regeneration semantics</a></p>
@@ -1348,20 +1377,22 @@ clients, side by side, sharing the same tree.</p>
 <h2 id="get-going-in-five-minutes">Get going in five minutes<a class="headerlink" href="#get-going-in-five-minutes" title="Permanent link">&para;</a></h2>
 <ol>
 <li><strong>Install.</strong> <code>pip install okapipy</code> (or <code>uv add okapipy</code>).</li>
-<li><strong>Pre-warm the spaCy model.</strong> <code>okapipy nlp fetch en</code> — ~12 MB,
+<li><strong>Pre-warm the spaCy model.</strong> <code>okapipy fetch-language en</code> — ~12 MB,
    one-time cost.</li>
-<li><strong>Sanity-check your spec.</strong> <code>okapipy spec parse openapi.yaml</code> prints a
+<li><strong>Sanity-check your spec.</strong> <code>okapipy parse openapi.yaml</code> prints a
    structural tree and a counts panel; if any classifications look off,
    fix them in the rules file (see <a href="user-guide/rules.html">Rules and extensions</a>) before
    you generate.</li>
-<li><strong>Generate.</strong> <code>okapipy spec generate openapi.yaml --output ./client
-   --package acme.commerce --client-class CommerceClient</code>.</li>
+<li><strong>Scaffold the manifest.</strong> <code>okapipy init openapi.yaml --package
+   acme.commerce --client-class CommerceClient</code> writes <code>./okapipy.yml</code>
+   — the only file the generator needs to read on subsequent runs.</li>
+<li><strong>Generate.</strong> <code>okapipy generate --output ./client</code>.</li>
 <li><strong>Use it.</strong> <code>from acme.commerce import CommerceClient</code>. The full
    surface — every collection, resource, action, sub-namespace — is
    already wired through the user-layer subclasses; you only edit them
    when you want to specialize.</li>
 </ol>
-<p>That's the whole loop. There is no step 6.</p>
+<p>That's the whole loop. There is no step 7.</p>
 <h2 id="status">Status<a class="headerlink" href="#status" title="Permanent link">&para;</a></h2>
 <p>okapipy is in active development (beta). The parser is stable and ships
 today; the generator is implemented and emits a runnable client project

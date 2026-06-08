@@ -416,6 +416,8 @@
       
         
       
+        
+      
     
     
     
@@ -777,6 +779,34 @@
     
   
     Template customization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="advanced.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Advanced usage
   
 
     
@@ -1262,7 +1292,7 @@ your project:</p>
 <p>The first time the parser runs, it downloads the spaCy English model
 (<code>en_core_web_sm</code>, ~12 MB) into <code>./.spacy/</code>. That's a one-time cost, and
 you can move it earlier:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>okapipy<span class="w"> </span>nlp<span class="w"> </span>fetch<span class="w"> </span>en
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>okapipy<span class="w"> </span>fetch-language<span class="w"> </span>en
 </span></code></pre></div>
 <p>In CI, cache <code>./.spacy/</code> between runs so you don't pay the download on
 every job:</p>
@@ -1272,17 +1302,18 @@ every job:</p>
 </span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="w">    </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">.spacy</span>
 </span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="w">    </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">spacy-en_core_web_sm-${{ runner.os }}</span>
 </span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>
-</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">run</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">okapipy nlp fetch en</span>
+</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">run</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">okapipy fetch-language en</span>
 </span></code></pre></div>
 <p>If you'd rather store the model somewhere else, every command that uses
 NLP accepts <code>--nlp-cache-dir</code>:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>okapipy<span class="w"> </span>nlp<span class="w"> </span>fetch<span class="w"> </span>en<span class="w"> </span>--cache-dir<span class="w"> </span>~/.cache/okapipy/nlp
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>okapipy<span class="w"> </span>fetch-language<span class="w"> </span>en<span class="w"> </span>--cache-dir<span class="w"> </span>~/.cache/okapipy/nlp
 </span></code></pre></div>
 <h2 id="other-languages">Other languages<a class="headerlink" href="#other-languages" title="Permanent link">&para;</a></h2>
 <p>okapipy uses spaCy, which ships pipelines for 20+ languages. Use the
-ISO code on <code>nlp fetch</code> and again on <code>spec parse</code>/<code>spec generate</code>:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>okapipy<span class="w"> </span>nlp<span class="w"> </span>fetch<span class="w"> </span>es
-</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>okapipy<span class="w"> </span>spec<span class="w"> </span>parse<span class="w"> </span>openapi.yaml<span class="w"> </span>--lang<span class="w"> </span>es
+ISO code on <code>fetch-language</code> and again on <code>parse</code> / in the manifest's
+<code>lang:</code> field:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>okapipy<span class="w"> </span>fetch-language<span class="w"> </span>es
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>okapipy<span class="w"> </span>parse<span class="w"> </span>openapi.yaml<span class="w"> </span>--lang<span class="w"> </span>es
 </span></code></pre></div>
 <p>The English heuristic registry (which catches a handful of API verbs that
 small spaCy models mistag as nouns — <code>login</code>, <code>logout</code>, <code>refresh</code>, …) is

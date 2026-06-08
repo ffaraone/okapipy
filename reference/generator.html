@@ -412,6 +412,8 @@
       
         
       
+        
+      
     
     
     
@@ -668,6 +670,34 @@
     
   
     Template customization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../user-guide/advanced.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Advanced usage
   
 
     
@@ -1010,10 +1040,93 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#public-entry-point" class="md-nav__link">
+  <a href="#project-manifest" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Public entry point
+        Project manifest
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#okapipy.manifest" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-module"></code>&nbsp;manifest
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label=" manifest">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#okapipy.manifest.DEFAULT_MANIFEST_FILENAME" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;DEFAULT_MANIFEST_FILENAME
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#okapipy.manifest.GenerationManifest" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;GenerationManifest
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#okapipy.manifest.SpecEntry" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;SpecEntry
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#okapipy.manifest.load_manifest" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;load_manifest
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#okapipy.manifest.apply_cli_overrides" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;apply_cli_overrides
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#public-entry-points" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Public entry points
       
     </span>
   </a>
@@ -1025,6 +1138,17 @@
     <span class="md-ellipsis">
       
         <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;generate
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#okapipy.generator.api.generate_for_mount" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;generate_for_mount
       
     </span>
   </a>
@@ -1143,10 +1267,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#manifest-and-edges" class="md-nav__link">
+  <a href="#generated-state-file-and-edges" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Manifest and edges
+        Generated-state file and edges
       
     </span>
   </a>
@@ -1154,22 +1278,22 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#okapipy.generator.manifest" class="md-nav__link">
+  <a href="#okapipy.generator.state" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-toc doc-symbol-module"></code>&nbsp;manifest
+        <code class="doc-symbol doc-symbol-toc doc-symbol-module"></code>&nbsp;state
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label=" manifest">
+    <nav class="md-nav" aria-label=" state">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#okapipy.generator.manifest.MANIFEST_FILENAME" class="md-nav__link">
+  <a href="#okapipy.generator.state.STATE_FILENAME" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;MANIFEST_FILENAME
+        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;STATE_FILENAME
       
     </span>
   </a>
@@ -1177,7 +1301,29 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#okapipy.generator.manifest.serialize" class="md-nav__link">
+  <a href="#okapipy.generator.state.GeneratedState" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;GeneratedState
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#okapipy.generator.state.Edge" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;Edge
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#okapipy.generator.state.serialize" class="md-nav__link">
     <span class="md-ellipsis">
       
         <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;serialize
@@ -1205,10 +1351,104 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#okapipy.generator.edges.compute_manifest" class="md-nav__link">
+  <a href="#okapipy.generator.edges.compute_state" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;compute_manifest
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;compute_state
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#okapipy.generator.edges.compute_edges" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;compute_edges
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#mount-composition" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Mount composition
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#okapipy.generator.compose" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-module"></code>&nbsp;compose
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label=" compose">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#okapipy.generator.compose.MountedSpec" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;MountedSpec
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#okapipy.generator.compose.mount_segments" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;mount_segments
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#okapipy.generator.compose.mount_relpath" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;mount_relpath
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#okapipy.generator.compose.check_mount_collisions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;check_mount_collisions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#okapipy.generator.compose.iter_mount_namespace_prefixes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;iter_mount_namespace_prefixes
       
     </span>
   </a>
@@ -1367,6 +1607,28 @@
         
       </ul>
     </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#okapipy.generator.errors.ManifestNotFoundError" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;ManifestNotFoundError
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#okapipy.generator.errors.ManifestFormatError" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;ManifestFormatError
+      
+    </span>
+  </a>
   
 </li>
       
@@ -2005,10 +2267,93 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#public-entry-point" class="md-nav__link">
+  <a href="#project-manifest" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Public entry point
+        Project manifest
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#okapipy.manifest" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-module"></code>&nbsp;manifest
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label=" manifest">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#okapipy.manifest.DEFAULT_MANIFEST_FILENAME" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;DEFAULT_MANIFEST_FILENAME
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#okapipy.manifest.GenerationManifest" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;GenerationManifest
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#okapipy.manifest.SpecEntry" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;SpecEntry
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#okapipy.manifest.load_manifest" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;load_manifest
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#okapipy.manifest.apply_cli_overrides" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;apply_cli_overrides
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#public-entry-points" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Public entry points
       
     </span>
   </a>
@@ -2020,6 +2365,17 @@
     <span class="md-ellipsis">
       
         <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;generate
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#okapipy.generator.api.generate_for_mount" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;generate_for_mount
       
     </span>
   </a>
@@ -2138,10 +2494,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#manifest-and-edges" class="md-nav__link">
+  <a href="#generated-state-file-and-edges" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Manifest and edges
+        Generated-state file and edges
       
     </span>
   </a>
@@ -2149,22 +2505,22 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#okapipy.generator.manifest" class="md-nav__link">
+  <a href="#okapipy.generator.state" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-toc doc-symbol-module"></code>&nbsp;manifest
+        <code class="doc-symbol doc-symbol-toc doc-symbol-module"></code>&nbsp;state
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label=" manifest">
+    <nav class="md-nav" aria-label=" state">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#okapipy.generator.manifest.MANIFEST_FILENAME" class="md-nav__link">
+  <a href="#okapipy.generator.state.STATE_FILENAME" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;MANIFEST_FILENAME
+        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;STATE_FILENAME
       
     </span>
   </a>
@@ -2172,7 +2528,29 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#okapipy.generator.manifest.serialize" class="md-nav__link">
+  <a href="#okapipy.generator.state.GeneratedState" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;GeneratedState
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#okapipy.generator.state.Edge" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;Edge
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#okapipy.generator.state.serialize" class="md-nav__link">
     <span class="md-ellipsis">
       
         <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;serialize
@@ -2200,10 +2578,104 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#okapipy.generator.edges.compute_manifest" class="md-nav__link">
+  <a href="#okapipy.generator.edges.compute_state" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;compute_manifest
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;compute_state
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#okapipy.generator.edges.compute_edges" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;compute_edges
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#mount-composition" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Mount composition
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#okapipy.generator.compose" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-module"></code>&nbsp;compose
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label=" compose">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#okapipy.generator.compose.MountedSpec" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;MountedSpec
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#okapipy.generator.compose.mount_segments" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;mount_segments
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#okapipy.generator.compose.mount_relpath" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;mount_relpath
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#okapipy.generator.compose.check_mount_collisions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;check_mount_collisions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#okapipy.generator.compose.iter_mount_namespace_prefixes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;iter_mount_namespace_prefixes
       
     </span>
   </a>
@@ -2362,6 +2834,28 @@
         
       </ul>
     </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#okapipy.generator.errors.ManifestNotFoundError" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;ManifestNotFoundError
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#okapipy.generator.errors.ManifestFormatError" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;ManifestFormatError
+      
+    </span>
+  </a>
   
 </li>
       
@@ -3026,11 +3520,317 @@
 
 
 <h1 id="generator-api-reference">Generator API reference<a class="headerlink" href="#generator-api-reference" title="Permanent link">&para;</a></h1>
-<p>The generator package exposes one supported entry point —
-<code>generate(...)</code> — that returns a virtual filesystem
-(<code>dict[str, GeneratedFile]</code>). The CLI flushes that dict to disk via
-<code>write_to_disk</code>; tests inspect it directly.</p>
-<h2 id="public-entry-point">Public entry point<a class="headerlink" href="#public-entry-point" title="Permanent link">&para;</a></h2>
+<p>The generator package exposes two supported entry points:</p>
+<ul>
+<li><code>generate(manifest)</code> — the manifest-driven public API that powers
+  <code>okapipy generate</code>.</li>
+<li><code>generate_for_mount(api, raw_spec, ...)</code> — the per-mount building
+  block used by <code>generate</code> and exposed for tests and embedded callers.</li>
+</ul>
+<p>Both return a virtual filesystem (<code>dict[str, GeneratedFile]</code>). The CLI
+flushes the dict to disk via <code>write_to_disk</code>; tests inspect it
+directly.</p>
+<h2 id="project-manifest">Project manifest<a class="headerlink" href="#project-manifest" title="Permanent link">&para;</a></h2>
+<p>The user-authored project manifest lives in
+<a href="../user-guide/quick-start.html#the-project-manifest"><code>okapipy.manifest</code></a>.</p>
+
+
+<div class="doc doc-object doc-module">
+
+
+
+<h2 id="okapipy.manifest" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-module"></code>            <span class="doc doc-object-name doc-module-name">manifest</span>
+
+
+<a href="#okapipy.manifest" class="headerlink" title="Permanent link">&para;</a></h2>
+
+    <div class="doc doc-contents first">
+
+        <p>Project manifest: the user-authored input that drives <code>okapipy generate</code>.</p>
+<p>The manifest is a small YAML (or JSON) document checked into the consumer's
+repository and is the <em>only</em> input the <code>generate</code> command needs at the
+command line — every project-level option (package, client class, response
+shape, template directories) and every per-spec option (source, rules,
+strip-prefix, unmatched, language) lives inside it. The CLI default
+location is <code>./okapipy.yml</code>.</p>
+<p>A manifest carries one or more <code>specs[]</code> entries. Each entry pairs an
+OpenAPI spec source with the mount namespace under which its parser tree
+is composed into the generated client; an empty namespace mounts the
+spec at the root (the historical single-spec behavior). The generator
+parses every entry independently and then composes the results — multi-
+spec composition is <em>not</em> a parser concern.</p>
+<p>This module is intentionally narrow: it owns the Pydantic models and the
+loader/validator. The composition logic that turns a list of parsed
+APIModels into a single generated client lives in
+<code>okapipy.generator.compose</code>.</p>
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="okapipy.manifest.DEFAULT_MANIFEST_FILENAME" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">DEFAULT_MANIFEST_FILENAME</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-module-attribute"><code>module-attribute</code></small>
+  </span>
+
+<a href="#okapipy.manifest.DEFAULT_MANIFEST_FILENAME" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">DEFAULT_MANIFEST_FILENAME</span> <span class="o">=</span> <span class="s1">&#39;okapipy.yml&#39;</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Default filename the CLI looks for when <code>--manifest</code> is not given.</p>
+
+    </div>
+
+</div>
+
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<h3 id="okapipy.manifest.GenerationManifest" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <span class="doc doc-object-name doc-class-name">GenerationManifest</span>
+
+
+<a href="#okapipy.manifest.GenerationManifest" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><span title="pydantic.BaseModel">BaseModel</span></code></p>
+
+
+
+        <p>Project-wide configuration for <code>okapipy generate</code>.</p>
+<p>Carries the project-level fields that drive one generated Python
+package (<code>package</code>, <code>client_class</code>, <code>shape</code>, …) plus the <code>specs[]</code>
+array describing what trees live inside it. The default file location
+is <code>./okapipy.yml</code>; <code>load_manifest(path)</code> reads it from disk.</p>
+
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h3 id="okapipy.manifest.SpecEntry" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <span class="doc doc-object-name doc-class-name">SpecEntry</span>
+
+
+<a href="#okapipy.manifest.SpecEntry" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><span title="pydantic.BaseModel">BaseModel</span></code></p>
+
+
+
+        <p>One OpenAPI spec mounted under a namespace in the generated client.</p>
+<p>Each entry is parsed independently with its own per-spec settings
+(<code>rules</code>, <code>strip_prefix</code>, <code>unmatched</code>, <code>lang</code>). The resulting APIModel
+is composed into the project under <code>namespace</code>; <code>""</code> mounts at the
+root (single-spec, historical layout) while a dotted string nests
+under intermediate namespaces (<code>platform.users</code> shares the <code>platform</code>
+parent with <code>platform.billing</code>).</p>
+
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="okapipy.manifest.load_manifest" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <span class="doc doc-object-name doc-function-name">load_manifest</span>
+
+
+<a href="#okapipy.manifest.load_manifest" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">load_manifest</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">GenerationManifest</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Read and validate the project manifest at <code>path</code>.</p>
+<p>The file extension drives format selection: <code>.json</code> is parsed as JSON,
+<code>.yml</code> / <code>.yaml</code> (and anything else) as YAML. Relative path fields on
+the manifest (<code>source</code>, <code>rules</code>, <code>templates_dir</code>, <code>model_templates_dir</code>,
+<code>nlp_cache_dir</code>, <code>output</code>) are resolved against the manifest file's
+parent directory before the model is returned, so the manifest is
+portable with its consumer repository.</p>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-class-name&quot;&gt;ManifestNotFoundError&lt;/span&gt; (&lt;code&gt;okapipy.generator.errors.ManifestNotFoundError&lt;/code&gt;)" href="#okapipy.generator.errors.ManifestNotFoundError">ManifestNotFoundError</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>when the file does not exist on disk.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-class-name&quot;&gt;ManifestFormatError&lt;/span&gt; (&lt;code&gt;okapipy.generator.errors.ManifestFormatError&lt;/code&gt;)" href="#okapipy.generator.errors.ManifestFormatError">ManifestFormatError</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>when the file is malformed JSON/YAML or
+when the document fails schema validation (missing required
+fields, mount-namespace collisions, URL <code>rules</code> entries, …).</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-class-name&quot;&gt;GenerationManifest&lt;/span&gt; (&lt;code&gt;okapipy.manifest.GenerationManifest&lt;/code&gt;)" href="#okapipy.manifest.GenerationManifest">GenerationManifest</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A populated, frozen <code>GenerationManifest</code>. Path fields are absolute.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="okapipy.manifest.apply_cli_overrides" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <span class="doc doc-object-name doc-function-name">apply_cli_overrides</span>
+
+
+<a href="#okapipy.manifest.apply_cli_overrides" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">apply_cli_overrides</span><span class="p">(</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">manifest</span><span class="p">:</span> <span class="n">GenerationManifest</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">output</span><span class="p">:</span> <span class="n">Path</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">GenerationManifest</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Return a copy of <code>manifest</code> with selected fields replaced by CLI overrides.</p>
+<p>Only the narrow set of fields that have a CLI counterpart is honored;
+every other manifest field requires editing the manifest itself. Today
+that set is just <code>output</code>.</p>
+
+
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div><h2 id="public-entry-points">Public entry points<a class="headerlink" href="#public-entry-points" title="Permanent link">&para;</a></h2>
 
 
 <div class="doc doc-object doc-function">
@@ -3041,11 +3841,123 @@
 
 
 <a href="#okapipy.generator.api.generate" class="headerlink" title="Permanent link">&para;</a></h2>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">generate</span><span class="p">(</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">generate</span><span class="p">(</span><span class="n">manifest</span><span class="p">:</span> <span class="n">GenerationManifest</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">GeneratedFile</span><span class="p">]</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents first">
+
+        <p>Build the virtual FS for the project described by <code>manifest</code>.</p>
+<p>Walks <code>manifest.specs[]</code>, parses each OpenAPI document with the
+per-spec inputs declared in the manifest (<code>rules</code>, <code>strip_prefix</code>,
+<code>unmatched</code>, <code>lang</code>), and composes the result into one generated
+Python package: one <code>pyproject.toml</code>, one <code>&lt;Client&gt;Base</code>, one
+vendored runtime, one <code>_generated.json</code>. Each spec entry produces
+its own sub-tree at <code>base/&lt;mount_path&gt;/...</code> (or at the package root
+for the empty mount).</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>manifest</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-class-name&quot;&gt;GenerationManifest&lt;/span&gt; (&lt;code&gt;okapipy.manifest.GenerationManifest&lt;/code&gt;)" href="#okapipy.manifest.GenerationManifest">GenerationManifest</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>the project manifest produced by
+<code>okapipy.manifest.load_manifest</code>.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="dict">dict</span>[<span title="str">str</span>, <a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-class-name&quot;&gt;GeneratedFile&lt;/span&gt;
+
+
+  &lt;span class=&quot;doc doc-labels&quot;&gt;
+      &lt;small class=&quot;doc doc-label doc-label-dataclass&quot;&gt;&lt;code&gt;dataclass&lt;/code&gt;&lt;/small&gt;
+  &lt;/span&gt; (&lt;code&gt;okapipy.generator.vfs.GeneratedFile&lt;/code&gt;)" href="#okapipy.generator.vfs.GeneratedFile">GeneratedFile</a>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A <code>dict[str, GeneratedFile]</code> keyed on POSIX-style relative paths.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-class-name&quot;&gt;GenerationError&lt;/span&gt; (&lt;code&gt;okapipy.generator.errors.GenerationError&lt;/code&gt;)" href="#okapipy.generator.errors.GenerationError">GenerationError</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>when a <code>specs[]</code> entry declares a dotted mount
+namespace (currently unsupported) or when the manifest fails
+cross-mount collision checks.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="okapipy.generator.api.generate_for_mount" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <span class="doc doc-object-name doc-function-name">generate_for_mount</span>
+
+
+<a href="#okapipy.generator.api.generate_for_mount" class="headerlink" title="Permanent link">&para;</a></h2>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">generate_for_mount</span><span class="p">(</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">api</span><span class="p">:</span> <span class="n">APIModel</span><span class="p">,</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">raw_spec</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">,</span>
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="o">*</span><span class="p">,</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">output_dir</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">output_dir</span><span class="p">:</span> <span class="n">Path</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">package</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
 </span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">client_class</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
 </span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">project_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -3061,7 +3973,10 @@
 
     <div class="doc doc-contents first">
 
-        <p>Build the virtual FS for the generated client project.</p>
+        <p>Build the virtual FS for a single-mount generated client project.</p>
+<p>This is the lower-level entry point: it produces the full set of files
+for one OpenAPI spec mounted at the package root. The high-level
+manifest-driven entry point is <code>generate(manifest)</code>.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -3113,15 +4028,15 @@ Forwarded to <code>datamodel-code-generator</code> for <code>models.py</code> em
                 <code>output_dir</code>
             </td>
             <td>
-                  <code><span title="pathlib.Path">Path</span></code>
+                  <code><span title="pathlib.Path">Path</span> | None</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>target directory the CLI will flush the virtual FS into.</p>
+                <p>accepted for symmetry with <code>generate(manifest)</code>; not used.</p>
               </div>
             </td>
             <td>
-                <em>required</em>
+                  <code>None</code>
             </td>
           </tr>
           <tr class="doc-section-item">
@@ -3367,7 +4282,7 @@ templates. Forwarded as dmcg's <code>custom_template_dir</code>.</p>
 
     <div class="doc doc-contents first">
 
-        <p>Virtual filesystem with file-lifecycle metadata, manifest pruning, and drift detection.</p>
+        <p>Virtual filesystem with file-lifecycle metadata, state pruning, and drift detection.</p>
 <p>The generator builds a <code>dict[str, GeneratedFile]</code> keyed on POSIX-style paths
 relative to the output directory. Each <code>GeneratedFile</code> carries the file's
 content plus its lifecycle policy:</p>
@@ -3380,12 +4295,12 @@ content plus its lifecycle policy:</p>
 </ul>
 <p><code>write_to_disk</code> returns a <code>WriteReport</code>:</p>
 <ul>
-<li><strong>Pruning.</strong> Reads the previous <code>base/_manifest.json</code> from disk; deletes
+<li><strong>Pruning.</strong> Reads the previous <code>base/_generated.json</code> from disk; deletes
   any base file in <code>previous.base_files</code> that isn't in the current VFS.
   User-layer files are never pruned.</li>
-<li><strong>Drift detection.</strong> Compares previous and current manifest edges; emits
-  one warning per new/removed wiring on a one-shot user-layer parent that
-  needs a manual edit.</li>
+<li><strong>Drift detection.</strong> Compares previous and current state-file edges;
+  emits one warning per new/removed wiring on a one-shot user-layer parent
+  that needs a manual edit.</li>
 <li><strong>Dry-run.</strong> <code>dry_run=True</code> computes the report without touching disk;
   <code>WriteReport.would_change</code> is <code>True</code> if anything would change. Powers
   <code>okapipy generate --check</code>.</li>
@@ -3490,8 +4405,8 @@ content plus its lifecycle policy:</p>
         <p>Outcome of a <code>write_to_disk</code> call.</p>
 <p><code>would_change</code> is <code>True</code> if writing would alter the on-disk state in any
 way (a base file's content differs, a one-shot file is missing, or a stale
-file would be pruned). The manifest itself is excluded from this check
-because its <code>generated_at</code> timestamp differs on every run.</p>
+file would be pruned). The generated-state file itself is excluded from
+this check because its <code>generated_at</code> timestamp differs on every run.</p>
 
 
 
@@ -3797,24 +4712,26 @@ annotated assignments — covers both <code>class Foo(BaseModel)</code> and dmcg
 
     </div>
 
-</div><h2 id="manifest-and-edges">Manifest and edges<a class="headerlink" href="#manifest-and-edges" title="Permanent link">&para;</a></h2>
+</div><h2 id="generated-state-file-and-edges">Generated-state file and edges<a class="headerlink" href="#generated-state-file-and-edges" title="Permanent link">&para;</a></h2>
 
 
 <div class="doc doc-object doc-module">
 
 
 
-<h2 id="okapipy.generator.manifest" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-module"></code>            <span class="doc doc-object-name doc-module-name">manifest</span>
+<h2 id="okapipy.generator.state" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-module"></code>            <span class="doc doc-object-name doc-module-name">state</span>
 
 
-<a href="#okapipy.generator.manifest" class="headerlink" title="Permanent link">&para;</a></h2>
+<a href="#okapipy.generator.state" class="headerlink" title="Permanent link">&para;</a></h2>
 
     <div class="doc doc-contents first">
 
-        <p>Cross-run manifest: tracks regenerated files and parser-tree edges.</p>
-<p>The manifest is written to <code>src/{package_path}/base/_manifest.json</code> on every
-generation. It serves two operational purposes:</p>
+        <p>Cross-run generated-state file: tracks regenerated files and parser-tree edges.</p>
+<p>The state file is written to <code>src/{package_path}/base/_generated.json</code> on
+every generation. It is named <code>_generated.json</code> (rather than the historical
+<code>_manifest.json</code>) so it is not confused with the user-authored project
+manifest read by <code>okapipy.manifest</code>. It serves two operational purposes:</p>
 <ul>
 <li><strong>Pruning.</strong> <code>base_files</code> is the set of files the regenerated tree owns. On
   the next generation, <code>previous.base_files - current.base_files</code> is the set
@@ -3833,8 +4750,8 @@ two lines (sync + async) the user needs to add.</p>
 <p>This module is intentionally narrow: it owns the dataclasses and the
 JSON-on-disk format, and nothing else. The graph-walking logic that produces
 edges from a parsed <code>APIModel</code> lives in <code>okapipy.generator.edges</code>, kept apart
-so that <code>manifest.py</code> does not depend on <code>emit/stubs.py</code> (which itself
-depends on <code>vfs.py</code>, which depends back on <code>manifest.py</code>).</p>
+so that <code>state.py</code> does not depend on <code>emit/stubs.py</code> (which itself
+depends on <code>vfs.py</code>, which depends back on <code>state.py</code>).</p>
 
 
 
@@ -3857,21 +4774,21 @@ depends on <code>vfs.py</code>, which depends back on <code>manifest.py</code>).
 
 
 
-<h3 id="okapipy.generator.manifest.MANIFEST_FILENAME" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">MANIFEST_FILENAME</span>
+<h3 id="okapipy.generator.state.STATE_FILENAME" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">STATE_FILENAME</span>
 
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-module-attribute"><code>module-attribute</code></small>
   </span>
 
-<a href="#okapipy.generator.manifest.MANIFEST_FILENAME" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">MANIFEST_FILENAME</span> <span class="o">=</span> <span class="s1">&#39;_manifest.json&#39;</span>
+<a href="#okapipy.generator.state.STATE_FILENAME" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">STATE_FILENAME</span> <span class="o">=</span> <span class="s1">&#39;_generated.json&#39;</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
 
-        <p>Filename inside <code>&lt;package&gt;/base/</code> where the manifest is stored.</p>
+        <p>Filename inside <code>&lt;package&gt;/base/</code> where the generated-state file is stored.</p>
 
     </div>
 
@@ -3879,21 +4796,132 @@ depends on <code>vfs.py</code>, which depends back on <code>manifest.py</code>).
 
 
 
-
-<div class="doc doc-object doc-function">
-
-
-<h3 id="okapipy.generator.manifest.serialize" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <span class="doc doc-object-name doc-function-name">serialize</span>
+<div class="doc doc-object doc-class">
 
 
-<a href="#okapipy.generator.manifest.serialize" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">serialize</span><span class="p">(</span><span class="n">manifest</span><span class="p">:</span> <span class="n">Manifest</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span>
+
+<h3 id="okapipy.generator.state.GeneratedState" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <span class="doc doc-object-name doc-class-name">GeneratedState</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-dataclass"><code>dataclass</code></small>
+  </span>
+
+<a href="#okapipy.generator.state.GeneratedState" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">GeneratedState</span><span class="p">(</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">generator_version</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">generated_at</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">base_files</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">edges</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Edge</span><span class="p">]</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
 
-        <p>Render the manifest as a deterministic JSON string.</p>
+
+
+        <p>The full generated-state record written under <code>base/_generated.json</code>.</p>
+
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h3 id="okapipy.generator.state.Edge" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <span class="doc doc-object-name doc-class-name">Edge</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-dataclass"><code>dataclass</code></small>
+  </span>
+
+<a href="#okapipy.generator.state.Edge" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">Edge</span><span class="p">(</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">parent_module</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">factory_attr</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">child_user_class</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">child_user_module</span><span class="p">:</span> <span class="nb">str</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+
+
+        <p>One parent → child wiring in the parser tree.</p>
+<p><code>parent_module</code> is the user-layer relative path (<code>client.py</code>,
+<code>namespaces/commerce.py</code>, <code>collections/orders.py</code>, …) — i.e. where the
+drift detector looks to check if the user has wired the factory.
+<code>child_user_class</code> is the <em>sync</em> user-layer class name; the async sibling
+is implicit (<code>Async</code> + the same name).</p>
+
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="okapipy.generator.state.serialize" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <span class="doc doc-object-name doc-function-name">serialize</span>
+
+
+<a href="#okapipy.generator.state.serialize" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">serialize</span><span class="p">(</span><span class="n">state</span><span class="p">:</span> <span class="n">GeneratedState</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Render the generated-state record as a deterministic JSON string.</p>
 
 
     </div>
@@ -3920,18 +4948,18 @@ depends on <code>vfs.py</code>, which depends back on <code>manifest.py</code>).
 
     <div class="doc doc-contents first">
 
-        <p>Manifest edge computation: walks the parser tree and emits one <code>Edge</code> per wiring.</p>
-<p>Lives in its own module so <code>manifest.py</code> can stay free of dependencies on
+        <p>Generated-state edge computation: walks the parser tree and emits one <code>Edge</code> per wiring.</p>
+<p>Lives in its own module so <code>state.py</code> can stay free of dependencies on
 <code>emit/stubs.py</code> and <code>emit/walk.py</code>. Without that split the import graph cycles
-(<code>vfs → manifest → stubs → vfs</code>), forcing function-local imports inside
-<code>manifest.py</code>. By concentrating the stubs/walk dependency here — at a higher
+(<code>vfs → state → stubs → vfs</code>), forcing function-local imports inside
+<code>state.py</code>. By concentrating the stubs/walk dependency here — at a higher
 layer than <code>vfs.py</code> — the cycle disappears and every import can stay at module
 scope.</p>
 <p><code>compute_edges</code> mirrors the auto-wiring logic in <code>emit/stubs.py</code>: each entry in
 the returned list represents the same <code>__&lt;factory&gt;__ = ChildClass</code> line a stub
 would emit. Drift detection on a later run computes <code>current - previous</code> over
-the manifest's <code>edges</code> field to surface child wirings the user hasn't yet
-hand-edited into their one-shot stubs.</p>
+the generated-state file's <code>edges</code> field to surface child wirings the user
+hasn't yet hand-edited into their one-shot stubs.</p>
 
 
 
@@ -3956,20 +4984,483 @@ hand-edited into their one-shot stubs.</p>
 <div class="doc doc-object doc-function">
 
 
-<h3 id="okapipy.generator.edges.compute_manifest" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <span class="doc doc-object-name doc-function-name">compute_manifest</span>
+<h3 id="okapipy.generator.edges.compute_state" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <span class="doc doc-object-name doc-function-name">compute_state</span>
 
 
-<a href="#okapipy.generator.edges.compute_manifest" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">compute_manifest</span><span class="p">(</span><span class="n">api</span><span class="p">:</span> <span class="n">APIModel</span><span class="p">,</span> <span class="n">package</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">base_files</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Manifest</span>
+<a href="#okapipy.generator.edges.compute_state" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">compute_state</span><span class="p">(</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">api</span><span class="p">:</span> <span class="n">APIModel</span><span class="p">,</span> <span class="n">package</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">base_files</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="o">*</span><span class="p">,</span> <span class="n">mount_relpath</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">GeneratedState</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
 
-        <p>Build the manifest for the current generation.</p>
+        <p>Build the generated-state record for the current generation.</p>
 <p><code>base_files</code> is the list of POSIX-style VFS keys that fall inside <code>base/</code>.
 The <code>generated_at</code> timestamp uses ISO-8601 with second precision in UTC so
-the manifest is reproducible across runs that happen within the same second.</p>
+the state record is reproducible across runs that happen within the same
+second.</p>
+<p><code>mount_relpath</code> is forwarded to <code>compute_edges</code> so multi-mount projects
+record mount-prefixed parent/child module paths.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="okapipy.generator.edges.compute_edges" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <span class="doc doc-object-name doc-function-name">compute_edges</span>
+
+
+<a href="#okapipy.generator.edges.compute_edges" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">compute_edges</span><span class="p">(</span><span class="n">api</span><span class="p">:</span> <span class="n">APIModel</span><span class="p">,</span> <span class="n">package</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">mount_relpath</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">Edge</span><span class="p">]</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Walk the parser tree and return one <code>Edge</code> per parent → child wiring.</p>
+<p><code>mount_relpath</code> lets multi-mount projects record <code>parent_module</code> paths
+that include the mount sub-directory (<code>users/namespaces/foo.py</code>), so
+drift detection finds the right user-layer stub on disk.</p>
+<p>Top-level wirings for the root mount (<code>mount_relpath == ""</code>) parent
+on <code>client.py</code>; for non-root mounts they parent on the mount
+namespace stub at <code>&lt;mount_relpath&gt;__init__.py</code>, since that is where
+the user-layer <code>&lt;Mount&gt;Mount</code> subclass that owns those wirings
+actually lives.</p>
+
+
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div><h2 id="mount-composition">Mount composition<a class="headerlink" href="#mount-composition" title="Permanent link">&para;</a></h2>
+
+
+<div class="doc doc-object doc-module">
+
+
+
+<h2 id="okapipy.generator.compose" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-module"></code>            <span class="doc doc-object-name doc-module-name">compose</span>
+
+
+<a href="#okapipy.generator.compose" class="headerlink" title="Permanent link">&para;</a></h2>
+
+    <div class="doc doc-contents first">
+
+        <p>Multi-spec composition: tag each parsed APIModel with its manifest mount path.</p>
+<p>The parser is single-spec by design; this module turns a list of parsed
+trees plus their manifest mount declarations into the small data structure
+the generator's emit pipeline consumes. A <code>MountedSpec</code> is the unit the
+emit loop iterates over — one per <code>specs[]</code> entry in the project
+manifest, with the per-spec inputs (mount path, parsed APIModel, raw
+spec for <code>datamodel-code-generator</code>) bundled together so downstream
+code does not have to thread separate lists.</p>
+<p>The mount path is a tuple of segments (<code>("users",)</code> for <code>namespace:
+users</code>; <code>("platform", "users")</code> for <code>namespace: platform.users</code>; <code>()</code>
+for the root mount declared with <code>namespace: ""</code>). The same tuple
+drives:</p>
+<ul>
+<li>the on-disk sub-directory under <code>base/</code> and the user layer
+  (<code>base/platform/users/...</code>),</li>
+<li>the synthetic mount-namespace tree the client class wires its accessors
+  through, and</li>
+<li>the cross-mount-collision check that defends the emit pipeline against
+  any manifest that snuck past the loader.</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<h3 id="okapipy.generator.compose.MountedSpec" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <span class="doc doc-object-name doc-class-name">MountedSpec</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-dataclass"><code>dataclass</code></small>
+  </span>
+
+<a href="#okapipy.generator.compose.MountedSpec" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">MountedSpec</span><span class="p">(</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">mount_path</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">api</span><span class="p">:</span> <span class="n">APIModel</span><span class="p">,</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">raw_spec</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">,</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">spec_index</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="p">)</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+
+
+        <p>One spec entry's parser output tagged with its mount path.</p>
+<p><code>mount_path</code> is the canonical tuple form (<code>()</code> for the root mount). The
+raw spec is preserved alongside the parsed <code>APIModel</code> because
+<code>datamodel-code-generator</code> consumes the <em>raw</em> document — not the
+parser's tree — and the emit pipeline calls it once per mount.</p>
+<p><code>spec_index</code> records the entry's original position in the manifest's
+<code>specs[]</code> array. Emit order matches manifest order so successive
+regenerations produce deterministic VFS contents.</p>
+
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="okapipy.generator.compose.mount_segments" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <span class="doc doc-object-name doc-function-name">mount_segments</span>
+
+
+<a href="#okapipy.generator.compose.mount_segments" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">mount_segments</span><span class="p">(</span><span class="n">namespace</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Split a dotted manifest mount string into its segment tuple.</p>
+<p><code>""</code> (or whitespace-only) returns the empty tuple — the root mount.
+Leading / trailing dots are stripped before splitting so a typo like
+<code>.users</code> doesn't produce a phantom empty leading segment.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>namespace</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>the <code>specs[].namespace</code> value from the manifest.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="tuple">tuple</span>[<span title="str">str</span>, ...]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Tuple of segments suitable for path joining and topology checks.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="okapipy.generator.compose.mount_relpath" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <span class="doc doc-object-name doc-function-name">mount_relpath</span>
+
+
+<a href="#okapipy.generator.compose.mount_relpath" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">mount_relpath</span><span class="p">(</span><span class="n">mount_path</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">str</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Render a mount tuple as a POSIX relative path component.</p>
+<p>The root mount produces the empty string so callers can build paths
+via simple concatenation (<code>f"src/{pkg}/base/{relpath}collections/..."</code>)
+without a leading slash when there is no mount segment to prepend.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>mount_path</code>
+            </td>
+            <td>
+                  <code><span title="collections.abc.Sequence">Sequence</span>[<span title="str">str</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>the mount tuple, typically <code>MountedSpec.mount_path</code>.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p><code>"users/"</code> for <code>("users",)</code>, <code>"platform/users/"</code> for</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p><code>("platform", "users")</code>, <code>""</code> for <code>()</code>.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="okapipy.generator.compose.check_mount_collisions" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <span class="doc doc-object-name doc-function-name">check_mount_collisions</span>
+
+
+<a href="#okapipy.generator.compose.check_mount_collisions" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">check_mount_collisions</span><span class="p">(</span><span class="n">mounts</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">MountedSpec</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Defensive cross-mount uniqueness check.</p>
+<p>The manifest loader already enforces this; running it again at the
+composition boundary catches programmatic construction paths that
+sidestep the loader (tests, embedded callers).</p>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-class-name&quot;&gt;GenerationError&lt;/span&gt; (&lt;code&gt;okapipy.generator.errors.GenerationError&lt;/code&gt;)" href="#okapipy.generator.errors.GenerationError">GenerationError</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>when two entries share the same <code>mount_path</code>.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="okapipy.generator.compose.iter_mount_namespace_prefixes" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <span class="doc doc-object-name doc-function-name">iter_mount_namespace_prefixes</span>
+
+
+<a href="#okapipy.generator.compose.iter_mount_namespace_prefixes" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">iter_mount_namespace_prefixes</span><span class="p">(</span><span class="n">mounts</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">MountedSpec</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]]</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Enumerate every distinct mount-namespace prefix in deterministic order.</p>
+<p>For mounts <code>platform.users</code>, <code>platform.billing</code>, and <code>audit</code> the
+result is <code>[("audit",), ("platform",), ("platform", "billing"),
+("platform", "users")]</code> — sorted lexicographically by prefix so the
+client class's accessor tree emits in a stable, repeatable order. The
+empty prefix (root mount) is <em>not</em> included because it carries no
+synthetic namespace; its content sits directly on the client.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>mounts</code>
+            </td>
+            <td>
+                  <code><span title="collections.abc.Sequence">Sequence</span>[<a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-class-name&quot;&gt;MountedSpec&lt;/span&gt;
+
+
+  &lt;span class=&quot;doc doc-labels&quot;&gt;
+      &lt;small class=&quot;doc doc-label doc-label-dataclass&quot;&gt;&lt;code&gt;dataclass&lt;/code&gt;&lt;/small&gt;
+  &lt;/span&gt; (&lt;code&gt;okapipy.generator.compose.MountedSpec&lt;/code&gt;)" href="#okapipy.generator.compose.MountedSpec">MountedSpec</a>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>the planned list of <code>MountedSpec</code>s.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="list">list</span>[<span title="tuple">tuple</span>[<span title="str">str</span>, ...]]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Sorted list of unique non-empty prefix tuples covering every</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="list">list</span>[<span title="tuple">tuple</span>[<span title="str">str</span>, ...]]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>intermediate and leaf segment introduced by the mounts.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
 
     </div>
@@ -4308,6 +5799,68 @@ a ruff format failure carrying its stderr).</p>
 
 
   </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="okapipy.generator.errors.ManifestNotFoundError" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <span class="doc doc-object-name doc-class-name">ManifestNotFoundError</span>
+
+
+<a href="#okapipy.generator.errors.ManifestNotFoundError" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-class-name&quot;&gt;GenerationError&lt;/span&gt; (&lt;code&gt;okapipy.generator.errors.GenerationError&lt;/code&gt;)" href="#okapipy.generator.errors.GenerationError">GenerationError</a></code></p>
+
+
+
+        <p>Raised when the user-authored project manifest cannot be located on disk.</p>
+
+
+
+
+
+
+
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="okapipy.generator.errors.ManifestFormatError" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <span class="doc doc-object-name doc-class-name">ManifestFormatError</span>
+
+
+<a href="#okapipy.generator.errors.ManifestFormatError" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-class-name&quot;&gt;GenerationError&lt;/span&gt; (&lt;code&gt;okapipy.generator.errors.GenerationError&lt;/code&gt;)" href="#okapipy.generator.errors.GenerationError">GenerationError</a></code></p>
+
+
+
+        <p>Raised when the user-authored project manifest fails schema validation.</p>
+
+
+
+
+
+
+
+
 
     </div>
 

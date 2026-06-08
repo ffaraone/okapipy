@@ -416,6 +416,8 @@
       
         
       
+        
+      
     
     
     
@@ -637,10 +639,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#-shape-models-typed-only" class="md-nav__link">
+  <a href="#shape-models-typed-only" class="md-nav__link">
     <span class="md-ellipsis">
       
-        --shape models: typed only
+        shape: models: typed only
       
     </span>
   </a>
@@ -648,10 +650,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#-shape-dicts-raw-dicts-only" class="md-nav__link">
+  <a href="#shape-dicts-raw-dicts-only" class="md-nav__link">
     <span class="md-ellipsis">
       
-        --shape dicts: raw dicts only
+        shape: dicts: raw dicts only
       
     </span>
   </a>
@@ -799,6 +801,34 @@
     
   
     Template customization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="advanced.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Advanced usage
   
 
     
@@ -1153,10 +1183,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#-shape-models-typed-only" class="md-nav__link">
+  <a href="#shape-models-typed-only" class="md-nav__link">
     <span class="md-ellipsis">
       
-        --shape models: typed only
+        shape: models: typed only
       
     </span>
   </a>
@@ -1164,10 +1194,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#-shape-dicts-raw-dicts-only" class="md-nav__link">
+  <a href="#shape-dicts-raw-dicts-only" class="md-nav__link">
     <span class="md-ellipsis">
       
-        --shape dicts: raw dicts only
+        shape: dicts: raw dicts only
       
     </span>
   </a>
@@ -1278,26 +1308,26 @@
 <h1 id="response-shape">Response shape<a class="headerlink" href="#response-shape" title="Permanent link">&para;</a></h1>
 <p>A <em>shape</em> decides how the generated client deserializes responses and
 types its method signatures. okapipy supports three shapes, chosen once
-at generation time with the <code>--shape</code> flag of <code>okapipy spec generate</code>:</p>
+at generation time via <code>shape:</code> in <code>okapipy.yml</code>:</p>
 <ul>
-<li><strong><code>auto</code></strong> (the default — pass nothing): emit a dual-shape client.
-  Each call site picks a shape; flip it at runtime with
+<li><strong><code>shape: auto</code></strong> (the default — omit the field): emit a dual-shape
+  client. Each call site picks a shape; flip it at runtime with
   <code>with_shape(...)</code>.</li>
-<li><strong><code>--shape models</code></strong>: lock the client to typed Pydantic models.
+<li><strong><code>shape: models</code></strong>: lock the client to typed Pydantic models.
   Method signatures are narrow; the runtime switch is gone.</li>
-<li><strong><code>--shape dicts</code></strong>: lock the client to raw dicts. <code>base/models.py</code>
+<li><strong><code>shape: dicts</code></strong>: lock the client to raw dicts. <code>base/models.py</code>
   is not emitted.</li>
 </ul>
 <p>The choice is per generation, not per call. Switching shape after the
-fact means re-running <code>okapipy spec generate</code>.</p>
+fact means editing <code>okapipy.yml</code> and re-running <code>okapipy generate</code>.</p>
 <h2 id="pick-a-shape">Pick a shape<a class="headerlink" href="#pick-a-shape" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
 <th></th>
-<th><code>auto</code> (default)</th>
-<th><code>--shape models</code></th>
-<th><code>--shape dicts</code></th>
+<th><code>shape: auto</code> (default)</th>
+<th><code>shape: models</code></th>
+<th><code>shape: dicts</code></th>
 </tr>
 </thead>
 <tbody>
@@ -1344,37 +1374,41 @@ When the parser cannot recover a schema name (inline body, anonymous
 response, primitive alias), the corresponding type falls back to
 <code>dict[str, Any]</code> — okapipy does not fabricate model names.</p>
 <h2 id="the-default-dual-shape">The default: dual shape<a class="headerlink" href="#the-default-dual-shape" title="Permanent link">&para;</a></h2>
-<p>Omit <code>--shape</code> and the generator emits a client where each call site
-chooses its shape at construction time:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>$<span class="w"> </span>okapipy<span class="w"> </span>spec<span class="w"> </span>generate<span class="w"> </span>openapi.yaml<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">    </span>--output<span class="w"> </span>./my-client<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">    </span>--package<span class="w"> </span>acme.commerce<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">    </span>--client-class<span class="w"> </span>CommerceClient
+<p>Omit <code>shape:</code> from <code>okapipy.yml</code> and the generator emits a client where
+each call site chooses its shape at construction time:</p>
+<div class="language-yaml highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># okapipy.yml — shape unset, defaults to &quot;auto&quot;</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="nt">package</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">acme.commerce</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="nt">client_class</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">CommerceClient</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="nt">specs</span><span class="p">:</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;&#39;</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="w">    </span><span class="nt">source</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">openapi.yaml</span>
+</span></code></pre></div>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>$<span class="w"> </span>okapipy<span class="w"> </span>generate<span class="w"> </span>--output<span class="w"> </span>./my-client
 </span></code></pre></div>
 <p>The constructor takes a <code>shape</code> keyword (default <code>"models"</code>):</p>
 <div class="tabbed-set tabbed-alternate" data-tabs="1:2"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="__tabbed_1_1">Sync</label><label for="__tabbed_1_2">Async</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
-<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">acme.commerce</span><span class="w"> </span><span class="kn">import</span> <span class="n">CommerceClient</span>
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">typed</span> <span class="o">=</span> <span class="n">CommerceClient</span><span class="p">(</span><span class="n">base_url</span><span class="o">=</span><span class="s2">&quot;https://api.example.com&quot;</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="s2">&quot;models&quot;</span><span class="p">)</span>
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="n">raw</span>   <span class="o">=</span> <span class="n">CommerceClient</span><span class="p">(</span><span class="n">base_url</span><span class="o">=</span><span class="s2">&quot;https://api.example.com&quot;</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="s2">&quot;dicts&quot;</span><span class="p">)</span>
-</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>
-</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="n">typed_order</span> <span class="o">=</span> <span class="n">typed</span><span class="o">.</span><span class="n">commerce</span><span class="o">.</span><span class="n">orders</span><span class="p">[</span><span class="s2">&quot;ord_42&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">retrieve</span><span class="p">()</span>
-</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="c1"># → Order(id=&#39;ord_42&#39;, total=&#39;99.00&#39;, status=&#39;open&#39;)</span>
-</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>
-</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="n">raw_order</span> <span class="o">=</span> <span class="n">raw</span><span class="o">.</span><span class="n">commerce</span><span class="o">.</span><span class="n">orders</span><span class="p">[</span><span class="s2">&quot;ord_42&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">retrieve</span><span class="p">()</span>
-</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="c1"># → {&#39;id&#39;: &#39;ord_42&#39;, &#39;total&#39;: &#39;99.00&#39;, &#39;status&#39;: &#39;open&#39;}</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">acme.commerce</span><span class="w"> </span><span class="kn">import</span> <span class="n">CommerceClient</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">typed</span> <span class="o">=</span> <span class="n">CommerceClient</span><span class="p">(</span><span class="n">base_url</span><span class="o">=</span><span class="s2">&quot;https://api.example.com&quot;</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="s2">&quot;models&quot;</span><span class="p">)</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="n">raw</span>   <span class="o">=</span> <span class="n">CommerceClient</span><span class="p">(</span><span class="n">base_url</span><span class="o">=</span><span class="s2">&quot;https://api.example.com&quot;</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="s2">&quot;dicts&quot;</span><span class="p">)</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="n">typed_order</span> <span class="o">=</span> <span class="n">typed</span><span class="o">.</span><span class="n">commerce</span><span class="o">.</span><span class="n">orders</span><span class="p">[</span><span class="s2">&quot;ord_42&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">retrieve</span><span class="p">()</span>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="c1"># → Order(id=&#39;ord_42&#39;, total=&#39;99.00&#39;, status=&#39;open&#39;)</span>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>
+</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="n">raw_order</span> <span class="o">=</span> <span class="n">raw</span><span class="o">.</span><span class="n">commerce</span><span class="o">.</span><span class="n">orders</span><span class="p">[</span><span class="s2">&quot;ord_42&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">retrieve</span><span class="p">()</span>
+</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="c1"># → {&#39;id&#39;: &#39;ord_42&#39;, &#39;total&#39;: &#39;99.00&#39;, &#39;status&#39;: &#39;open&#39;}</span>
 </span></code></pre></div>
 </div>
 <div class="tabbed-block">
-<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">acme.commerce</span><span class="w"> </span><span class="kn">import</span> <span class="n">AsyncCommerceClient</span>
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">typed</span> <span class="o">=</span> <span class="n">AsyncCommerceClient</span><span class="p">(</span><span class="n">base_url</span><span class="o">=</span><span class="s2">&quot;https://api.example.com&quot;</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="s2">&quot;models&quot;</span><span class="p">)</span>
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="n">raw</span>   <span class="o">=</span> <span class="n">AsyncCommerceClient</span><span class="p">(</span><span class="n">base_url</span><span class="o">=</span><span class="s2">&quot;https://api.example.com&quot;</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="s2">&quot;dicts&quot;</span><span class="p">)</span>
-</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>
-</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="n">typed_order</span> <span class="o">=</span> <span class="k">await</span> <span class="n">typed</span><span class="o">.</span><span class="n">commerce</span><span class="o">.</span><span class="n">orders</span><span class="p">[</span><span class="s2">&quot;ord_42&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">retrieve</span><span class="p">()</span>
-</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="n">raw_order</span>   <span class="o">=</span> <span class="k">await</span> <span class="n">raw</span><span class="o">.</span><span class="n">commerce</span><span class="o">.</span><span class="n">orders</span><span class="p">[</span><span class="s2">&quot;ord_42&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">retrieve</span><span class="p">()</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">acme.commerce</span><span class="w"> </span><span class="kn">import</span> <span class="n">AsyncCommerceClient</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="n">typed</span> <span class="o">=</span> <span class="n">AsyncCommerceClient</span><span class="p">(</span><span class="n">base_url</span><span class="o">=</span><span class="s2">&quot;https://api.example.com&quot;</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="s2">&quot;models&quot;</span><span class="p">)</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="n">raw</span>   <span class="o">=</span> <span class="n">AsyncCommerceClient</span><span class="p">(</span><span class="n">base_url</span><span class="o">=</span><span class="s2">&quot;https://api.example.com&quot;</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="s2">&quot;dicts&quot;</span><span class="p">)</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="n">typed_order</span> <span class="o">=</span> <span class="k">await</span> <span class="n">typed</span><span class="o">.</span><span class="n">commerce</span><span class="o">.</span><span class="n">orders</span><span class="p">[</span><span class="s2">&quot;ord_42&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">retrieve</span><span class="p">()</span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="n">raw_order</span>   <span class="o">=</span> <span class="k">await</span> <span class="n">raw</span><span class="o">.</span><span class="n">commerce</span><span class="o">.</span><span class="n">orders</span><span class="p">[</span><span class="s2">&quot;ord_42&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">retrieve</span><span class="p">()</span>
 </span></code></pre></div>
 </div>
 </div>
@@ -1385,17 +1419,17 @@ no auth re-init:</p>
 <div class="tabbed-set tabbed-alternate" data-tabs="2:2"><input checked="checked" id="__tabbed_2_1" name="__tabbed_2" type="radio" /><input id="__tabbed_2_2" name="__tabbed_2" type="radio" /><div class="tabbed-labels"><label for="__tabbed_2_1">Sync</label><label for="__tabbed_2_2">Async</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
-<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="n">typed</span> <span class="o">=</span> <span class="n">CommerceClient</span><span class="p">(</span><span class="n">base_url</span><span class="o">=</span><span class="s2">&quot;https://api.example.com&quot;</span><span class="p">)</span>  <span class="c1"># default shape=&quot;models&quot;</span>
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="n">raw</span>   <span class="o">=</span> <span class="n">typed</span><span class="o">.</span><span class="n">with_shape</span><span class="p">(</span><span class="s2">&quot;dicts&quot;</span><span class="p">)</span>
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="k">assert</span> <span class="n">raw</span><span class="o">.</span><span class="n">_http</span> <span class="ow">is</span> <span class="n">typed</span><span class="o">.</span><span class="n">_http</span>   <span class="c1"># same connection pool, same auth</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="n">typed</span> <span class="o">=</span> <span class="n">CommerceClient</span><span class="p">(</span><span class="n">base_url</span><span class="o">=</span><span class="s2">&quot;https://api.example.com&quot;</span><span class="p">)</span>  <span class="c1"># default shape=&quot;models&quot;</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="n">raw</span>   <span class="o">=</span> <span class="n">typed</span><span class="o">.</span><span class="n">with_shape</span><span class="p">(</span><span class="s2">&quot;dicts&quot;</span><span class="p">)</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="k">assert</span> <span class="n">raw</span><span class="o">.</span><span class="n">_http</span> <span class="ow">is</span> <span class="n">typed</span><span class="o">.</span><span class="n">_http</span>   <span class="c1"># same connection pool, same auth</span>
 </span></code></pre></div>
 </div>
 <div class="tabbed-block">
-<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="n">typed</span> <span class="o">=</span> <span class="n">AsyncCommerceClient</span><span class="p">(</span><span class="n">base_url</span><span class="o">=</span><span class="s2">&quot;https://api.example.com&quot;</span><span class="p">)</span>
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="n">raw</span>   <span class="o">=</span> <span class="n">typed</span><span class="o">.</span><span class="n">with_shape</span><span class="p">(</span><span class="s2">&quot;dicts&quot;</span><span class="p">)</span>
-</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>
-</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="k">assert</span> <span class="n">raw</span><span class="o">.</span><span class="n">_http</span> <span class="ow">is</span> <span class="n">typed</span><span class="o">.</span><span class="n">_http</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="n">typed</span> <span class="o">=</span> <span class="n">AsyncCommerceClient</span><span class="p">(</span><span class="n">base_url</span><span class="o">=</span><span class="s2">&quot;https://api.example.com&quot;</span><span class="p">)</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="n">raw</span>   <span class="o">=</span> <span class="n">typed</span><span class="o">.</span><span class="n">with_shape</span><span class="p">(</span><span class="s2">&quot;dicts&quot;</span><span class="p">)</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="k">assert</span> <span class="n">raw</span><span class="o">.</span><span class="n">_http</span> <span class="ow">is</span> <span class="n">typed</span><span class="o">.</span><span class="n">_http</span>
 </span></code></pre></div>
 </div>
 </div>
@@ -1406,21 +1440,27 @@ mix without the type checker complaining.</p>
 <p>Reach for <code>auto</code> when you want models in tests and dicts in scripts (or
 the other way around) without maintaining two generated packages — and
 when the wider type signatures are an acceptable tradeoff.</p>
-<h2 id="-shape-models-typed-only"><code>--shape models</code>: typed only<a class="headerlink" href="#-shape-models-typed-only" title="Permanent link">&para;</a></h2>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>$<span class="w"> </span>okapipy<span class="w"> </span>spec<span class="w"> </span>generate<span class="w"> </span>openapi.yaml<span class="w"> </span>...<span class="w"> </span>--shape<span class="w"> </span>models
+<h2 id="shape-models-typed-only"><code>shape: models</code>: typed only<a class="headerlink" href="#shape-models-typed-only" title="Permanent link">&para;</a></h2>
+<div class="language-yaml highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="c1"># okapipy.yml</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="nt">package</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">acme.commerce</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="nt">client_class</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">CommerceClient</span>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="nt">shape</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">models</span>
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="nt">specs</span><span class="p">:</span>
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;&#39;</span>
+</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="w">    </span><span class="nt">source</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">openapi.yaml</span>
 </span></code></pre></div>
 <p>The constructor accepts no <code>shape=</code> keyword. <code>with_shape(...)</code> is not
 emitted. Method signatures are narrow:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">retrieve</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">overrides</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Order</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span> <span class="o">...</span>
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">body</span><span class="p">:</span> <span class="n">Order</span><span class="p">,</span> <span class="o">**</span><span class="n">overrides</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Order</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span> <span class="o">...</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">retrieve</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">overrides</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Order</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span> <span class="o">...</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">body</span><span class="p">:</span> <span class="n">Order</span><span class="p">,</span> <span class="o">**</span><span class="n">overrides</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Order</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span> <span class="o">...</span>
 </span></code></pre></div>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">acme.commerce</span><span class="w"> </span><span class="kn">import</span> <span class="n">CommerceClient</span>
-</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>
-</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="n">client</span> <span class="o">=</span> <span class="n">CommerceClient</span><span class="p">(</span><span class="n">base_url</span><span class="o">=</span><span class="s2">&quot;https://api.example.com&quot;</span><span class="p">)</span>
-</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="n">order</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">commerce</span><span class="o">.</span><span class="n">orders</span><span class="p">[</span><span class="s2">&quot;ord_42&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">retrieve</span><span class="p">()</span>
-</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="c1"># → Order(id=&#39;ord_42&#39;, total=&#39;99.00&#39;)</span>
-</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>
-</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">order</span><span class="p">,</span> <span class="n">Order</span><span class="p">)</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">acme.commerce</span><span class="w"> </span><span class="kn">import</span> <span class="n">CommerceClient</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="n">client</span> <span class="o">=</span> <span class="n">CommerceClient</span><span class="p">(</span><span class="n">base_url</span><span class="o">=</span><span class="s2">&quot;https://api.example.com&quot;</span><span class="p">)</span>
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="n">order</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">commerce</span><span class="o">.</span><span class="n">orders</span><span class="p">[</span><span class="s2">&quot;ord_42&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">retrieve</span><span class="p">()</span>
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="c1"># → Order(id=&#39;ord_42&#39;, total=&#39;99.00&#39;)</span>
+</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>
+</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">order</span><span class="p">,</span> <span class="n">Order</span><span class="p">)</span>
 </span></code></pre></div>
 <p>When the parser couldn't recover a schema name for a particular
 operation, that operation's body or return falls back to
@@ -1428,19 +1468,25 @@ operation, that operation's body or return falls back to
 names.</p>
 <p>Reach for <code>models</code> when you want strict types end-to-end, run <code>mypy</code> on
 user code, or care about IDE completion at every call site.</p>
-<h2 id="-shape-dicts-raw-dicts-only"><code>--shape dicts</code>: raw dicts only<a class="headerlink" href="#-shape-dicts-raw-dicts-only" title="Permanent link">&para;</a></h2>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>$<span class="w"> </span>okapipy<span class="w"> </span>spec<span class="w"> </span>generate<span class="w"> </span>openapi.yaml<span class="w"> </span>...<span class="w"> </span>--shape<span class="w"> </span>dicts
+<h2 id="shape-dicts-raw-dicts-only"><code>shape: dicts</code>: raw dicts only<a class="headerlink" href="#shape-dicts-raw-dicts-only" title="Permanent link">&para;</a></h2>
+<div class="language-yaml highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="c1"># okapipy.yml</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="nt">package</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">acme.commerce</span>
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="nt">client_class</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">CommerceClient</span>
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="nt">shape</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dicts</span>
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="nt">specs</span><span class="p">:</span>
+</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;&#39;</span>
+</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="w">    </span><span class="nt">source</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">openapi.yaml</span>
 </span></code></pre></div>
 <p><code>base/models.py</code> is <strong>not</strong> emitted, every model import is dropped from
 the generated tree, and every body / return is typed <code>dict[str, Any]</code>:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">retrieve</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">overrides</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span> <span class="o">...</span>
-</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">body</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="o">**</span><span class="n">overrides</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span> <span class="o">...</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">retrieve</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">overrides</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span> <span class="o">...</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">body</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="o">**</span><span class="n">overrides</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span> <span class="o">...</span>
 </span></code></pre></div>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">acme.commerce</span><span class="w"> </span><span class="kn">import</span> <span class="n">CommerceClient</span>
-</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>
-</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="n">client</span> <span class="o">=</span> <span class="n">CommerceClient</span><span class="p">(</span><span class="n">base_url</span><span class="o">=</span><span class="s2">&quot;https://api.example.com&quot;</span><span class="p">)</span>
-</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="n">order</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">commerce</span><span class="o">.</span><span class="n">orders</span><span class="p">[</span><span class="s2">&quot;ord_42&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">retrieve</span><span class="p">()</span>
-</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="c1"># → {&#39;id&#39;: &#39;ord_42&#39;, &#39;total&#39;: &#39;99.00&#39;}</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">acme.commerce</span><span class="w"> </span><span class="kn">import</span> <span class="n">CommerceClient</span>
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="n">client</span> <span class="o">=</span> <span class="n">CommerceClient</span><span class="p">(</span><span class="n">base_url</span><span class="o">=</span><span class="s2">&quot;https://api.example.com&quot;</span><span class="p">)</span>
+</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="n">order</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">commerce</span><span class="o">.</span><span class="n">orders</span><span class="p">[</span><span class="s2">&quot;ord_42&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">retrieve</span><span class="p">()</span>
+</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="c1"># → {&#39;id&#39;: &#39;ord_42&#39;, &#39;total&#39;: &#39;99.00&#39;}</span>
 </span></code></pre></div>
 <p><code>datamodel-code-generator</code> is never invoked, so generation is faster
 and the generated tree is one file smaller.</p>
@@ -1454,55 +1500,61 @@ and the generated tree is one file smaller.</p>
 </ul>
 <h2 id="two-flavors-in-one-project">Two flavors in one project<a class="headerlink" href="#two-flavors-in-one-project" title="Permanent link">&para;</a></h2>
 <p>okapipy emits source under <code>src/&lt;package_path&gt;/</code> and tests under
-<code>tests/&lt;package_path&gt;/</code>, where <code>&lt;package_path&gt;</code> mirrors <code>--package</code>.
+<code>tests/&lt;package_path&gt;/</code>, where <code>&lt;package_path&gt;</code> mirrors <code>package</code>.
 That means you can generate two flavors of the same spec into one
-project — one typed, one raw — by varying <code>--package</code>:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="c1"># Models-flavored client at acme.commerce.models.client.CommerceClient.</span>
-</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>$<span class="w"> </span>okapipy<span class="w"> </span>spec<span class="w"> </span>generate<span class="w"> </span>openapi.yaml<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="w">    </span>--output<span class="w"> </span>./my-client<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="w">    </span>--package<span class="w"> </span>acme.commerce.models<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="w">    </span>--client-class<span class="w"> </span>CommerceClient<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="w">    </span>--project-name<span class="w"> </span>acme-commerce<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-11-7"><a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a><span class="w">    </span>--shape<span class="w"> </span>models
-</span><span id="__span-11-8"><a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a>
-</span><span id="__span-11-9"><a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a><span class="c1"># Dicts-flavored client at acme.commerce.dicts.client.CommerceClient.</span>
-</span><span id="__span-11-10"><a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a>$<span class="w"> </span>okapipy<span class="w"> </span>spec<span class="w"> </span>generate<span class="w"> </span>openapi.yaml<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-11-11"><a id="__codelineno-11-11" name="__codelineno-11-11" href="#__codelineno-11-11"></a><span class="w">    </span>--output<span class="w"> </span>./my-client<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-11-12"><a id="__codelineno-11-12" name="__codelineno-11-12" href="#__codelineno-11-12"></a><span class="w">    </span>--package<span class="w"> </span>acme.commerce.dicts<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-11-13"><a id="__codelineno-11-13" name="__codelineno-11-13" href="#__codelineno-11-13"></a><span class="w">    </span>--client-class<span class="w"> </span>CommerceClient<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-11-14"><a id="__codelineno-11-14" name="__codelineno-11-14" href="#__codelineno-11-14"></a><span class="w">    </span>--project-name<span class="w"> </span>acme-commerce<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-11-15"><a id="__codelineno-11-15" name="__codelineno-11-15" href="#__codelineno-11-15"></a><span class="w">    </span>--shape<span class="w"> </span>dicts
+project — one typed, one raw — by keeping two manifests side by side
+that differ on <code>package</code> and <code>shape</code>:</p>
+<div class="language-yaml highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="c1"># okapipy.models.yml — typed flavor at acme.commerce.models.</span>
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="nt">package</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">acme.commerce.models</span>
+</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="nt">client_class</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">CommerceClient</span>
+</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="nt">project_name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">acme-commerce</span>
+</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a><span class="nt">shape</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">models</span>
+</span><span id="__span-12-6"><a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a><span class="nt">specs</span><span class="p">:</span>
+</span><span id="__span-12-7"><a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;&#39;</span>
+</span><span id="__span-12-8"><a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a><span class="w">    </span><span class="nt">source</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">openapi.yaml</span>
+</span></code></pre></div>
+<div class="language-yaml highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="c1"># okapipy.dicts.yml — raw flavor at acme.commerce.dicts.</span>
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="nt">package</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">acme.commerce.dicts</span>
+</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="nt">client_class</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">CommerceClient</span>
+</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="nt">project_name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">acme-commerce</span>
+</span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a><span class="nt">shape</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dicts</span>
+</span><span id="__span-13-6"><a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a><span class="nt">specs</span><span class="p">:</span>
+</span><span id="__span-13-7"><a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;&#39;</span>
+</span><span id="__span-13-8"><a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a><span class="w">    </span><span class="nt">source</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">openapi.yaml</span>
+</span></code></pre></div>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>$<span class="w"> </span>okapipy<span class="w"> </span>generate<span class="w"> </span>--manifest<span class="w"> </span>okapipy.models.yml<span class="w"> </span>--output<span class="w"> </span>./my-client
+</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>$<span class="w"> </span>okapipy<span class="w"> </span>generate<span class="w"> </span>--manifest<span class="w"> </span>okapipy.dicts.yml<span class="w">  </span>--output<span class="w"> </span>./my-client
 </span></code></pre></div>
 <p>The second run leaves the one-shot project skeleton
 (<code>pyproject.toml</code>, <code>README.md</code>, <code>LICENSE</code>, <code>.gitignore</code>,
 <code>.python-version</code>) untouched and writes its own
 <code>src/acme/commerce/dicts/...</code> tree plus its own
 <code>tests/acme/commerce/dicts/...</code> tree alongside the first flavor.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">acme.commerce.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">CommerceClient</span> <span class="k">as</span> <span class="n">TypedClient</span>
-</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">acme.commerce.dicts</span><span class="w"> </span><span class="kn">import</span> <span class="n">CommerceClient</span> <span class="k">as</span> <span class="n">RawClient</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">acme.commerce.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">CommerceClient</span> <span class="k">as</span> <span class="n">TypedClient</span>
+</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">acme.commerce.dicts</span><span class="w"> </span><span class="kn">import</span> <span class="n">CommerceClient</span> <span class="k">as</span> <span class="n">RawClient</span>
 </span></code></pre></div>
 <p>A few things to know:</p>
 <ul>
-<li><strong>Pass the same <code>--project-name</code> to both runs.</strong> <code>--project-name</code>
-  defaults to the last segment of <code>--package</code>, so without it the first
+<li><strong>Set the same <code>project_name</code> in both manifests.</strong> <code>project_name</code>
+  defaults to the last segment of <code>package</code>, so without it the first
   run sets the project name to <code>models</code> and the second to <code>dicts</code>. The
   pyproject is one-shot, so only the first wins.</li>
 <li><strong>Edit <code>--cov</code> by hand.</strong> The generated <code>pyproject.toml</code> sets
   <code>--cov=&lt;package&gt;</code> from the first run. Change it to
   <code>--cov=acme.commerce</code> if you want coverage across both flavors.</li>
 <li><strong>Drift detection is per flavor.</strong> Each flavor has its own
-  <code>base/_manifest.json</code>. <code>--check</code> and pruning don't see across
+  <code>base/_generated.json</code>. <code>--check</code> and pruning don't see across
   flavors; running <code>--check</code> on one flavor never reports drift in the
   other.</li>
 </ul>
 <h2 id="choosing-a-shape">Choosing a shape<a class="headerlink" href="#choosing-a-shape" title="Permanent link">&para;</a></h2>
 <p>A short opinionated guide, when in doubt:</p>
 <ul>
-<li><strong><code>auto</code></strong> if you don't know yet. The runtime switch costs one extra
-  arm in the type signature and buys you per-call-site flexibility.</li>
-<li><strong><code>--shape models</code></strong> for production code that runs <code>mypy --strict</code>
+<li><strong><code>shape: auto</code></strong> if you don't know yet. The runtime switch costs one
+  extra arm in the type signature and buys you per-call-site flexibility.</li>
+<li><strong><code>shape: models</code></strong> for production code that runs <code>mypy --strict</code>
   and benefits from precise types.</li>
-<li><strong><code>--shape dicts</code></strong> when the spec resists
+<li><strong><code>shape: dicts</code></strong> when the spec resists
   <code>datamodel-code-generator</code>, or when models would just be marshalling
   overhead in your hot path.</li>
 </ul>
@@ -1512,7 +1564,7 @@ project — one typed, one raw — by varying <code>--package</code>:</p>
 <li><a href="quick-start.html">Quick start</a> — generate your first client.</li>
 <li><a href="client-usage.html">Using the client</a> — the surface common to all three shapes.</li>
 <li><a href="customization.html">Code customization</a> — the two-layer split that makes regeneration safe.</li>
-<li><a href="../reference/cli.html#okapipy-spec-generate">CLI reference</a> — every flag of <code>okapipy spec generate</code>.</li>
+<li><a href="../reference/cli.html#okapipy-generate">CLI reference</a> — every flag of <code>okapipy generate</code>.</li>
 </ul>
 
 

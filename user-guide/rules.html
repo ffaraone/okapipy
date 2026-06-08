@@ -416,6 +416,8 @@
       
         
       
+        
+      
     
     
     
@@ -893,6 +895,34 @@
     
   
     Template customization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="advanced.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Advanced usage
   
 
     
@@ -1594,10 +1624,19 @@ conflict with the spec.</p>
 </span><span id="__span-4-24"><a id="__codelineno-4-24" name="__codelineno-4-24" href="#__codelineno-4-24"></a><span class="w">  </span><span class="l l-Scalar l-Scalar-Plain">/orders/{id}</span><span class="p p-Indicator">:</span>
 </span><span id="__span-4-25"><a id="__codelineno-4-25" name="__codelineno-4-25" href="#__codelineno-4-25"></a><span class="w">    </span><span class="nt">x-okapipy-exclude</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">DELETE</span><span class="p p-Indicator">]</span><span class="w">        </span><span class="c1"># drop just selected methods</span>
 </span></code></pre></div>
-<p>Then:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>okapipy<span class="w"> </span>spec<span class="w"> </span>parse<span class="w"> </span>openapi.yaml<span class="w"> </span>--rules<span class="w"> </span>okapipy.rules.yaml
-</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>okapipy<span class="w"> </span>spec<span class="w"> </span>generate<span class="w"> </span>openapi.yaml<span class="w"> </span>--rules<span class="w"> </span>okapipy.rules.yaml<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="w">    </span>--output<span class="w"> </span>./my-client<span class="w"> </span>--package<span class="w"> </span>acme.commerce<span class="w"> </span>--client-class<span class="w"> </span>CommerceClient
+<p>Then point your project manifest's <code>specs[]</code> entry at the rules file
+(<code>okapipy parse</code> keeps its own <code>--rules</code> flag for ad-hoc
+inspection):</p>
+<div class="language-yaml highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="c1"># okapipy.yml</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="nt">package</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">acme.commerce</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="nt">client_class</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">CommerceClient</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="nt">specs</span><span class="p">:</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;&#39;</span>
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="w">    </span><span class="nt">source</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">openapi.yaml</span>
+</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="w">    </span><span class="nt">rules</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">okapipy.rules.yaml</span>
+</span></code></pre></div>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>okapipy<span class="w"> </span>parse<span class="w"> </span>openapi.yaml<span class="w"> </span>--rules<span class="w"> </span>okapipy.rules.yaml<span class="w">  </span><span class="c1"># inspection</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>okapipy<span class="w"> </span>generate<span class="w"> </span>--output<span class="w"> </span>./my-client<span class="w">                  </span><span class="c1"># uses the manifest</span>
 </span></code></pre></div>
 <p>The rules file is <strong>local-only</strong> — no http(s) URLs. That's a deliberate
 constraint; project-local overrides should live in your repo, not on a
@@ -1607,26 +1646,26 @@ remote server you don't control.</p>
 <p>The token looks singular to spaCy — typically because the lemma matches a
 common singular noun in English (<code>staff</code>, <code>news</code>, <code>series</code>, <code>species</code>).
 Force it:</p>
-<div class="language-yaml highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="c1"># rules.yaml</span>
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="nt">paths</span><span class="p">:</span>
-</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="w">  </span><span class="nt">/staff</span><span class="p">:</span>
-</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="w">    </span><span class="nt">x-okapipy-kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">collection</span>
+<div class="language-yaml highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="c1"># rules.yaml</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="nt">paths</span><span class="p">:</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="w">  </span><span class="nt">/staff</span><span class="p">:</span>
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="w">    </span><span class="nt">x-okapipy-kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">collection</span>
 </span></code></pre></div>
 <h3 id="i-want-a-custom-verb-to-be-an-action">"I want a custom verb to be an Action"<a class="headerlink" href="#i-want-a-custom-verb-to-be-an-action" title="Permanent link">&para;</a></h3>
 <p>If the verb isn't in the small built-in registry (<code>login</code>, <code>logout</code>,
 <code>refresh</code>, <code>revoke</code>, <code>verify</code>, …), spaCy will probably tag it as a noun.
 Pick the smallest possible scope:</p>
-<div class="language-yaml highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="nt">paths</span><span class="p">:</span>
-</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="w">  </span><span class="l l-Scalar l-Scalar-Plain">/orders/{id}/escalate</span><span class="p p-Indicator">:</span>
-</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="w">    </span><span class="nt">post</span><span class="p">:</span>
-</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="w">      </span><span class="nt">x-okapipy-kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">action</span><span class="w">     </span><span class="c1"># operation-level: just this POST</span>
-</span></code></pre></div>
-<p>If every method on the path is the action (rare), use path-item level:</p>
 <div class="language-yaml highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="nt">paths</span><span class="p">:</span>
 </span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="w">  </span><span class="l l-Scalar l-Scalar-Plain">/orders/{id}/escalate</span><span class="p p-Indicator">:</span>
-</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="w">    </span><span class="nt">x-okapipy-kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">action</span>
-</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="w">    </span><span class="nt">post</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="w"> </span><span class="nv">...</span><span class="w"> </span><span class="p p-Indicator">}</span>
-</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="w">    </span><span class="nt">get</span><span class="p">:</span><span class="w">  </span><span class="p p-Indicator">{</span><span class="w"> </span><span class="nv">...</span><span class="w"> </span><span class="p p-Indicator">}</span><span class="w">                </span><span class="c1"># also routed to Action.operations</span>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="w">    </span><span class="nt">post</span><span class="p">:</span>
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="w">      </span><span class="nt">x-okapipy-kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">action</span><span class="w">     </span><span class="c1"># operation-level: just this POST</span>
+</span></code></pre></div>
+<p>If every method on the path is the action (rare), use path-item level:</p>
+<div class="language-yaml highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="nt">paths</span><span class="p">:</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="w">  </span><span class="l l-Scalar l-Scalar-Plain">/orders/{id}/escalate</span><span class="p p-Indicator">:</span>
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="w">    </span><span class="nt">x-okapipy-kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">action</span>
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="w">    </span><span class="nt">post</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="w"> </span><span class="nv">...</span><span class="w"> </span><span class="p p-Indicator">}</span>
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="w">    </span><span class="nt">get</span><span class="p">:</span><span class="w">  </span><span class="p p-Indicator">{</span><span class="w"> </span><span class="nv">...</span><span class="w"> </span><span class="p p-Indicator">}</span><span class="w">                </span><span class="c1"># also routed to Action.operations</span>
 </span></code></pre></div>
 <h3 id="i-have-many-non-conforming-endpoints-and-i-dont-want-to-annotate-each-one">"I have many non-conforming endpoints and I don't want to annotate each one"<a class="headerlink" href="#i-have-many-non-conforming-endpoints-and-i-dont-want-to-annotate-each-one" title="Permanent link">&para;</a></h3>
 <p>Some specs are full of operations that don't fit the
@@ -1636,16 +1675,21 @@ collection path with regular CRUD. By default each one is dropped with
 a warning, and the per-op fix is <code>x-okapipy-kind: action</code> on every one
 of them.</p>
 <p>When that's impractical — usually because you don't own the spec, or
-there are too many — pass <code>--unmatched &lt;name&gt;</code> to keep them as flat
-actions under a synthetic top-level namespace:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>okapipy<span class="w"> </span>spec<span class="w"> </span>generate<span class="w"> </span>openapi.yaml<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="w">    </span>--output<span class="w"> </span>./my-client<span class="w"> </span>--package<span class="w"> </span>acme.commerce<span class="w"> </span>--client-class<span class="w"> </span>CommerceClient<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="w">    </span>--unmatched<span class="w"> </span>ops
+there are too many — add <code>unmatched: &lt;name&gt;</code> to the spec entry in your
+manifest to keep them as flat actions under a synthetic top-level
+namespace:</p>
+<div class="language-yaml highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="c1"># okapipy.yml</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="nt">specs</span><span class="p">:</span>
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;&#39;</span>
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="w">    </span><span class="nt">source</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">openapi.yaml</span>
+</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="w">    </span><span class="nt">unmatched</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ops</span>
+</span></code></pre></div>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>okapipy<span class="w"> </span>generate<span class="w"> </span>--output<span class="w"> </span>./my-client
 </span></code></pre></div>
 <p>Now every otherwise-dropped operation lands under <code>client.ops</code> as its
 own action, named after its <code>operationId</code>:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="n">client</span><span class="o">.</span><span class="n">ops</span><span class="o">.</span><span class="n">bulk_update_users</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">body</span><span class="o">=</span><span class="p">{</span><span class="o">...</span><span class="p">})</span>   <span class="c1"># PUT /users</span>
-</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="n">client</span><span class="o">.</span><span class="n">ops</span><span class="o">.</span><span class="n">admin_health</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>                  <span class="c1"># GET /admin/health</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="n">client</span><span class="o">.</span><span class="n">ops</span><span class="o">.</span><span class="n">bulk_update_users</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">body</span><span class="o">=</span><span class="p">{</span><span class="o">...</span><span class="p">})</span>   <span class="c1"># PUT /users</span>
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="n">client</span><span class="o">.</span><span class="n">ops</span><span class="o">.</span><span class="n">admin_health</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>                  <span class="c1"># GET /admin/health</span>
 </span></code></pre></div>
 <p>Operations without an <code>operationId</code> fall back to
 <code>&lt;method&gt;_&lt;sanitized_path&gt;</code> — e.g. a bare <code>PUT /users</code> becomes
@@ -1666,17 +1710,17 @@ singleton), <code>x-okapipy-kind: action</code> keeps the operation in the
 right place in the hierarchy.</p>
 </div>
 <h3 id="an-endpoint-shouldnt-be-in-the-client-at-all">"An endpoint shouldn't be in the client at all"<a class="headerlink" href="#an-endpoint-shouldnt-be-in-the-client-at-all" title="Permanent link">&para;</a></h3>
-<div class="language-yaml highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="nt">paths</span><span class="p">:</span>
-</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="w">  </span><span class="nt">/admin/wipe-database</span><span class="p">:</span>
-</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="w">    </span><span class="nt">x-okapipy-exclude</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;*&quot;</span>
+<div class="language-yaml highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="nt">paths</span><span class="p">:</span>
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="w">  </span><span class="nt">/admin/wipe-database</span><span class="p">:</span>
+</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="w">    </span><span class="nt">x-okapipy-exclude</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;*&quot;</span>
 </span></code></pre></div>
 <p><code>*</code> is also accepted as the literal string <code>"*"</code> to drop every method;
 otherwise pass an explicit list.</p>
 <h3 id="this-list-is-bounded-and-shouldnt-paginate">"This list is bounded and shouldn't paginate"<a class="headerlink" href="#this-list-is-bounded-and-shouldnt-paginate" title="Permanent link">&para;</a></h3>
-<div class="language-yaml highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="nt">paths</span><span class="p">:</span>
-</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="w">  </span><span class="nt">/currencies</span><span class="p">:</span>
-</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="w">    </span><span class="nt">x-okapipy-paginated</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
-</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="w">    </span><span class="nt">get</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="w"> </span><span class="nv">...</span><span class="w"> </span><span class="p p-Indicator">}</span>
+<div class="language-yaml highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="nt">paths</span><span class="p">:</span>
+</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="w">  </span><span class="nt">/currencies</span><span class="p">:</span>
+</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a><span class="w">    </span><span class="nt">x-okapipy-paginated</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+</span><span id="__span-14-4"><a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a><span class="w">    </span><span class="nt">get</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="w"> </span><span class="nv">...</span><span class="w"> </span><span class="p p-Indicator">}</span>
 </span></code></pre></div>
 <p>The generated <code>fetch()</code> returns the full list in a single request.</p>
 <h3 id="a-current-pseudo-resource-has-its-own-members-and-settings">"A <code>*/current</code> pseudo-resource has its own members and settings"<a class="headerlink" href="#a-current-pseudo-resource-has-its-own-members-and-settings" title="Permanent link">&para;</a></h3>
@@ -1685,11 +1729,11 @@ a singleton with its own sub-collections (<code>/orgs/current/members</code>,
 <code>/orgs/current/roles</code>, <code>/workspaces/current/tag-keys</code>). Mark the
 pseudo-resource as a singleton — okapipy hangs the sub-collections off
 it directly.</p>
-<div class="language-yaml highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="nt">paths</span><span class="p">:</span>
-</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="w">  </span><span class="nt">/orgs/current</span><span class="p">:</span>
-</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="w">    </span><span class="nt">x-okapipy-kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">singleton</span>
-</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="w">  </span><span class="c1"># /orgs/current/members → MembersCollection on the OrgsCurrentSingleton</span>
-</span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a><span class="w">  </span><span class="c1"># /orgs/current/roles   → RolesCollection on the OrgsCurrentSingleton</span>
+<div class="language-yaml highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="nt">paths</span><span class="p">:</span>
+</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a><span class="w">  </span><span class="nt">/orgs/current</span><span class="p">:</span>
+</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a><span class="w">    </span><span class="nt">x-okapipy-kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">singleton</span>
+</span><span id="__span-15-4"><a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a><span class="w">  </span><span class="c1"># /orgs/current/members → MembersCollection on the OrgsCurrentSingleton</span>
+</span><span id="__span-15-5"><a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a><span class="w">  </span><span class="c1"># /orgs/current/roles   → RolesCollection on the OrgsCurrentSingleton</span>
 </span></code></pre></div>
 <p>In the generated client, <code>client.orgs.current.members</code> is the collection
 and <code>client.orgs.current.members["usr_1"]</code> is the per-member resource.</p>
@@ -1698,10 +1742,10 @@ and <code>client.orgs.current.members["usr_1"]</code> is the per-member resource
 <code>/secrets/encrypted</code> are <em>derived views</em> of the parent collection — not
 one of its items. Mark them as singletons; okapipy attaches them as
 sub-singletons of the parent collection.</p>
-<div class="language-yaml highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="nt">paths</span><span class="p">:</span>
-</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="w">  </span><span class="nt">/orders/stats</span><span class="p">:</span>
-</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a><span class="w">    </span><span class="nt">x-okapipy-kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">singleton</span>
-</span><span id="__span-14-4"><a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a><span class="w">    </span><span class="nt">get</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="w"> </span><span class="nv">...</span><span class="w"> </span><span class="p p-Indicator">}</span>
+<div class="language-yaml highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="nt">paths</span><span class="p">:</span>
+</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a><span class="w">  </span><span class="nt">/orders/stats</span><span class="p">:</span>
+</span><span id="__span-16-3"><a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a><span class="w">    </span><span class="nt">x-okapipy-kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">singleton</span>
+</span><span id="__span-16-4"><a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a><span class="w">    </span><span class="nt">get</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="w"> </span><span class="nv">...</span><span class="w"> </span><span class="p p-Indicator">}</span>
 </span></code></pre></div>
 <p>The generated client exposes <code>client.orders.stats.retrieve()</code> alongside
 iteration over the collection itself.</p>

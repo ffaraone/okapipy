@@ -416,6 +416,8 @@
       
         
       
+        
+      
     
     
     
@@ -938,6 +940,34 @@
     
   
     Template customization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="advanced.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Advanced usage
   
 
     
@@ -1586,7 +1616,7 @@ shaped around that one goal.</p>
 <td><strong>Base</strong></td>
 <td><code>my_client/base/</code></td>
 <td>Generator</td>
-<td>Rewritten on every <code>okapipy spec generate</code> run.</td>
+<td>Rewritten on every <code>okapipy generate</code> run.</td>
 </tr>
 <tr>
 <td><strong>User</strong></td>
@@ -1643,7 +1673,7 @@ sub-collection <code>/commerce/orders/{id}/lines</code>:</p>
 </span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>    ├── resources/order.py
 </span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>    ├── actions/order_submit.py
 </span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>    ├── namespaces/commerce.py
-</span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>    └── _manifest.json
+</span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>    └── _generated.json
 </span></code></pre></div>
 <p>A larger spec produces one user-layer module per namespace and one per
 top-level collection. Collections under the root (no namespace) live in
@@ -1833,7 +1863,7 @@ to avoid runtime cost:</p>
 <p>Purely cosmetic; runtime behavior is unchanged.</p>
 <h3 id="a-new-collection-appears">A new collection appears<a class="headerlink" href="#a-new-collection-appears" title="Permanent link">&para;</a></h3>
 <p>Walk-through. The customer adds <code>/commerce/products</code> to their OpenAPI
-spec and reruns <code>okapipy spec generate</code>.</p>
+spec and reruns <code>okapipy generate</code>.</p>
 <p><strong>Before:</strong></p>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>my_client/
 </span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>├── client.py            class CommerceClient(...): __commerce_factory__ = CommerceNamespace
@@ -1873,11 +1903,11 @@ spec and reruns <code>okapipy spec generate</code>.</p>
   <code>client.commerce.products</code> returns your <code>ProductsCollection</code>, ready
   to carry overrides.</li>
 </ul>
-<p>The drift detector is part of <code>okapipy spec generate --check</code>. It
+<p>The drift detector is part of <code>okapipy generate --check</code>. It
 exits non-zero when unwired children are detected, so a CI run after a
 spec bump fails until someone makes the call.</p>
 <h2 id="regeneration-semantics">Regeneration semantics<a class="headerlink" href="#regeneration-semantics" title="Permanent link">&para;</a></h2>
-<p>Each <code>okapipy spec generate &lt;spec&gt;</code> run does:</p>
+<p>Each <code>okapipy generate</code> run does:</p>
 <ol>
 <li><strong>Parse</strong> the spec + rules file into the parser tree.</li>
 <li><strong>Plan</strong> the file set — every <code>base/**</code> file, plus stubs for any
@@ -1891,9 +1921,10 @@ spec bump fails until someone makes the call.</p>
 <li><strong>Prune</strong> stale <code>base/**</code> files that correspond to removed
    namespaces/collections. User-layer files are <strong>never pruned</strong>, even
    if the matching base file is gone — you may still want them.</li>
-<li><strong>Emit a manifest</strong> at <code>base/_manifest.json</code> recording the spec
-   hash, rules hash, generator version, and the list of base files
-   written. Used to detect drift and to power <code>--check</code>.</li>
+<li><strong>Emit a state file</strong> at <code>base/_generated.json</code> recording the
+   generator version, generation timestamp, the list of base files
+   written, and every parent → child wiring edge. Used to detect drift
+   and to power <code>--check</code>.</li>
 </ol>
 <h3 id="failure-modes-regeneration-intentionally-surfaces">Failure modes regeneration intentionally surfaces<a class="headerlink" href="#failure-modes-regeneration-intentionally-surfaces" title="Permanent link">&para;</a></h3>
 <ul>
@@ -1911,18 +1942,18 @@ spec bump fails until someone makes the call.</p>
 </ul>
 <h2 id="tooling">Tooling<a class="headerlink" href="#tooling" title="Permanent link">&para;</a></h2>
 <ul>
-<li><strong><code>okapipy spec generate --check</code></strong> — exits non-zero if any base file
+<li><strong><code>okapipy generate --check</code></strong> — exits non-zero if any base file
   would change, any drift warning fires, or any stale file would be
   pruned. CI gate to ensure regeneration is committed.</li>
-<li><strong><code>okapipy spec generate --quiet</code></strong> — suppress drift-detection
+<li><strong><code>okapipy generate --quiet</code></strong> — suppress drift-detection
   warnings. Pruning still runs.</li>
-<li><strong><code>--shape models\|dicts</code></strong> — lock the generated client to a single
-  <a href="shapes.html">response shape</a>. Omit for the dual-shape default
-  (constructor <code>shape=</code> + <code>with_shape()</code>); <code>--shape dicts</code> also skips
-  <code>base/models.py</code>.</li>
-<li><strong><code>--templates-dir DIR</code></strong> and <strong><code>--model-templates-dir DIR</code></strong> — see
-  <a href="templates.html">Templates</a> for per-project overrides of the Jinja
-  templates that drive code emission.</li>
+<li><strong><code>shape: models | dicts</code></strong> (in <code>okapipy.yml</code>) — lock the generated
+  client to a single <a href="shapes.html">response shape</a>. Omit for the
+  dual-shape default (constructor <code>shape=</code> + <code>with_shape()</code>);
+  <code>shape: dicts</code> also skips <code>base/models.py</code>.</li>
+<li><strong><code>templates_dir:</code> and <code>model_templates_dir:</code></strong> (in <code>okapipy.yml</code>)
+  — see <a href="templates.html">Templates</a> for per-project overrides of the
+  Jinja templates that drive code emission.</li>
 </ul>
 <h2 id="out-of-scope">Out of scope<a class="headerlink" href="#out-of-scope" title="Permanent link">&para;</a></h2>
 <ul>

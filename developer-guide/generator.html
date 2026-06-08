@@ -414,6 +414,8 @@
       
         
       
+        
+      
     
     
     
@@ -683,6 +685,34 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../user-guide/advanced.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Advanced usage
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -905,10 +935,21 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#the-manifest-manifestpy-edgespy" class="md-nav__link">
+  <a href="#multi-spec-composition-composepy" class="md-nav__link">
     <span class="md-ellipsis">
       
-        The manifest (manifest.py + edges.py)
+        Multi-spec composition (compose.py)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-generated-state-file-statepy-edgespy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The generated-state file (state.py + edges.py)
       
     </span>
   </a>
@@ -1197,10 +1238,21 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#the-manifest-manifestpy-edgespy" class="md-nav__link">
+  <a href="#multi-spec-composition-composepy" class="md-nav__link">
     <span class="md-ellipsis">
       
-        The manifest (manifest.py + edges.py)
+        Multi-spec composition (compose.py)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-generated-state-file-statepy-edgespy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The generated-state file (state.py + edges.py)
       
     </span>
   </a>
@@ -1322,39 +1374,58 @@
 <h1 id="generator-internals">Generator internals<a class="headerlink" href="#generator-internals" title="Permanent link">&para;</a></h1>
 <p>The generator turns the parser's <code>APIModel</code> tree into a runnable Python
 project: a <code>pyproject.toml</code>, a vendored runtime, base-layer files for
-every node, user-layer stubs, generated tests, and a manifest that
-makes drift detection possible across runs.</p>
+every node, user-layer stubs, generated tests, and a generated-state
+file that makes drift detection possible across runs.</p>
 <p>The whole thing is structured as a <strong>virtual filesystem</strong> —
 <code>dict[str, GeneratedFile]</code> keyed by POSIX-style relative path. The CLI
 flushes that dict to disk; tests inspect it directly. No filesystem
 side effects in the generator itself.</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>APIModel
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>okapipy.yml
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>   │
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>   ▼
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>generate(api, raw_spec, ...)        ← orchestration, in api.py
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>load_manifest(path)                 ← okapipy.manifest
 </span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>   │
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>   ├─►  emit_project_skeleton()     pyproject, README, LICENSE, .gitignore  (one-shot)
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>   ├─►  emit_runtime()              vendored runtime + base/__init__.py     (regenerated)
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>   ├─►  emit_models()               base/models.py via datamodel-code-gen   (regenerated)
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>   ├─►  emit_client()               sync + async ClientBase                 (regenerated)
-</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>   ├─►  emit_tree()                 one base/&lt;node&gt;.py per parser-tree node (regenerated)
-</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>   ├─►  emit_stubs()                user-layer subclass stubs               (one-shot)
-</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>   ├─►  emit_tests()                test scaffolding                        (one-shot)
-</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>   └─►  compute_manifest()          base/_manifest.json                     (regenerated)
-</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>   │
-</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>   ▼
-</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>dict[str, GeneratedFile]            ← virtual FS
-</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>   │
-</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>   ▼
-</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>write_to_disk(vfs, output_dir, dry_run=...)   ← in vfs.py; respects one_shot
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>   ▼
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>generate(manifest)                  ← orchestration, in generator/api.py
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>   │
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>   ├─►  emit_project_skeleton()     pyproject, README, LICENSE, .gitignore  (one-shot)
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>   ├─►  compose.plan_mounts()       parse every specs[] entry → MountedSpec list
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>   │
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>   │   per mount:
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>   ├─►    emit_models()             base/&lt;mount&gt;/models.py via dmcg          (regenerated)
+</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>   ├─►    emit_tree()               base/&lt;mount&gt;/{ns,coll,res,sing,act}/...  (regenerated)
+</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>   ├─►    emit_mount_namespace()    base/&lt;mount&gt;/__init__.py — synthetic     (regenerated)
+</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>   │                                &lt;Mount&gt;MountBase class
+</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>   ├─►    emit_stubs()              user-layer subclass stubs for the mount  (one-shot)
+</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>   ├─►    emit_tests()              per-mount test scaffolding               (one-shot)
+</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>   │
+</span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>   ├─►  emit_runtime()              vendored runtime + base/__init__.py      (regenerated)
+</span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>   ├─►  emit_client()               sync + async &lt;Client&gt;Base composing      (regenerated)
+</span><span id="__span-0-22"><a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a>   │                                every mount as a @cached_property
+</span><span id="__span-0-23"><a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a>   ├─►  emit_stubs(emit_root=True)  project-wide user-layer __init__ +       (one-shot)
+</span><span id="__span-0-24"><a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a>   │                                client.py + tests/conftest + test_client
+</span><span id="__span-0-25"><a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a>   └─►  GeneratedState              base/_generated.json — base_files +      (regenerated)
+</span><span id="__span-0-26"><a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a>                                    edges aggregated across every mount
+</span><span id="__span-0-27"><a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a>   │
+</span><span id="__span-0-28"><a id="__codelineno-0-28" name="__codelineno-0-28" href="#__codelineno-0-28"></a>   ▼
+</span><span id="__span-0-29"><a id="__codelineno-0-29" name="__codelineno-0-29" href="#__codelineno-0-29"></a>dict[str, GeneratedFile]            ← virtual FS
+</span><span id="__span-0-30"><a id="__codelineno-0-30" name="__codelineno-0-30" href="#__codelineno-0-30"></a>   │
+</span><span id="__span-0-31"><a id="__codelineno-0-31" name="__codelineno-0-31" href="#__codelineno-0-31"></a>   ▼
+</span><span id="__span-0-32"><a id="__codelineno-0-32" name="__codelineno-0-32" href="#__codelineno-0-32"></a>write_to_disk(vfs, output_dir, dry_run=...)   ← in vfs.py; respects one_shot
 </span></code></pre></div>
+<p>A single-spec manifest with <code>namespace: ''</code> collapses every mention of
+<code>base/&lt;mount&gt;/</code> to <code>base/</code> and produces the historical flat layout
+byte-for-byte. <code>generate_for_mount(api, raw_spec, ...)</code> — the
+single-spec building block exposed for tests and embedded callers —
+is the same pipeline minus the <code>compose.plan_mounts()</code> and the
+cross-mount composition.</p>
 <h2 id="lifecycle-one-shot-vs-regenerated">Lifecycle: one-shot vs. regenerated<a class="headerlink" href="#lifecycle-one-shot-vs-regenerated" title="Permanent link">&para;</a></h2>
 <p>Every <code>GeneratedFile</code> carries a <code>one_shot</code> flag.</p>
 <ul>
 <li><code>one_shot=False</code> — files under <code>src/{package}/base/</code>. Rewritten on
   every run. Includes: vendored runtime, <code>models.py</code> from
   <code>datamodel-code-generator</code>, sync + async client base classes, one
-  file per parser-tree node, <code>_manifest.json</code>.</li>
+  file per parser-tree node, <code>_generated.json</code>.</li>
 <li><code>one_shot=True</code> — files under <code>src/{package}/</code> (subclass stubs the
   customer customizes), the project skeleton (<code>pyproject.toml</code>,
   <code>README.md</code>, <code>LICENSE</code>, <code>.gitignore</code>, <code>.python-version</code>), and the
@@ -1380,16 +1451,22 @@ stub". Base files are written unconditionally.</p>
    drift detection and <code>--check</code>.</li>
 </ol>
 <h2 id="the-walker-emitwalkpy">The walker (<code>emit/walk.py</code>)<a class="headerlink" href="#the-walker-emitwalkpy" title="Permanent link">&para;</a></h2>
-<p><code>emit_tree(env, api, project_context, package_path, available_models)</code>
-walks the parser tree and emits one base file per node. The visitor
-maintains a small context as it descends:</p>
+<p><code>emit_tree(env, api, project_context, package_path, available_models,
+*, shape, mount_relpath)</code> walks the parser tree and emits one base
+file per node. The visitor maintains a small context as it descends:</p>
 <ul>
 <li>The full breadcrumb of singular collection names (used for naming).</li>
 <li>The current namespace path (so files land in the right <code>base/&lt;ns&gt;/</code>
   subdirectory).</li>
-<li>The set of model names that actually exist in <code>models.py</code>. References
-  to missing schemas degrade gracefully: the type becomes <code>Any</code> and the
-  import is dropped.</li>
+<li>The set of model names that actually exist in the current mount's
+  <code>models.py</code>. References to missing schemas degrade gracefully: the
+  type becomes <code>Any</code> and the import is dropped.</li>
+<li>The <code>mount_relpath</code> (<code>"users/"</code>, <code>"platform/users/"</code>, or <code>""</code> for
+  the root mount), prepended to every emitted path so multi-mount
+  projects land their trees under <code>base/&lt;mount&gt;/...</code>. The companion
+  <code>runtime_dots(mount_relpath)</code> helper computes the relative-import
+  dot prefix templates use to reach the shared base-level modules
+  (<code>client.py</code>, <code>exceptions.py</code>, …) from deep inside a mount.</li>
 </ul>
 <p>For each node, the walker picks a Jinja template under
 <code>generator/templates/package/...</code> and renders it with a context dict
@@ -1416,23 +1493,26 @@ is passed) and packaged defaults second.</p>
 <li>Optional <code>model_templates_dir</code> forwarded as <code>--custom-template-dir</code>.</li>
 </ul>
 <p>The result is a single Python source string written to
-<code>src/{package}/base/models.py</code>.</p>
+<code>src/{package}/base/&lt;mount&gt;/models.py</code> (one per mount; the root mount
+collapses <code>&lt;mount&gt;/</code> away). Multi-mount projects invoke dmcg once per
+spec so two services declaring an unrelated <code>User</code> schema can't
+collide at the import level.</p>
 <p><code>public_names(source)</code> parses the emitted source and returns the set of
 top-level class names. The walker uses that set to validate model
 references — anything not in the set becomes <code>Any</code> in the generated
 client.</p>
-<p><code>--shape dicts</code> skips this step entirely. The walker then drops every
-<code>from ..models import ...</code> line and types every body / return as
-<code>dict[str, Any]</code>. The client base also drops the <code>shape=</code> constructor
-option and <code>with_shape(...)</code> — there is nothing to switch to. This is an
-escape hatch for two situations:</p>
+<p><code>shape: dicts</code> (in <code>okapipy.yml</code>) skips this step entirely. The walker
+then drops every <code>from ..models import ...</code> line and types every body
+/ return as <code>dict[str, Any]</code>. The client base also drops the <code>shape=</code>
+constructor option and <code>with_shape(...)</code> — there is nothing to switch
+to. This is an escape hatch for two situations:</p>
 <ul>
 <li><code>datamodel-code-generator</code> can't process the spec's schemas (rare,
   but it happens with very baroque <code>oneOf</code> graphs).</li>
 <li>The consumer wants to bring their own model layer (e.g. they already
   have hand-written Pydantic types they prefer).</li>
 </ul>
-<p><code>--shape models</code> keeps <code>models.py</code> but locks the runtime to validation:
+<p><code>shape: models</code> keeps <code>models.py</code> but locks the runtime to validation:
 the <code>shape=</code> constructor option and <code>with_shape(...)</code> are dropped, and
 bodies / returns are typed strictly as the recovered model
 (<code>Foo</code> / <code>Foo | None</code>) rather than admitting a <code>dict[str, Any]</code> arm.</p>
@@ -1452,30 +1532,78 @@ bodies / returns are typed strictly as the recovered model
 <p>Vendoring (rather than depending on a separate <code>okapipy-runtime</code> PyPI
 package) is intentional: it keeps the generated client self-contained
 and lets us tighten the runtime API without breaking older clients.</p>
-<h2 id="the-manifest-manifestpy-edgespy">The manifest (<code>manifest.py</code> + <code>edges.py</code>)<a class="headerlink" href="#the-manifest-manifestpy-edgespy" title="Permanent link">&para;</a></h2>
-<p><code>base/_manifest.json</code> records:</p>
+<h2 id="multi-spec-composition-composepy">Multi-spec composition (<code>compose.py</code>)<a class="headerlink" href="#multi-spec-composition-composepy" title="Permanent link">&para;</a></h2>
+<p>A project manifest can declare multiple <code>specs[]</code> entries. Each one
+parses independently into its own <code>APIModel</code>; the generator composes
+the results into one Python package.</p>
+<p><code>compose.plan_mounts(manifest)</code> is the entry point: it walks
+<code>manifest.specs[]</code>, parses each source with the per-spec inputs
+(<code>rules</code>, <code>strip_prefix</code>, <code>unmatched</code>, <code>lang</code>), and returns a list of
+<code>MountedSpec</code> records carrying the mount path tuple, the parsed
+<code>APIModel</code>, the raw spec (for <code>datamodel-code-generator</code>), and the
+entry's manifest index. Dotted mounts (more than one segment) raise
+<code>GenerationError</code> here — the intermediate-namespace machinery is not
+yet wired through <code>emit_client</code>.</p>
+<p><code>mount_segments("platform.users")</code> returns the tuple
+<code>("platform", "users")</code>; <code>mount_relpath(("users",))</code> returns
+<code>"users/"</code> (the trailing slash makes concatenation safe). The root
+mount (<code>()</code>) maps to <code>""</code> everywhere, which is how every per-mount
+emitter collapses to the historical flat layout for single-spec
+root-mount manifests.</p>
+<p>The synthetic <strong>mount namespace</strong> is a small <code>Namespace</code> node built by
+<code>compose.synthesize_mount_namespace(mount)</code>: same children as the
+spec's top-level, named after the mount's leaf segment. The walker
+renders it through the existing <code>namespace.py.jinja</code> template (with
+<code>is_mount_root=True</code> so the import section uses
+<code>from .namespaces.X import …</code> instead of the standard <code>from .X
+import …</code>), and the result lands at <code>base/&lt;mount&gt;/__init__.py</code> with
+class name <code>&lt;Mount&gt;MountBase</code> — the <code>Mount</code> suffix disambiguates it
+from any spec-internal <code>&lt;Mount&gt;NamespaceBase</code> that happens to share
+the leaf name.</p>
+<p><code>compose.mount_class_name(mount_ns)</code> is the canonical helper for
+<code>&lt;Mount&gt;MountBase</code>. Use it anywhere you'd otherwise reach for
+<code>namespace_class(mount_ns)</code> on a synthetic mount node.</p>
+<p>The client template grows a parallel <code>top_mount_namespaces</code> list
+alongside the existing <code>top_namespaces</code> / <code>top_collections</code> / etc.
+Mount accessors render as <code>@cached_property</code>s on <code>&lt;Client&gt;Base</code> (and
+the async sibling), wired through a <code>__&lt;mount&gt;_factory__</code> ClassVar so
+the user-layer mount subclass plugs in via the same factory-hook
+mechanism every other tree edge uses.</p>
+<h2 id="the-generated-state-file-statepy-edgespy">The generated-state file (<code>state.py</code> + <code>edges.py</code>)<a class="headerlink" href="#the-generated-state-file-statepy-edgespy" title="Permanent link">&para;</a></h2>
+<p><code>base/_generated.json</code> records:</p>
 <div class="language-json highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="p">{</span>
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">  </span><span class="nt">&quot;okapipy_version&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;0.1.0&quot;</span><span class="p">,</span>
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">  </span><span class="nt">&quot;spec_hash&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;sha256&gt;&quot;</span><span class="p">,</span>
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">  </span><span class="nt">&quot;rules_hash&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;sha256&gt;&quot;</span><span class="p">,</span>
-</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">  </span><span class="nt">&quot;generated_at&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;ISO-8601&gt;&quot;</span><span class="p">,</span>
-</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">  </span><span class="nt">&quot;base_files&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="err">...</span><span class="p">],</span>
-</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">  </span><span class="nt">&quot;edges&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="w">    </span><span class="p">{</span><span class="nt">&quot;parent&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ClientBase&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;child&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;OrdersCollectionBase&quot;</span><span class="p">,</span>
-</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="w">     </span><span class="nt">&quot;factory&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;__orders_factory__&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;user_module&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;orders&quot;</span><span class="p">},</span>
-</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="w">    </span><span class="err">...</span>
-</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="w">  </span><span class="p">]</span>
-</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="p">}</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">  </span><span class="nt">&quot;generator_version&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;0.1.0&quot;</span><span class="p">,</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">  </span><span class="nt">&quot;generated_at&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-06-05T11:42:00Z&quot;</span><span class="p">,</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">  </span><span class="nt">&quot;base_files&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">    </span><span class="s2">&quot;src/acme/commerce/base/__init__.py&quot;</span><span class="p">,</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">    </span><span class="s2">&quot;src/acme/commerce/base/client.py&quot;</span><span class="p">,</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">    </span><span class="s2">&quot;src/acme/commerce/base/collections/orders.py&quot;</span><span class="p">,</span>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="w">    </span><span class="s2">&quot;...&quot;</span>
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="w">  </span><span class="p">],</span>
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="w">  </span><span class="nt">&quot;edges&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="w">    </span><span class="p">{</span>
+</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="w">      </span><span class="nt">&quot;parent_module&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;client.py&quot;</span><span class="p">,</span>
+</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="w">      </span><span class="nt">&quot;factory_attr&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;__orders_factory__&quot;</span><span class="p">,</span>
+</span><span id="__span-1-14"><a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="w">      </span><span class="nt">&quot;child_user_class&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;OrdersCollection&quot;</span><span class="p">,</span>
+</span><span id="__span-1-15"><a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a><span class="w">      </span><span class="nt">&quot;child_user_module&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;collections/orders.py&quot;</span>
+</span><span id="__span-1-16"><a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a><span class="w">    </span><span class="p">},</span>
+</span><span id="__span-1-17"><a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a><span class="w">    </span><span class="s2">&quot;...&quot;</span>
+</span><span id="__span-1-18"><a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a><span class="w">  </span><span class="p">]</span>
+</span><span id="__span-1-19"><a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a><span class="p">}</span>
 </span></code></pre></div>
 <ul>
-<li><code>base_files</code> drives <strong>pruning</strong>: any <code>base/*.py</code> file present on disk
-  but absent from the new manifest is a stale leftover from a removed
-  namespace/collection, and gets deleted on the next run.</li>
+<li><code>base_files</code> drives <strong>pruning</strong>: any <code>base/*.py</code> file present on
+  disk but absent from the new run is a stale leftover from a removed
+  namespace/collection, and gets deleted on the next run. Multi-mount
+  projects union the per-mount file lists into one set.</li>
 <li><code>edges</code> drives <strong>drift detection</strong>: each edge says "the parent's
   <code>__&lt;factory&gt;__</code> should point at the user-layer subclass in
-  <code>&lt;user_module&gt;</code>." <code>vfs.py</code> checks the actual content of one-shot user
-  files against the expected edges and emits a warning per missing
-  factory binding.</li>
+  <code>&lt;child_user_module&gt;</code>." <code>vfs.py</code> checks the actual content of
+  one-shot user files against the expected edges and emits a warning
+  per missing factory binding. Cross-mount edges (client → mount
+  namespace) are recorded the same way as intra-mount edges, so
+  drift on a removed <code>specs[]</code> entry surfaces identically to drift on
+  a removed namespace.</li>
 </ul>
 <p><code>--check</code> is a dry-run mode that runs the full pipeline up to disk
 write, then refuses to write <em>anything</em> and exits non-zero if any base
