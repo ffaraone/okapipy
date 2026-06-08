@@ -401,12 +401,16 @@ def _starter_manifest_body(
 ) -> str:
     """Render the YAML body of a starter okapipy.yml.
 
-    Placeholder values are flagged with `# TODO` comments so an unedited
-    starter manifest fails validation rather than silently generating
-    against the placeholder.
+    The starter populates every PEP 621-flavored project metadata field
+    with a lowercase `acme.commerce`-shaped example so a fresh user sees
+    the full surface and can edit in place. When `source` is omitted,
+    `specs:` is left empty so the manifest fails validation (`specs[]`
+    is required) until the user fills in real targets — the safety net
+    against accidentally generating against placeholder values.
     """
-    pkg = package if package else "TODO.replace-me  # e.g. acme.commerce"
-    cls = client_class if client_class else "TODOClient  # e.g. CommerceClient"
+    pkg = package or "acme.commerce"
+    cls = client_class or "CommerceClient"
+    project_name = pkg.rsplit(".", 1)[-1]
     if source is None:
         specs_block = (
             "specs:\n"
@@ -420,12 +424,21 @@ def _starter_manifest_body(
         specs_block = f"specs:\n  - namespace: ''\n    source: {source}\n"
     return (
         "# okapipy project manifest. See https://ffaraone.github.io/okapipy/ for details.\n"
+        "\n"
+        "# Required.\n"
         f"package: {pkg}\n"
         f"client_class: {cls}\n"
         "\n"
-        "# Optional project-level settings (uncomment and edit as needed).\n"
-        '# project_version: "0.1.0"\n'
-        '# python_version: "3.13"\n'
+        "# Project metadata — drives pyproject.toml, LICENSE, and README.\n"
+        f"project_name: {project_name}\n"
+        f"project_description: Generated client for {project_name}\n"
+        'project_version: "0.1.0"\n'
+        'python_version: "3.13"\n'
+        "license: Proprietary  # SPDX id (MIT, Apache-2.0, BSD-3-Clause, MPL-2.0, ...)\n"
+        "author: Your Organization\n"
+        "repo_url: https://github.com/your-org/your-repo\n"
+        "\n"
+        "# Optional generation settings — see the manifest reference for details.\n"
         "# shape: auto  # auto | models | dicts\n"
         "# output: ./out\n"
         "\n"

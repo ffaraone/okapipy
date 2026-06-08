@@ -51,6 +51,25 @@ def test_load_manifest_defaults_are_filled_in(
     assert manifest.project_version == "0.1.0"
     assert manifest.python_version == "3.13"
     assert manifest.license == "Proprietary"
+    assert manifest.project_description is None
+    assert manifest.repo_url is None
+
+
+def test_load_manifest_carries_project_description_and_repo_url(
+    write_manifest: Callable[..., Path],
+) -> None:
+    """`project_description` and `repo_url` round-trip through the loader."""
+    path = write_manifest(
+        overrides={
+            "project_description": "Acme commerce SDK",
+            "repo_url": "https://github.com/acme/client",
+        }
+    )
+
+    manifest = load_manifest(path)
+
+    assert manifest.project_description == "Acme commerce SDK"
+    assert manifest.repo_url == "https://github.com/acme/client"
 
 
 def test_load_manifest_raises_when_file_missing(tmp_path: Path) -> None:

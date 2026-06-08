@@ -702,6 +702,36 @@ and `ManifestFormatError` (everything else). Both inherit from
 `GenerationError` so the CLI's existing `print_error` boundary catches
 them with no extra wiring.
 
+### 2.14 PEP 621 `pyproject.toml` emission
+
+`emit/project.py` renders the generated `pyproject.toml` from
+manifest-driven fields. The PEP 621 `[project]` table is populated as
+follows:
+
+* `name` from `manifest.project_name` (defaults to the last segment of
+  `package`).
+* `description` from `manifest.project_description` (defaults to
+  `"Generated client for <project_name>"`).
+* `version` from `manifest.project_version`.
+* `readme = "README.md"` — always emitted; the co-emitted README.md
+  carries the same `one-shot` lifecycle.
+* `requires-python` derived from `manifest.python_version`.
+* `license = "<spdx-id>"` only when the value is in the recognised SPDX
+  safelist (see `_SPDX_LICENSES` in `generator/api.py`). Free-form
+  values like `Proprietary` are omitted because hatchling validates
+  this field as an SPDX expression and would refuse the project at
+  build time.
+* `license-files = ["LICEN[CS]E*"]` — always emitted; the co-emitted
+  LICENSE file is always present.
+* `authors = [{ name = "..." }]` only when `manifest.author` is set.
+* `[project.urls]` only when `manifest.repo_url` is set. The table
+  carries `Homepage` and `Repository` pointing at the trimmed URL;
+  `github.com` URLs also gain an `Issues = "<url>/issues"` entry.
+
+The corresponding helper `_project_urls(repo_url)` in
+`generator/api.py` returns an ordered list of `(label, url)` tuples so
+the rendered TOML table is deterministic across runs.
+
 ---
 
 ## 3. Customization

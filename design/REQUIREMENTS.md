@@ -261,10 +261,15 @@ package: acme.commerce              # required; dotted Python package
 client_class: CommerceClient        # required; PascalCase
 
 project_name: acme-commerce         # optional; defaults to last segment of package
+project_description: Acme SDK       # optional; PEP 621 description; defaults to
+                                    #   "Generated client for <project_name>"
 project_version: "0.1.0"            # optional; default "0.1.0"
 python_version: "3.13"              # optional; default "3.13"
 license: Proprietary                # optional; SPDX id; default "Proprietary"
 author: Acme Corp                   # optional; copyright holder
+repo_url: https://github.com/...    # optional; source-repository URL. Drives
+                                    #   [project.urls]; github.com URLs also
+                                    #   gain a synthetic Issues entry.
 
 shape: auto                         # optional; auto | models | dicts; default auto
 lang: en                            # optional; default language for every spec

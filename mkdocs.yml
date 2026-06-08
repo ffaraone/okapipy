@@ -134,6 +134,7 @@ nav:
       - developer-guide/generator.md
   - Reference:
       - reference/cli.md
+      - reference/manifest.md
       - reference/parser.md
       - reference/generator.md
 

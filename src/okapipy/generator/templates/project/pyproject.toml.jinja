@@ -2,11 +2,13 @@
 [project]
 name = "{{ project_name }}"
 version = "{{ project_version }}"
-description = "Generated client for {{ project_name }}"
+description = "{{ project_description }}"
+readme = "README.md"
 requires-python = ">={{ python_version }},<4"
 {% if license_is_spdx %}
 license = "{{ license }}"
 {% endif %}
+license-files = ["LICEN[CS]E*"]
 {% if author %}
 authors = [
     { name = "{{ author }}" },
@@ -16,6 +18,13 @@ dependencies = [
     "httpx>=0.27,<1",
     "pydantic[email]>=2.6,<3",
 ]
+{% if project_urls %}
+
+[project.urls]
+{% for label, url in project_urls -%}
+{{ label }} = "{{ url }}"
+{% endfor -%}
+{% endif %}
 
 [dependency-groups]
 dev = [

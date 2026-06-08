@@ -178,10 +178,12 @@ class GenerationManifest(BaseModel):
     ]
 
     project_name: str | None = None
+    project_description: str | None = None
     project_version: str = "0.1.0"
     python_version: str = "3.13"
     license: str = "Proprietary"
     author: str | None = None
+    repo_url: str | None = None
 
     shape: Shape = "auto"
     lang: str = "en"
