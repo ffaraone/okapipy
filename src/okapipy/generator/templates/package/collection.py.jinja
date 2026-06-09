@@ -289,6 +289,7 @@ class {{ class_name }}:
         sep = "&" if "?" in url else "?"
         return f"{url}{sep}{'&'.join(fragments)}", None
 
+{% if create_op %}
     @staticmethod
     def _serialize_body(body: Any) -> Any:
         """Coerce a Pydantic model instance to a dict; pass dicts through."""
@@ -296,6 +297,7 @@ class {{ class_name }}:
         if callable(dump):
             return dump(mode="json")
         return body
+{% endif %}
 
 
 class {{ class_name }}Iterator(Iterator[{{ item_type }}]):
@@ -566,12 +568,14 @@ class Async{{ class_name }}:
         sep = "&" if "?" in url else "?"
         return f"{url}{sep}{'&'.join(fragments)}", None
 
+{% if create_op %}
     @staticmethod
     def _serialize_body(body: Any) -> Any:
         dump = getattr(body, "model_dump", None)
         if callable(dump):
             return dump(mode="json")
         return body
+{% endif %}
 
 
 class Async{{ class_name }}Iterator(AsyncIterator[{{ item_type }}]):

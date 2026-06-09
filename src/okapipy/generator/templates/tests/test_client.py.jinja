@@ -7,8 +7,10 @@ freely.
 
 from __future__ import annotations
 
+import httpx
 import pytest
 
+from {{ package }}.base.transport import AsyncRetryTransport, RetryPolicy, RetryTransport
 from {{ package }}.client import {{ client_class }}, Async{{ client_class }}
 
 
@@ -67,4 +69,122 @@ async def test_async_client_with_shape_returns_sibling_sharing_transport(
         assert sibling._http is client._http
     finally:
         await client.aclose()
+
+
 {% endif %}
+def test_client_forwards_auth_headers_and_timeout_to_httpx(base_url: str) -> None:
+    """`auth`, `headers`, and `timeout` flow into the underlying `httpx.Client`."""
+    client = {{ client_class }}(
+        base_url,
+        auth=("user", "pass"),
+        headers={"X-App": "test"},
+        timeout=httpx.Timeout(7.5),
+    )
+    try:
+        assert client._http.auth is not None
+        assert client._http.headers["X-App"] == "test"
+        assert client._http.timeout == httpx.Timeout(7.5)
+    finally:
+        client.close()
+
+
+def test_client_wraps_default_transport_when_retries_given(base_url: str) -> None:
+    """Passing only `retries` builds a `RetryTransport` around the default httpx transport."""
+    client = {{ client_class }}(base_url, retries=RetryPolicy(total=2))
+    try:
+        assert isinstance(client._http._transport, RetryTransport)
+    finally:
+        client.close()
+
+
+def test_client_wraps_user_transport_when_both_given(base_url: str) -> None:
+    """Passing `transport` and `retries` together wraps the user transport in `RetryTransport`."""
+    user_transport = httpx.HTTPTransport()
+    client = {{ client_class }}(
+        base_url,
+        transport=user_transport,
+        retries=RetryPolicy(total=1),
+    )
+    try:
+        transport = client._http._transport
+        assert isinstance(transport, RetryTransport)
+        assert transport.wrapped is user_transport
+    finally:
+        client.close()
+
+
+def test_client_keeps_user_transport_when_no_retries(base_url: str) -> None:
+    """Passing only `transport` does not introduce a `RetryTransport` wrapper."""
+    user_transport = httpx.HTTPTransport()
+    client = {{ client_class }}(base_url, transport=user_transport)
+    try:
+        assert client._http._transport is user_transport
+    finally:
+        client.close()
+
+
+def test_client_context_manager_closes_underlying_http(base_url: str) -> None:
+    """The sync client is a context manager that closes its httpx client on exit."""
+    with {{ client_class }}(base_url) as client:
+        assert client.base_url == base_url
+    assert client._http.is_closed
+
+
+@pytest.mark.asyncio
+async def test_async_client_forwards_auth_headers_and_timeout_to_httpx(
+    base_url: str,
+) -> None:
+    """The async client also forwards `auth`, `headers`, `timeout` to its httpx client."""
+    client = Async{{ client_class }}(
+        base_url,
+        auth=("user", "pass"),
+        headers={"X-App": "test"},
+        timeout=httpx.Timeout(7.5),
+    )
+    try:
+        assert client._http.auth is not None
+        assert client._http.headers["X-App"] == "test"
+        assert client._http.timeout == httpx.Timeout(7.5)
+    finally:
+        await client.aclose()
+
+
+@pytest.mark.asyncio
+async def test_async_client_wraps_default_transport_when_retries_given(
+    base_url: str,
+) -> None:
+    """Async `retries` builds an `AsyncRetryTransport` around the default transport."""
+    client = Async{{ client_class }}(base_url, retries=RetryPolicy(total=2))
+    try:
+        assert isinstance(client._http._transport, AsyncRetryTransport)
+    finally:
+        await client.aclose()
+
+
+@pytest.mark.asyncio
+async def test_async_client_wraps_user_transport_when_both_given(
+    base_url: str,
+) -> None:
+    """Async sibling: `transport` + `retries` wraps the user transport in `AsyncRetryTransport`."""
+    user_transport = httpx.AsyncHTTPTransport()
+    client = Async{{ client_class }}(
+        base_url,
+        transport=user_transport,
+        retries=RetryPolicy(total=1),
+    )
+    try:
+        transport = client._http._transport
+        assert isinstance(transport, AsyncRetryTransport)
+        assert transport.wrapped is user_transport
+    finally:
+        await client.aclose()
+
+
+@pytest.mark.asyncio
+async def test_async_client_context_manager_closes_underlying_http(
+    base_url: str,
+) -> None:
+    """The async client is an async-context manager that closes its httpx client on exit."""
+    async with Async{{ client_class }}(base_url) as client:
+        assert client.base_url == base_url
+    assert client._http.is_closed
