@@ -634,7 +634,7 @@ def _collection_operation_bullets(
     and the "paginated" hint) are replaced with a single-fetch hint and
     `.get_page(n)` is dropped entirely.
     """
-    paginated = coll.fetch is None or coll.fetch.pagination_supported
+    paginated = coll.fetch is not None and coll.fetch.pagination_supported
     bullets: list[_StaticBullet] = []
     if create_op is not None:
         bullets.append(
