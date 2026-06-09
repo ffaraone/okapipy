@@ -39,6 +39,7 @@ from .strategies import (
     SearchFilterStrategy,
     SortEncoding,
     SortStrategy,
+    extract_envelope_items,
 )
 from .transport import RetryPolicy, RetryTransport
 from .types import UNSET, RequestOptions, Unset
@@ -81,4 +82,5 @@ __all__ = [
     "UnsupportedPaginationError",
     "UnsupportedSortError",
     "UnsupportedSortFieldError",
+    "extract_envelope_items",
 ]

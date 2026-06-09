@@ -258,12 +258,16 @@ def _emit_collection_tests(
     chain = _join_chain(parent_chain, attr)
     test_attr = _safe_test_attr(chain)
     create_method = coll.create.method if coll.create is not None else "POST"
+    pagination_supported = (
+        coll.fetch.pagination_supported if coll.fetch is not None else True
+    )
     ctx = {
         **project_context,
         "accessor_chain": chain,
         "test_attr": test_attr,
         "has_create": coll.create is not None,
         "create_method": create_method,
+        "pagination_supported": pagination_supported,
     }
     out[f"{tests_root}/collections/test_{collection_module(coll)}.py"] = render_python(
         env, "tests/test_collection.py.jinja", ctx, known_first_party=top_package

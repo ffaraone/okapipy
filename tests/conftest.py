@@ -24,6 +24,7 @@ NLP_CACHE_DIR = Path(__file__).resolve().parent.parent / ".spacy"
 
 SIMPLE_FIXTURE = FIXTURES_ROOT / "simple.yaml"
 NESTED_FIXTURE = FIXTURES_ROOT / "nested.yaml"
+NO_PAGINATION_FIXTURE = FIXTURES_ROOT / "no_pagination.yaml"
 
 ORDERS_ONLY_SPEC = """
 openapi: 3.0.0
@@ -112,6 +113,16 @@ def nested_spec_path(fixtures_dir: Path) -> Path:
 def pagination_spec_path(fixtures_dir: Path) -> Path:
     """Path to a spec whose list response uses a custom envelope shape."""
     return fixtures_dir / "pagination.yaml"
+
+
+@pytest.fixture
+def no_pagination_fixture_path(fixtures_dir: Path) -> Path:
+    """Path to a spec that disables pagination at the document root.
+
+    The spec sets `x-okapipy-paginated: false` so every fetch in the tree
+    is emitted with the stripped non-paginated collection surface.
+    """
+    return fixtures_dir / "no_pagination.yaml"
 
 
 @pytest.fixture
@@ -272,6 +283,26 @@ def async_client_module(tmp_path: Path) -> Iterator[ModuleType]:
         package="asynccli",
         client_class="AsyncCli",
         project_name="async-cli",
+    )
+
+
+@pytest.fixture
+def no_pagination_client_module(tmp_path: Path) -> Iterator[ModuleType]:
+    """Generate against `no_pagination.yaml` and import the generated `nopagcli` package.
+
+    The fixture pins `x-okapipy-paginated: false` at the document root, so
+    the `/items` collection in the resulting tree is emitted with the
+    stripped surface (no `get_page` / `page_size`, single-fetch
+    `count` / `first` / iter). Tests exercise both sync and async clients
+    through this one fixture.
+    """
+    yield from _generate_and_import(
+        api=parse_spec(NO_PAGINATION_FIXTURE),
+        raw_spec=NO_PAGINATION_FIXTURE,
+        out_dir=tmp_path / "out",
+        package="nopagcli",
+        client_class="NoPagClient",
+        project_name="nopag-client",
     )
 
 

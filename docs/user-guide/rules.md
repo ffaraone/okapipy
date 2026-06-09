@@ -109,6 +109,15 @@ set it to `false` for list-shaped endpoints that return a bounded list
 Precedence, narrowest first: operation → path-item → document root → default
 `true`. Within each scope, a rules-file value wins over the spec value.
 
+!!! note "What the generated collection looks like"
+    Setting `x-okapipy-paginated: false` is not just a hint — the
+    generator emits a different collection class. `page_size(n)` and
+    `get_page(n)` are dropped, the iterator class is dropped, and
+    `count()` / `first()` / `exists()` / iteration all collapse to a
+    single GET that never consults the pagination strategy. See
+    [Using the client → Non-paginated collections](client-usage.md#non-paginated-collections)
+    for the user-facing shape.
+
 ```yaml
 paths:
   /currencies:

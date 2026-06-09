@@ -281,11 +281,12 @@ def build_collection_class_docstring(
     """Compose the collection docstring from fetch op + item / ops / sub-singletons / actions.
 
     `Operations on the collection` always lists the standard query helpers
-    (`first`, `count`, `exists`, `get_page`, iteration); the `create(body)`
-    bullet is added only when the parser populated `Collection.create`.
-    `Item access` is omitted when there is no resource child. `Sub-singletons`
-    appears when the collection hosts aggregate-view singletons such as
-    `/orders/stats`.
+    (`first`, `count`, `exists`, iteration), plus `.get_page(n)` when
+    pagination is supported (`coll.fetch.pagination_supported`); the
+    `create(body)` bullet is added only when the parser populated
+    `Collection.create`. `Item access` is omitted when there is no resource
+    child. `Sub-singletons` appears when the collection hosts aggregate-view
+    singletons such as `/orders/stats`.
     """
     fallback = f"Collection at `{coll.path}`."
     if coll.fetch is not None:
@@ -628,8 +629,12 @@ def _collection_operation_bullets(
     Lists the standard query helpers plus a `.create(body)` line when the
     parser populated a create operation. Iteration is folded in as a
     structural hint rather than a method call so users see the `for`
-    pattern at a glance.
+    pattern at a glance. When the fetch operation has
+    `pagination_supported=False`, the strategy-driven entries (`.get_page(n)`
+    and the "paginated" hint) are replaced with a single-fetch hint and
+    `.get_page(n)` is dropped entirely.
     """
+    paginated = coll.fetch is None or coll.fetch.pagination_supported
     bullets: list[_StaticBullet] = []
     if create_op is not None:
         bullets.append(
@@ -643,29 +648,45 @@ def _collection_operation_bullets(
                 ),
             )
         )
-    bullets.extend(
-        [
-            _StaticBullet(
-                label=".first()", one_line="Return the first item, or `None`."
-            ),
+    bullets.append(
+        _StaticBullet(label=".first()", one_line="Return the first item, or `None`.")
+    )
+    if paginated:
+        bullets.append(
             _StaticBullet(
                 label=".count()",
                 one_line=(
                     "Return the total count via the configured pagination strategy"
                 ),
-            ),
-            _StaticBullet(label=".exists()", one_line="Equivalent to `count() > 0`"),
+            )
+        )
+    else:
+        bullets.append(
+            _StaticBullet(
+                label=".count()",
+                one_line="Return the size of a single fetch (no wire pagination)",
+            )
+        )
+    bullets.append(
+        _StaticBullet(label=".exists()", one_line="Equivalent to `count() > 0`")
+    )
+    if paginated:
+        bullets.append(
             _StaticBullet(
                 label=".get_page(n)",
                 one_line=(
                     "Fetch a single 0-indexed page (offset/page-number strategies only)"
                 ),
-            ),
-            _StaticBullet(
-                label="for item in collection: ...",
-                one_line="Paginated iteration",
-            ),
-        ]
+            )
+        )
+        iter_hint = "Paginated iteration"
+    else:
+        iter_hint = "Single-fetch iteration"
+    bullets.append(
+        _StaticBullet(
+            label="for item in collection: ...",
+            one_line=iter_hint,
+        )
     )
     return bullets
 

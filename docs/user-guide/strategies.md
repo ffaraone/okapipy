@@ -89,6 +89,13 @@ deliberate: a `None` would let the backend choose, and the client would
 have no way to tell what page size each request actually carries.
 Per-call `.page_size(n)` always wins over the default.
 
+!!! tip "Endpoint isn't paginated at all?"
+    Strategies apply to collections whose fetch operation is paginated.
+    For list-shaped endpoints that return everything in one response,
+    set [`x-okapipy-paginated: false`](rules.md#x-okapipy-paginated-opt-out-of-pagination)
+    — the generator emits a stripped collection that never consults a
+    strategy. See [Non-paginated collections](client-usage.md#non-paginated-collections).
+
 | Strategy | Wire form | Count source | Random page access |
 | --- | --- | --- | --- |
 | `LimitOffsetPagination` | `?offset=0&limit=50` | `total_field` (dotted path), `total_header`, or `Content-Range` | Yes |

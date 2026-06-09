@@ -469,7 +469,15 @@ The client also exposes:
 
 ### 2.6 Collection surface
 
-Every collection class exposes:
+The emitted surface depends on the fetch operation's
+`pagination_supported` flag (set by `x-okapipy-paginated`, see §1.6). The
+**paginated** form is the default and is described first; the
+**non-paginated** form is a strict subset emitted whenever the fetch
+operation carries `pagination_supported=False`.
+
+#### 2.6.1 Paginated collection (default)
+
+Every paginated collection class exposes:
 
 | Method | Returns | Notes |
 |---|---|---|
@@ -491,6 +499,39 @@ Iterators are emitted as **separate classes** in the same module
 strategy-agnostic: an opaque `next_params: Mapping | None`, plus
 `current_page` and `index`. Items are deserialized via
 `client.from_response(item_model_cls, raw)`.
+
+#### 2.6.2 Non-paginated collection
+
+When the fetch operation has `pagination_supported=False`, the
+collection class is emitted with a strictly smaller surface — the
+endpoint returns the whole result set in one response, so methods that
+exist only to talk to a pagination strategy are dropped entirely:
+
+* **Dropped:** `page_size(n)`, `get_page(n)`, the `<Coll>Iterator` /
+  `Async<Coll>Iterator` classes, the `current_page_size` attribute on
+  the collection, and the import of `UnsupportedPaginationError`. The
+  collection never references `client.pagination_strategy`.
+* **Kept, but simplified:**
+  * `first()` issues a single GET and returns the head item or `None` —
+    there is no `page_size=1` hint to force, because the server returns
+    everything regardless.
+  * `count()` issues a single GET and returns `len(items)` from the
+    envelope. It is always supported (no `UnsupportedPaginationError`
+    branch).
+  * `exists()` issues a single GET and returns `bool(items)`.
+  * `__iter__` / `__aiter__` issue a single GET and yield every item
+    from the envelope as an (async) generator — no iterator class, no
+    state machine.
+
+Envelope parsing in the non-paginated path reuses the same item
+extractor as the pagination strategies — `extract_envelope_items` from
+the runtime — so the recognised shapes (top-level array; or an object
+with an `items` / `data` / `results` key) match the paginated path. The
+helper is a public symbol on the vendored runtime (`from
+<pkg>.base.strategies import extract_envelope_items`).
+
+`filter()`, `order_by()`, `with_options()`, `__getitem__`, and
+`create()` are emitted unchanged — they are orthogonal to pagination.
 
 ### 2.7 Resource / singleton surface
 

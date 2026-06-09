@@ -15,7 +15,11 @@ from typing import TYPE_CHECKING, Any, cast
 {% endif %}
 from urllib.parse import urlencode
 
+{% if pagination_supported %}
 from {{ runtime_dots }}exceptions import UnsupportedPaginationError
+{% else %}
+from {{ runtime_dots }}strategies import extract_envelope_items
+{% endif %}
 from {{ runtime_dots }}filters import Filter
 from {{ runtime_dots }}sort import Sort
 from {{ runtime_dots }}types import RequestOptions
@@ -61,7 +65,9 @@ class {{ class_name }}:
         self.path_params: dict[str, Any] = dict(path_params) if path_params else {}
         self.filter_expr: Filter | None = None
         self.sort_expr: Sort | None = None
+{% if pagination_supported %}
         self.current_page_size: int | None = None
+{% endif %}
         self.options: RequestOptions = RequestOptions()
 
     @property
@@ -98,10 +104,12 @@ class {{ class_name }}:
         self.sort_expr = wrapped if self.sort_expr is None else self.sort_expr + wrapped
         return self
 
+{% if pagination_supported %}
     def page_size(self, n: int) -> {{ class_name }}:
         """Set the page size for subsequent iteration / terminal calls."""
         self.current_page_size = n
         return self
+{% endif %}
 
 {% if resource %}
     def __getitem__(self, {{ resource.id_param }}: Any) -> {{ resource.class_name }}:
@@ -129,6 +137,7 @@ class {{ class_name }}:
         return self.client.from_response({{ create_op.response_model | py_class_or_none }}, response.json())
 {% endif %}
 
+{% if pagination_supported %}
     def first(self) -> {{ item_type }} | None:
         """Return the first item in the result set, or `None`.
 
@@ -213,6 +222,31 @@ class {{ class_name }}:
             cast("{{ item_type }}", self.client.from_response({{ fetch_item_model | py_class_or_none }}, raw))
             for raw in strat.extract_items(response)
         ]
+{% else %}
+    def first(self) -> {{ item_type }} | None:
+        """Return the first item in the result set, or `None`.
+
+        Non-paginated endpoint: issues the same single request as `__iter__`
+        and returns the head item — the server does not honor a page-size
+        hint, so there is no way to ask it for less than the full payload.
+        """
+        for item in self:
+            return item
+        return None
+
+    def count(self) -> int:
+        """Return the number of items returned by a single fetch.
+
+        Non-paginated endpoint: there is no count source on the wire — every
+        request returns the whole collection — so this fetches once and
+        reports the materialised length.
+        """
+        return len(self._fetch_items())
+
+    def exists(self) -> bool:
+        """Return `True` iff the collection contains at least one item."""
+        return bool(self._fetch_items())
+{% endif %}
 
 {% for child in child_singletons %}
     @property
@@ -229,9 +263,41 @@ class {{ class_name }}:
 
 {% endfor %}
 
+{% if pagination_supported %}
     def __iter__(self) -> {{ class_name }}Iterator:
         """Construct a fresh iterator bound to the current query state."""
         return {{ class_name }}Iterator(self)
+{% else %}
+    def __iter__(self) -> Iterator[{{ item_type }}]:
+        """Issue a single GET and yield every item from the response envelope.
+
+        Non-paginated endpoint: there is no iterator state machine — the server
+        returns the whole collection in one response, so the iterator is just
+        a generator over the envelope's item list.
+        """
+        for raw in self._fetch_items():
+            yield cast(
+                "{{ item_type }}",
+                self.client.from_response({{ fetch_item_model | py_class_or_none }}, raw),
+            )
+
+    def _fetch_items(self) -> list[Any]:
+        """Issue a single GET and return the decoded items.
+
+        Filter, sort, and `with_options(...)` accumulators apply exactly as
+        on the paginated path; the only difference is that no `?limit=` /
+        `?cursor=` page hint is sent. Items are returned as raw JSON objects
+        — the caller deserialises them via `client.from_response(...)`.
+        """
+        params, raw_query = self._collect_filter_sort_params()
+        params = self._merge_options_params(params)
+        target_url, target_params = self._build_request_target(self.url, params, raw_query)
+        response = self.client._http.request(
+            "GET", target_url, params=target_params, headers=self._collect_headers(),
+        )
+        response.raise_for_status()
+        return extract_envelope_items(response)
+{% endif %}
 
     def _collect_filter_sort_params(self) -> tuple[dict[str, Any], str | None]:
         """Encode `filter()` / `order_by()` accumulators.
@@ -300,6 +366,7 @@ class {{ class_name }}:
 {% endif %}
 
 
+{% if pagination_supported %}
 class {{ class_name }}Iterator(Iterator[{{ item_type }}]):
     """Pulls successive pages from `{{ class_name }}` and yields items.
 
@@ -367,6 +434,7 @@ class {{ class_name }}Iterator(Iterator[{{ item_type }}]):
         # `strategy.next(...)` uses to compute the next page's offset/cursor.
         nxt = strat.next(response, request_params)
         self.next_params = nxt
+{% endif %}
 
 
 class Async{{ class_name }}:
@@ -394,7 +462,9 @@ class Async{{ class_name }}:
         self.path_params: dict[str, Any] = dict(path_params) if path_params else {}
         self.filter_expr: Filter | None = None
         self.sort_expr: Sort | None = None
+{% if pagination_supported %}
         self.current_page_size: int | None = None
+{% endif %}
         self.options: RequestOptions = RequestOptions()
 
     @property
@@ -426,9 +496,11 @@ class Async{{ class_name }}:
         self.sort_expr = wrapped if self.sort_expr is None else self.sort_expr + wrapped
         return self
 
+{% if pagination_supported %}
     def page_size(self, n: int) -> Async{{ class_name }}:
         self.current_page_size = n
         return self
+{% endif %}
 
 {% if resource %}
     def __getitem__(self, {{ resource.id_param }}: Any) -> Async{{ resource.class_name }}:
@@ -456,6 +528,7 @@ class Async{{ class_name }}:
         return self.client.from_response({{ create_op.response_model | py_class_or_none }}, response.json())
 {% endif %}
 
+{% if pagination_supported %}
     async def first(self) -> {{ item_type }} | None:
         """Return the first item in the result set, or `None`.
 
@@ -512,6 +585,27 @@ class Async{{ class_name }}:
             cast("{{ item_type }}", self.client.from_response({{ fetch_item_model | py_class_or_none }}, raw))
             for raw in strat.extract_items(response)
         ]
+{% else %}
+    async def first(self) -> {{ item_type }} | None:
+        """Return the first item in the result set, or `None`.
+
+        Non-paginated endpoint: issues the same single request as `__aiter__`
+        and returns the head item.
+        """
+        async for item in self:
+            return item
+        return None
+
+    async def count(self) -> int:
+        """Return the number of items returned by a single fetch."""
+        items = await self._fetch_items()
+        return len(items)
+
+    async def exists(self) -> bool:
+        """Return `True` iff the collection contains at least one item."""
+        items = await self._fetch_items()
+        return bool(items)
+{% endif %}
 
 {% for child in child_singletons %}
     @property
@@ -528,9 +622,40 @@ class Async{{ class_name }}:
 
 {% endfor %}
 
+{% if pagination_supported %}
     def __aiter__(self) -> Async{{ class_name }}Iterator:
         """Construct a fresh async iterator bound to the current query state."""
         return Async{{ class_name }}Iterator(self)
+{% else %}
+    def __aiter__(self) -> AsyncIterator[{{ item_type }}]:
+        """Return an async generator that yields every item from a single fetch.
+
+        Non-paginated endpoint: there is no iterator state machine — the server
+        returns the whole collection in one response, so iteration is just an
+        async generator over the envelope's item list.
+        """
+        return self._aiter_items()
+
+    async def _aiter_items(self) -> AsyncIterator[{{ item_type }}]:
+        """Async generator backing `__aiter__`; isolates the single fetch + yield."""
+        items = await self._fetch_items()
+        for raw in items:
+            yield cast(
+                "{{ item_type }}",
+                self.client.from_response({{ fetch_item_model | py_class_or_none }}, raw),
+            )
+
+    async def _fetch_items(self) -> list[Any]:
+        """Issue a single GET and return the decoded items (see sync sibling)."""
+        params, raw_query = self._collect_filter_sort_params()
+        params = self._merge_options_params(params)
+        target_url, target_params = self._build_request_target(self.url, params, raw_query)
+        response = await self.client._http.request(
+            "GET", target_url, params=target_params, headers=self._collect_headers(),
+        )
+        response.raise_for_status()
+        return extract_envelope_items(response)
+{% endif %}
 
     def _collect_filter_sort_params(self) -> tuple[dict[str, Any], str | None]:
         filter_encoding = self.client.filter_strategy.encode(self.filter_expr)
@@ -578,6 +703,7 @@ class Async{{ class_name }}:
 {% endif %}
 
 
+{% if pagination_supported %}
 class Async{{ class_name }}Iterator(AsyncIterator[{{ item_type }}]):
     """Async sibling of `{{ class_name }}Iterator`."""
 
@@ -635,3 +761,4 @@ class Async{{ class_name }}Iterator(AsyncIterator[{{ item_type }}]):
         self.index = 0
         nxt = strat.next(response, request_params)
         self.next_params = nxt
+{% endif %}
