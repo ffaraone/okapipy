@@ -644,6 +644,20 @@ page_num`); `False` for `CursorPagination` and `LinkHeaderPagination`,
 which reject up front because the wire protocol cannot reach page N
 without first consuming page N-1's continuation token.
 
+When the fetch operation's `pagination_supported` is `False` (set via
+`x-okapipy-paginated`), the same template emits a stripped variant:
+`page_size`, `get_page`, `current_page_size`, the iterator classes, and
+the import of `UnsupportedPaginationError` are all dropped. `first()`,
+`count()`, `exists()`, `__iter__`, and `__aiter__` issue a single GET
+each via a private `_fetch_items()` helper that calls the public
+`extract_envelope_items` from the runtime (the same item extractor every
+`PaginationStrategy.extract_items` delegates to). `__iter__` /
+`__aiter__` are inline (async) generators — no per-collection iterator
+class — because there is no continuation state to carry between
+requests. The collection never references `client.pagination_strategy`
+on this branch; `filter()`, `order_by()`, `with_options()`,
+`__getitem__`, and `create()` are unchanged.
+
 `templates/package/resource.py.jinja` and `singleton.py.jinja` produce the
 CRUD-method surface from the parser slot booleans (`if retrieve_op`, etc.)
 and forward to a shared `_request` helper that issues the call, raises on

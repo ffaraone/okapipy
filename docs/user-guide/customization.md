@@ -258,6 +258,14 @@ strategy just for this collection), wire a custom iterator class in the
 factory hook — the generator emits `<Collection>Iterator` next to each
 collection class.
 
+!!! note
+    The `<Collection>Iterator` class only exists for collections whose
+    fetch operation is paginated. When the fetch carries
+    [`x-okapipy-paginated: false`](rules.md#x-okapipy-paginated-opt-out-of-pagination),
+    iteration is an inline generator on the collection itself — there
+    is no iterator class to swap. Overriding `__iter__` to wrap each
+    item still works exactly as shown above.
+
 ### Override the constructor / authentication
 
 The user-layer `Client` is the right place to wire authentication,

@@ -139,8 +139,14 @@ class SortStrategy(Protocol):
 ITEM_KEYS = ("items", "data", "results")
 
 
-def _extract_items_from_envelope(response: httpx.Response) -> list[Any]:
-    """Default item extraction: top-level array, or `items`/`data`/`results` field."""
+def extract_envelope_items(response: httpx.Response) -> list[Any]:
+    """Default item extraction: top-level array, or `items`/`data`/`results` field.
+
+    Reused by every built-in `PaginationStrategy.extract_items` and by the
+    no-pagination branch of the generated collection class (which bypasses
+    the strategy state machine entirely but still needs to recognise the
+    same envelope shapes).
+    """
     body = response.json()
     if isinstance(body, list):
         return list(body)
@@ -240,7 +246,7 @@ class LimitOffsetPagination:
         return {**last_params, self.offset_param: new_offset}
 
     def extract_items(self, response: httpx.Response) -> list[Any]:
-        return _extract_items_from_envelope(response)
+        return extract_envelope_items(response)
 
     def count_request_params(self, base_params: Mapping[str, Any]) -> Mapping[str, Any]:
         params = dict(base_params)
@@ -326,7 +332,7 @@ class PageNumberPagination:
         return {**last_params, self.page_param: last_page + 1}
 
     def extract_items(self, response: httpx.Response) -> list[Any]:
-        return _extract_items_from_envelope(response)
+        return extract_envelope_items(response)
 
     def count_request_params(self, base_params: Mapping[str, Any]) -> Mapping[str, Any]:
         params = dict(base_params)
@@ -395,7 +401,7 @@ class CursorPagination:
         return {**last_params, self.cursor_param: token}
 
     def extract_items(self, response: httpx.Response) -> list[Any]:
-        return _extract_items_from_envelope(response)
+        return extract_envelope_items(response)
 
     def count_request_params(self, base_params: Mapping[str, Any]) -> Mapping[str, Any]:
         params = dict(base_params)
@@ -464,7 +470,7 @@ class LinkHeaderPagination:
         return {"__url__": next_url}
 
     def extract_items(self, response: httpx.Response) -> list[Any]:
-        return _extract_items_from_envelope(response)
+        return extract_envelope_items(response)
 
     def count_request_params(self, base_params: Mapping[str, Any]) -> Mapping[str, Any]:
         params = dict(base_params)

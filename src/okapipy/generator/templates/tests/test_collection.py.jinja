@@ -62,6 +62,7 @@ def test_{{ test_attr }}_first_none_on_empty(
     assert client.{{ accessor_chain }}.first() is None
 
 
+{% if pagination_supported %}
 def test_{{ test_attr }}_iter_walks_pages(
     httpx_mock: HTTPXMock,
     client: {{ client_class }},
@@ -79,6 +80,22 @@ def test_{{ test_attr }}_iter_walks_pages(
     items = list(client.{{ accessor_chain }}.page_size(2))
 
     assert [field(item, "id") for item in items] == ["1", "2", "3", "4"]
+{% else %}
+def test_{{ test_attr }}_iter_yields_all_items_in_single_request(
+    httpx_mock: HTTPXMock,
+    client: {{ client_class }},
+    field: Callable[[Any, str], Any],
+) -> None:
+    """Non-paginated endpoint: iteration issues exactly one GET and yields every item."""
+    httpx_mock.add_response(
+        method="GET",
+        json={"items": [{"id": "1"}, {"id": "2"}, {"id": "3"}]},
+    )
+    items = list(client.{{ accessor_chain }})
+
+    assert [field(item, "id") for item in items] == ["1", "2", "3"]
+    assert len(httpx_mock.get_requests()) == 1
+{% endif %}
 
 
 def test_{{ test_attr }}_chains_return_self(
@@ -138,6 +155,7 @@ def test_{{ test_attr }}_exists_false_when_total_zero(
     assert client.{{ accessor_chain }}.exists() is False
 
 
+{% if pagination_supported %}
 def test_{{ test_attr }}_get_page_returns_items_for_index(
     httpx_mock: HTTPXMock,
     client: {{ client_class }},
@@ -151,6 +169,7 @@ def test_{{ test_attr }}_get_page_returns_items_for_index(
     page = client.{{ accessor_chain }}.page_size(2).get_page(1)
 
     assert [field(item, "id") for item in page] == ["p2-a", "p2-b"]
+{% endif %}
 
 
 {% if has_create %}
@@ -189,6 +208,7 @@ async def test_async_{{ test_attr }}_first_none_on_empty(
     assert await async_client.{{ accessor_chain }}.first() is None
 
 
+{% if pagination_supported %}
 @pytest.mark.asyncio
 async def test_async_{{ test_attr }}_iter_walks_pages(
     httpx_mock: HTTPXMock,
@@ -209,6 +229,23 @@ async def test_async_{{ test_attr }}_iter_walks_pages(
     ]
 
     assert [field(item, "id") for item in items] == ["1", "2", "3", "4"]
+{% else %}
+@pytest.mark.asyncio
+async def test_async_{{ test_attr }}_iter_yields_all_items_in_single_request(
+    httpx_mock: HTTPXMock,
+    async_client: Async{{ client_class }},
+    field: Callable[[Any, str], Any],
+) -> None:
+    """Non-paginated endpoint (async): one GET, every item yielded."""
+    httpx_mock.add_response(
+        method="GET",
+        json={"items": [{"id": "1"}, {"id": "2"}, {"id": "3"}]},
+    )
+    items = [item async for item in async_client.{{ accessor_chain }}]
+
+    assert [field(item, "id") for item in items] == ["1", "2", "3"]
+    assert len(httpx_mock.get_requests()) == 1
+{% endif %}
 
 
 @pytest.mark.asyncio
@@ -293,6 +330,7 @@ async def test_async_{{ test_attr }}_exists_true_when_total_positive(
     assert await async_client.{{ accessor_chain }}.exists() is True
 
 
+{% if pagination_supported %}
 @pytest.mark.asyncio
 async def test_async_{{ test_attr }}_get_page_returns_items_for_index(
     httpx_mock: HTTPXMock,
@@ -307,6 +345,7 @@ async def test_async_{{ test_attr }}_get_page_returns_items_for_index(
     page = await async_client.{{ accessor_chain }}.page_size(2).get_page(1)
 
     assert [field(item, "id") for item in page] == ["p2-a", "p2-b"]
+{% endif %}
 
 
 {% if has_create %}

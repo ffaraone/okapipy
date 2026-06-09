@@ -195,6 +195,79 @@ that walk pages sequentially (`CursorPagination`, `LinkHeaderPagination`):
 they cannot reach page N without first consuming page N-1's continuation
 token.
 
+### Non-paginated collections
+
+Some endpoints return the whole result set in a single response — there
+is no `?limit=`, no `?cursor=`, no `Link: rel="next"`. Mark them with
+`x-okapipy-paginated: false` (in the spec or in the rules file; see
+[Rules and extensions](rules.md)) and okapipy emits a stripped
+collection class that reflects what the endpoint can actually do.
+
+What changes on a non-paginated collection:
+
+* **Dropped:** `page_size(n)` and `get_page(n)`. Neither makes sense
+  when the server returns everything in one shot — calling them would
+  be a lie.
+* **Simplified, never raises `UnsupportedPaginationError`:**
+  * `__iter__` / `__aiter__` issue one GET and yield every item from
+    the response envelope. No state machine, no continuation tokens.
+  * `first()` issues one GET and returns the head item or `None`.
+  * `count()` issues one GET and returns `len(items)` — the number of
+    items the server returned.
+  * `exists()` is `count() > 0` via the same single GET.
+* **Unchanged:** `filter()`, `order_by()`, `with_options()`,
+  `__getitem__(id)`, and `create(body)` are emitted exactly as on a
+  paginated collection.
+
+```yaml title="openapi.yaml"
+paths:
+  /regions:
+    x-okapipy-paginated: false
+    get:
+      summary: List all regions (small, fixed set)
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegionList'
+```
+
+=== "Sync"
+
+    ```python
+    # `client.regions` is the stripped collection. No `.page_size(...)`,
+    # no `.get_page(...)` — the IDE will not even auto-complete them.
+    for region in client.regions:
+        print(region.code, region.name)
+
+    total = client.regions.count()           # one GET, returns len(items)
+    eu = client.regions.first()              # one GET, returns the head
+    ```
+
+=== "Async"
+
+    ```python
+    async for region in async_client.regions:
+        print(region.code, region.name)
+
+    total = await async_client.regions.count()
+    eu = await async_client.regions.first()
+    ```
+
+!!! note
+    The non-paginated branch never touches `client.pagination_strategy`,
+    so the strategy you pass at construction time is ignored for these
+    collections. You can still set a strategy for the rest of the
+    client — only the non-paginated collections opt out.
+
+The same envelope shapes the pagination strategies recognise apply here
+too — a top-level JSON array, or an object with an `items` / `data` /
+`results` key. The runtime exposes the extractor as
+`extract_envelope_items` (in `<your_pkg>.base.strategies`) if you need
+to reach for it directly.
+
 ### Create a record
 
 ```python
