@@ -41,6 +41,18 @@ from okapipy.parser.model import (
 
 SAMPLE_ID = "sample-id"
 
+# Names of the vendored runtime modules that have a matching test template.
+# A `test_runtime_<module>.py` is rendered once per project (top-level only,
+# next to `test_client.py`) so the vendored runtime is exercised by the
+# generated suite.
+_RUNTIME_TEST_MODULES: tuple[str, ...] = (
+    "exceptions",
+    "filters",
+    "sort",
+    "strategies",
+    "transport",
+)
+
 
 def emit_tests(
     env: Environment,
@@ -93,6 +105,13 @@ def emit_tests(
             project_context,
             known_first_party=top_package,
         )
+        for runtime_module in _RUNTIME_TEST_MODULES:
+            out[f"{tests_root}/test_runtime_{runtime_module}.py"] = render_python(
+                env,
+                f"tests/test_runtime_{runtime_module}.py.jinja",
+                project_context,
+                known_first_party=top_package,
+            )
     for ns in api.namespaces:
         _emit_namespace_tests(
             env,

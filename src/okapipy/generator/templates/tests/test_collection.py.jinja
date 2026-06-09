@@ -13,6 +13,8 @@ from typing import Any
 import pytest
 from pytest_httpx import HTTPXMock
 
+from {{ package }}.base.filters import Filter
+from {{ package }}.base.sort import Sort
 from {{ package }}.client import {{ client_class }}, Async{{ client_class }}
 
 
@@ -45,6 +47,71 @@ def test_{{ test_attr }}_first_returns_initial_item(
 
     assert first is not None
     assert field(first, "id") == "1"
+
+
+def test_{{ test_attr }}_first_none_on_empty(
+    httpx_mock: HTTPXMock,
+    client: {{ client_class }},
+) -> None:
+    """`first()` returns `None` when iteration yields nothing."""
+    httpx_mock.add_response(
+        method="GET",
+        json={"items": [], "total": 0},
+    )
+
+    assert client.{{ accessor_chain }}.first() is None
+
+
+def test_{{ test_attr }}_iter_walks_pages(
+    httpx_mock: HTTPXMock,
+    client: {{ client_class }},
+    field: Callable[[Any, str], Any],
+) -> None:
+    """Iteration follows the strategy through multiple pages until the total is reached."""
+    httpx_mock.add_response(
+        method="GET",
+        json={"items": [{"id": "1"}, {"id": "2"}], "total": 4},
+    )
+    httpx_mock.add_response(
+        method="GET",
+        json={"items": [{"id": "3"}, {"id": "4"}], "total": 4},
+    )
+    items = list(client.{{ accessor_chain }}.page_size(2))
+
+    assert [field(item, "id") for item in items] == ["1", "2", "3", "4"]
+
+
+def test_{{ test_attr }}_chains_return_self(
+    client: {{ client_class }},
+) -> None:
+    """`all()`, `filter(...)`, `order_by(...)` are fluent and return the same instance."""
+    collection = client.{{ accessor_chain }}
+    chained = collection.all().filter(Filter(status="open")).order_by(Sort("-id"))
+
+    assert chained is collection
+    assert collection.filter_expr is not None
+    assert collection.sort_expr is not None
+
+
+def test_{{ test_attr }}_with_options_threads_overrides(
+    httpx_mock: HTTPXMock,
+    client: {{ client_class }},
+) -> None:
+    """`with_options(params=..., headers=...)` merges overrides into the page request."""
+    httpx_mock.add_response(
+        method="GET",
+        json={"items": [], "total": 0},
+    )
+    list(
+        client.{{ accessor_chain }}.with_options(
+            params={"trace": "1"}, headers={"X-Trace": "ok"}
+        )
+    )
+
+    request = httpx_mock.get_request()
+    assert request is not None
+    assert request.url.params["trace"] == "1"
+    assert request.headers["X-Trace"] == "ok"
 
 
 def test_{{ test_attr }}_exists_true_when_total_positive(
@@ -106,6 +173,78 @@ def test_{{ test_attr }}_create_posts_body(
     assert request is not None
     assert request.method == "{{ create_method }}"
 {% endif %}
+
+
+@pytest.mark.asyncio
+async def test_async_{{ test_attr }}_first_none_on_empty(
+    httpx_mock: HTTPXMock,
+    async_client: Async{{ client_class }},
+) -> None:
+    """Async `first()` returns `None` when iteration yields nothing."""
+    httpx_mock.add_response(
+        method="GET",
+        json={"items": [], "total": 0},
+    )
+
+    assert await async_client.{{ accessor_chain }}.first() is None
+
+
+@pytest.mark.asyncio
+async def test_async_{{ test_attr }}_iter_walks_pages(
+    httpx_mock: HTTPXMock,
+    async_client: Async{{ client_class }},
+    field: Callable[[Any, str], Any],
+) -> None:
+    """Async iteration follows the strategy through multiple pages."""
+    httpx_mock.add_response(
+        method="GET",
+        json={"items": [{"id": "1"}, {"id": "2"}], "total": 4},
+    )
+    httpx_mock.add_response(
+        method="GET",
+        json={"items": [{"id": "3"}, {"id": "4"}], "total": 4},
+    )
+    items = [
+        item async for item in async_client.{{ accessor_chain }}.page_size(2)
+    ]
+
+    assert [field(item, "id") for item in items] == ["1", "2", "3", "4"]
+
+
+@pytest.mark.asyncio
+async def test_async_{{ test_attr }}_chains_return_self(
+    async_client: Async{{ client_class }},
+) -> None:
+    """Async `all()`, `filter(...)`, `order_by(...)` are fluent and return the same instance."""
+    collection = async_client.{{ accessor_chain }}
+    chained = collection.all().filter(Filter(status="open")).order_by(Sort("-id"))
+
+    assert chained is collection
+    assert collection.filter_expr is not None
+    assert collection.sort_expr is not None
+
+
+@pytest.mark.asyncio
+async def test_async_{{ test_attr }}_with_options_threads_overrides(
+    httpx_mock: HTTPXMock,
+    async_client: Async{{ client_class }},
+) -> None:
+    """Async `with_options(params=..., headers=...)` merges overrides into the page request."""
+    httpx_mock.add_response(
+        method="GET",
+        json={"items": [], "total": 0},
+    )
+    [
+        item
+        async for item in async_client.{{ accessor_chain }}.with_options(
+            params={"trace": "1"}, headers={"X-Trace": "ok"}
+        )
+    ]
+
+    request = httpx_mock.get_request()
+    assert request is not None
+    assert request.url.params["trace"] == "1"
+    assert request.headers["X-Trace"] == "ok"
 
 
 @pytest.mark.asyncio

@@ -30,6 +30,33 @@ def test_{{ test_attr }}_retrieve_returns_payload(
 
     assert result is not None
     assert field(result, "id") == "abc"
+
+
+def test_{{ test_attr }}_retrieve_none_on_empty(
+    httpx_mock: HTTPXMock,
+    client: {{ client_class }},
+) -> None:
+    """`retrieve()` returns `None` when the server replies with an empty body."""
+    httpx_mock.add_response(method="{{ retrieve_method }}", content=b"")
+
+    assert client.{{ accessor_chain }}.retrieve() is None
+
+
+def test_{{ test_attr }}_retrieve_with_overrides(
+    httpx_mock: HTTPXMock,
+    client: {{ client_class }},
+) -> None:
+    """`params=...` / `headers=...` overrides on `retrieve()` reach the wire request."""
+    httpx_mock.add_response(method="{{ retrieve_method }}", json={"id": "abc"})
+
+    client.{{ accessor_chain }}.retrieve(
+        params={"trace": "1"}, headers={"X-Trace": "ok"}
+    )
+
+    request = httpx_mock.get_request()
+    assert request is not None
+    assert request.url.params["trace"] == "1"
+    assert request.headers["X-Trace"] == "ok"
 {% endif %}
 
 
@@ -101,6 +128,35 @@ async def test_async_{{ test_attr }}_retrieve_returns_payload(
 
     assert result is not None
     assert field(result, "id") == "abc"
+
+
+@pytest.mark.asyncio
+async def test_async_{{ test_attr }}_retrieve_none_on_empty(
+    httpx_mock: HTTPXMock,
+    async_client: Async{{ client_class }},
+) -> None:
+    """Async `retrieve()` returns `None` when the server replies with an empty body."""
+    httpx_mock.add_response(method="{{ retrieve_method }}", content=b"")
+
+    assert await async_client.{{ accessor_chain }}.retrieve() is None
+
+
+@pytest.mark.asyncio
+async def test_async_{{ test_attr }}_retrieve_with_overrides(
+    httpx_mock: HTTPXMock,
+    async_client: Async{{ client_class }},
+) -> None:
+    """Async `params=...` / `headers=...` overrides on `retrieve()` reach the wire request."""
+    httpx_mock.add_response(method="{{ retrieve_method }}", json={"id": "abc"})
+
+    await async_client.{{ accessor_chain }}.retrieve(
+        params={"trace": "1"}, headers={"X-Trace": "ok"}
+    )
+
+    request = httpx_mock.get_request()
+    assert request is not None
+    assert request.url.params["trace"] == "1"
+    assert request.headers["X-Trace"] == "ok"
 {% endif %}
 
 

@@ -85,9 +85,11 @@ class {{ class_name }}:
     @staticmethod
     def _build_request_kwargs(body: Any, overrides: dict[str, Any]) -> dict[str, Any]:
         request_kwargs: dict[str, Any] = {}
+{% if any_has_body %}
         if body is not None:
             dump = getattr(body, "model_dump", None)
             request_kwargs["json"] = dump(mode="json") if callable(dump) else body
+{% endif %}
         params = overrides.get("params")
         if params:
             request_kwargs["params"] = dict(params)
@@ -157,9 +159,11 @@ class Async{{ class_name }}:
     @staticmethod
     def _build_request_kwargs(body: Any, overrides: dict[str, Any]) -> dict[str, Any]:
         request_kwargs: dict[str, Any] = {}
+{% if any_has_body %}
         if body is not None:
             dump = getattr(body, "model_dump", None)
             request_kwargs["json"] = dump(mode="json") if callable(dump) else body
+{% endif %}
         params = overrides.get("params")
         if params:
             request_kwargs["params"] = dict(params)

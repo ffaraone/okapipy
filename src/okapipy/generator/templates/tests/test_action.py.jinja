@@ -40,6 +40,41 @@ def test_{{ test_attr }}_run_invokes_method(
     assert request.method == "{{ single_op.method }}"
 
 
+def test_{{ test_attr }}_run_none_on_empty(
+    httpx_mock: HTTPXMock,
+    client: {{ client_class }},
+) -> None:
+    """`run()` returns `None` when the server replies with an empty body."""
+    httpx_mock.add_response(method="{{ single_op.method }}", content=b"")
+    {% if single_op.has_body %}
+    assert client.{{ accessor_chain }}.run({"input": "value"}) is None
+    {% else %}
+    assert client.{{ accessor_chain }}.run() is None
+    {% endif %}
+
+
+def test_{{ test_attr }}_run_with_overrides(
+    httpx_mock: HTTPXMock,
+    client: {{ client_class }},
+) -> None:
+    """`params=...` / `headers=...` overrides on `run()` reach the wire request."""
+    httpx_mock.add_response(method="{{ single_op.method }}", json={"ok": True})
+    {% if single_op.has_body %}
+    client.{{ accessor_chain }}.run(
+        {"input": "value"}, params={"trace": "1"}, headers={"X-Trace": "ok"}
+    )
+    {% else %}
+    client.{{ accessor_chain }}.run(
+        params={"trace": "1"}, headers={"X-Trace": "ok"}
+    )
+    {% endif %}
+
+    request = httpx_mock.get_request()
+    assert request is not None
+    assert request.url.params["trace"] == "1"
+    assert request.headers["X-Trace"] == "ok"
+
+
 @pytest.mark.asyncio
 async def test_async_{{ test_attr }}_run_invokes_method(
     httpx_mock: HTTPXMock,
@@ -59,6 +94,43 @@ async def test_async_{{ test_attr }}_run_invokes_method(
 
     assert result is not None
     assert field(result, "ok") is True
+
+
+@pytest.mark.asyncio
+async def test_async_{{ test_attr }}_run_none_on_empty(
+    httpx_mock: HTTPXMock,
+    async_client: Async{{ client_class }},
+) -> None:
+    """Async `run()` returns `None` when the server replies with an empty body."""
+    httpx_mock.add_response(method="{{ single_op.method }}", content=b"")
+    {% if single_op.has_body %}
+    assert await async_client.{{ accessor_chain }}.run({"input": "value"}) is None
+    {% else %}
+    assert await async_client.{{ accessor_chain }}.run() is None
+    {% endif %}
+
+
+@pytest.mark.asyncio
+async def test_async_{{ test_attr }}_run_with_overrides(
+    httpx_mock: HTTPXMock,
+    async_client: Async{{ client_class }},
+) -> None:
+    """Async `params=...` / `headers=...` overrides on `run()` reach the wire request."""
+    httpx_mock.add_response(method="{{ single_op.method }}", json={"ok": True})
+    {% if single_op.has_body %}
+    await async_client.{{ accessor_chain }}.run(
+        {"input": "value"}, params={"trace": "1"}, headers={"X-Trace": "ok"}
+    )
+    {% else %}
+    await async_client.{{ accessor_chain }}.run(
+        params={"trace": "1"}, headers={"X-Trace": "ok"}
+    )
+    {% endif %}
+
+    request = httpx_mock.get_request()
+    assert request is not None
+    assert request.url.params["trace"] == "1"
+    assert request.headers["X-Trace"] == "ok"
 {% else %}
 {% for op in operations %}
 def test_{{ test_attr }}_{{ op.method | lower }}_invokes_method(

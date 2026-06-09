@@ -855,8 +855,11 @@ def _emit_action(
     shape: Shape,
     mount_relpath: str = "",
 ) -> dict[str, str]:
-    operations = [op_context(op, available_models, shape) for op in action.operations]
-    operations = [op for op in operations if op is not None]
+    operations: list[dict[str, Any]] = [
+        op
+        for op in (op_context(o, available_models, shape) for o in action.operations)
+        if op is not None
+    ]
     single_op = operations[0] if len(operations) == 1 else None
     model_imports = sorted(collect_model_names(action.operations, available_models))
     # Action docstrings: when the action has a single HTTP method, the class
@@ -877,12 +880,14 @@ def _emit_action(
             )
         )
     single_op_docstring = op_docstrings[0] if len(op_docstrings) == 1 else None
+    any_has_body = any(op["has_body"] for op in operations)
     ctx = {
         **project_context,
         "class_name": action_class(action),
         "path_template": action.path,
         "operations": operations,
         "single_op": single_op,
+        "any_has_body": any_has_body,
         "model_imports": model_imports,
         "class_docstring": class_doc,
         "single_op_docstring": single_op_docstring,

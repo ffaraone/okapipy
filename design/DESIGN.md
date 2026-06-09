@@ -165,6 +165,17 @@ Three invariants live in this module:
   collection class exposes the sub-singleton as a `@property`
   alongside iteration; the sub-singleton file lives under
   `base/singletons/<name>.py` as usual.
+* **Resource-id parameter canonicalization.** OpenAPI documents in the
+  wild use inconsistent path-parameter names for the same resource slot
+  (e.g. `/orgs/{id}` next to `/orgs/{organization_id}/foo`). The walk
+  maintains a parallel `canonical_parts` alongside `cumulative_parts`:
+  the raw list is still used for rule and `spec_path_kinds` lookups
+  (which key on the original spec path), but the stored `node.path` is
+  built from the canonical list, which rewrites every `{param}` segment
+  to the first-seen name for that resource slot. Without this, the
+  generator's wiring layer (which forwards the parent's `path_params`
+  dict down to every child) would fail at runtime with `KeyError` when
+  the child's `PATH_TEMPLATE` references a key the parent never set.
 * **Drop, don't coerce.** `_route` warns and returns when a method has no
   canonical slot for the terminal kind. The only way to keep an
   off-pattern operation is to mark it `x-okapipy-kind: action` (operation
