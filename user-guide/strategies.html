@@ -1545,6 +1545,14 @@ on for when you need something else.</p>
 deliberate: a <code>None</code> would let the backend choose, and the client would
 have no way to tell what page size each request actually carries.
 Per-call <code>.page_size(n)</code> always wins over the default.</p>
+<div class="admonition tip">
+<p class="admonition-title">Endpoint isn't paginated at all?</p>
+<p>Strategies apply to collections whose fetch operation is paginated.
+For list-shaped endpoints that return everything in one response,
+set <a href="rules.html#x-okapipy-paginated-opt-out-of-pagination"><code>x-okapipy-paginated: false</code></a>
+— the generator emits a stripped collection that never consults a
+strategy. See <a href="client-usage.html#non-paginated-collections">Non-paginated collections</a>.</p>
+</div>
 <table>
 <thead>
 <tr>

@@ -1847,6 +1847,15 @@ override <code>__iter__</code>:</p>
 strategy just for this collection), wire a custom iterator class in the
 factory hook — the generator emits <code>&lt;Collection&gt;Iterator</code> next to each
 collection class.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The <code>&lt;Collection&gt;Iterator</code> class only exists for collections whose
+fetch operation is paginated. When the fetch carries
+<a href="rules.html#x-okapipy-paginated-opt-out-of-pagination"><code>x-okapipy-paginated: false</code></a>,
+iteration is an inline generator on the collection itself — there
+is no iterator class to swap. Overriding <code>__iter__</code> to wrap each
+item still works exactly as shown above.</p>
+</div>
 <h3 id="override-the-constructor-authentication">Override the constructor / authentication<a class="headerlink" href="#override-the-constructor-authentication" title="Permanent link">&para;</a></h3>
 <p>The user-layer <code>Client</code> is the right place to wire authentication,
 retries, base URLs, and any cross-cutting concerns:</p>

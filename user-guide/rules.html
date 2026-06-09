@@ -1613,6 +1613,16 @@ set it to <code>false</code> for list-shaped endpoints that return a bounded lis
 (enum-like reference data, configuration, etc.).</p>
 <p>Precedence, narrowest first: operation → path-item → document root → default
 <code>true</code>. Within each scope, a rules-file value wins over the spec value.</p>
+<div class="admonition note">
+<p class="admonition-title">What the generated collection looks like</p>
+<p>Setting <code>x-okapipy-paginated: false</code> is not just a hint — the
+generator emits a different collection class. <code>page_size(n)</code> and
+<code>get_page(n)</code> are dropped, the iterator class is dropped, and
+<code>count()</code> / <code>first()</code> / <code>exists()</code> / iteration all collapse to a
+single GET that never consults the pagination strategy. See
+<a href="client-usage.html#non-paginated-collections">Using the client → Non-paginated collections</a>
+for the user-facing shape.</p>
+</div>
 <div class="language-yaml highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nt">paths</span><span class="p">:</span>
 </span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span><span class="nt">/currencies</span><span class="p">:</span>
 </span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">    </span><span class="nt">x-okapipy-paginated</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span><span class="w">         </span><span class="c1"># the full list is short and fixed</span>
