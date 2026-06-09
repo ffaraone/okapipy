@@ -259,7 +259,7 @@ def _emit_collection_tests(
     test_attr = _safe_test_attr(chain)
     create_method = coll.create.method if coll.create is not None else "POST"
     pagination_supported = (
-        coll.fetch.pagination_supported if coll.fetch is not None else True
+        coll.fetch.pagination_supported if coll.fetch is not None else False
     )
     ctx = {
         **project_context,
